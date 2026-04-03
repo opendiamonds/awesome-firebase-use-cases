@@ -28,10 +28,12 @@ awesome-firebase-use-cases/
 │   ├── ai/                     # Firebase × AI 整合
 │   └── social/                 # 社群/內容創作
 │
-└── workflows/                  # 自動化 Workflows
-    ├── n8n/                    # Firebase × n8n
-    ├── make/                   # Firebase × Make
-    └── zapier/                 # Firebase × Zapier
+├── workflows/                  # 自動化 Workflows
+│   └── n8n/                    # Firebase × n8n
+│
+└── tools/                      # 開發者工具
+    ├── skills/                 # OpenClaw Skills
+    └── mcp/                    # MCP Servers
 ```
 
 ---
