@@ -1,5 +1,10 @@
 # Cloud-360 System Requirement Specification
 
+> 本文件必須同時包含中文版與英文版。
+> This document must include both Chinese and English versions.
+
+## 中文版
+
 - Status: Draft v0.1
 - Date: 2026-05-02
 - Owner: Danniel Chung / Anita
@@ -199,3 +204,29 @@ Safety requirements:
 - Storing plaintext cloud credentials
 - Autonomous destructive cloud changes
 - Treating third-party collaborative branches as editable without explicit authorization
+
+## English Version
+
+Cloud-360 is an AI-native multi-cloud architecture, governance, security, and operations platform for Cloud Architects, SRE, FinOps, and Security teams.
+
+The platform integrates LLMs, a multi-agent collaboration framework, MCP servers, cloud SDKs, cloud CLIs, Terraform/OpenTofu, reusable AI Skills, and MCP/Skill management capabilities to support AWS, GCP, and Azure lifecycle management.
+
+Core requirements:
+
+- AI-driven architecture design from natural language requirements.
+- Cross-cloud component selection across AWS, GCP, and Azure.
+- Cost estimation and FinOps analysis, including data egress and interruptible pricing.
+- Terraform/OpenTofu generation with static security scanning.
+- Operations optimization for performance, reliability, cost, SLO/SLA, and modernization.
+- AI Chat driven cloud operations and Agentic AI proactive analysis.
+- Cloud Security Posture and Policy Advisory.
+- MCP and Skill Management covering registry, catalog, risk classification, versioning, health checks, approvals, and Agent Routing integration.
+- Desktop Web as the full workspace and Mobile Web/Responsive Web/PWA as the operations companion.
+
+Out of initial scope:
+
+- Native iOS application.
+- Native Android application.
+- Direct production deployment without approval workflow.
+- Plaintext cloud credentials.
+- Autonomous destructive cloud changes.

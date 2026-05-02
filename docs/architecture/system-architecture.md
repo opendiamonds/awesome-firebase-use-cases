@@ -1,5 +1,10 @@
 # Cloud-360 System Architecture
 
+> 本文件必須同時包含中文版與英文版。
+> This document must include both Chinese and English versions.
+
+## 中文版
+
 ## High-Level Architecture
 
 ```mermaid
@@ -156,3 +161,13 @@ flowchart TD
     TF --> Report
     Scan --> Report
 ```
+
+## English Version
+
+Cloud-360 uses a Web-first architecture with Desktop Web and Mobile Web entry points. The frontend connects to an API Gateway, authentication/RBAC/MFA/WebAuthn, and a backend service.
+
+The backend coordinates an Agent Routing Layer, shared memory, artifact storage, audit logs, policy engine, human approval gate, and MCP/Skill Registry. Specialized agents include Design, Component Selection, FinOps, IaC, Operations, Security Policy Advisor, MCP/Skill Manager, Tool Execution, and Guardrail agents.
+
+The draw.io/diagrams.net canvas is parsed through a draw.io XML adapter into an internal architecture graph. That graph becomes shared context for Design, FinOps, IaC, Operations, and Security agents.
+
+Cloud operations are executed only through a controlled Cloud Operation Integration Layer that connects MCP servers, AI Skills, cloud SDKs, cloud CLIs, Terraform/OpenTofu, security scanners, and AWS/GCP/Azure APIs. Agentic AI operations can generate findings and recommendations, while high-risk execution requires human approval.

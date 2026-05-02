@@ -1,5 +1,10 @@
 # ADR 0003: Web-Based Desktop and Mobile Experience
 
+> 本文件必須同時包含中文版與英文版。
+> This document must include both Chinese and English versions.
+
+## 中文版
+
 - Status: Accepted
 - Date: 2026-05-02
 
@@ -70,3 +75,11 @@ All approvals and rejections must be written to audit log.
 - The platform can share backend, API, authentication, RBAC, audit log and agent context across desktop and mobile web.
 - UI implementation must prioritize responsive layout and mobile-readable summaries.
 - Native app work can be reconsidered later through a separate ADR.
+
+## English Version
+
+Decision: Cloud-360 is delivered as a Web-first platform. First-phase UI surfaces include Desktop Web, Tablet Web, Mobile Web, Responsive Web, and optional PWA capabilities. Native iOS and Android applications are out of the initial scope.
+
+Desktop Web provides the full workspace: AI Chat, draw.io/diagrams.net co-editing, Terraform/policy editor, FinOps dashboard, security posture dashboard, operations dashboard, agent workflow trace, audit log, and approval gate management.
+
+Mobile Web is an operations companion for AI Chat, alerts, approval/rejection workflow, cloud health digest, cost/security/operations findings, readonly architecture diagrams, and incident quick triage.
