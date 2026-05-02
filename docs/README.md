@@ -18,6 +18,8 @@ Cloud-360 的 `docs/` 文件必須同時包含中文版與英文版。
 主要文件：
 
 - [SRS](srs/cloud-360-srs.md)
+- [SA: Software Architecture](sa/software-architecture.md)
+- [SD: Software Design](sd/software-design.md)
 - [System Architecture](architecture/system-architecture.md)
 - [Core Pillars User Stories](user-stories/core-pillars.md)
 - [ADR 0001: Repository Scope](adr/0001-repo-scope.md)
@@ -41,6 +43,8 @@ Documentation rules:
 Main documents:
 
 - [SRS](srs/cloud-360-srs.md)
+- [SA: Software Architecture](sa/software-architecture.md)
+- [SD: Software Design](sd/software-design.md)
 - [System Architecture](architecture/system-architecture.md)
 - [Core Pillars User Stories](user-stories/core-pillars.md)
 - [ADR 0001: Repository Scope](adr/0001-repo-scope.md)

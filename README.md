@@ -142,6 +142,8 @@ All Cloud-360 documents under `docs/` must include both Chinese and English vers
 
 - [Documentation Index](docs/README.md)
 - [System Requirement Specification](docs/srs/cloud-360-srs.md)
+- [SA: Software Architecture](docs/sa/software-architecture.md)
+- [SD: Software Design](docs/sd/software-design.md)
 - [System Architecture](docs/architecture/system-architecture.md)
 - [Core Pillars User Stories](docs/user-stories/core-pillars.md)
 - [ADR 0001: Repository Scope](docs/adr/0001-repo-scope.md)
