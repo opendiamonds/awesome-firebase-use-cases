@@ -7,23 +7,19 @@
 
 ## 1. 目的
 
-本 SD（Software Design）文件把 SA 的架構決策轉成可開發的模組設計、目錄結構、介面契約、資料模型與 MVP 實作順序。本文用於引導 dev-agent 建立 Cloud-360 第一版 monorepo skeleton。
+本 SD（Software Design）文件把 SA 的架構決策轉成可開發的模組設計、目錄結構、介面契約、資料模型與 MVP 實作順序。本文用於引導 dev-agent 建立 Cloud-360 第一版 single repo / modular folders skeleton。
 
-## 2. Monorepo 目錄設計
+## 2. Single repo / modular folders 目錄設計
 
 ```text
 cloud-360/
-  apps/
-    web/                    # Nuxt / Vue frontend
-    api/                    # FastAPI backend
-  packages/
-    shared-types/           # shared schema / generated API client
-  services/
-    workers/                # background workers
-    mcp-gateway/            # MCP registry / proxy / tool gateway
+  web/                    # Nuxt / Vue frontend
+  api/                    # FastAPI backend
+  worker/                 # background workers
+  mcp-gateway/            # MCP registry / proxy / tool gateway
   infra/
-    docker/                 # local dev containers
-    opentofu/               # IaC modules and examples
+    docker/               # local dev containers
+    opentofu/             # IaC modules and examples
   docs/
     srs/
     sa/
@@ -40,7 +36,7 @@ cloud-360/
 建議 FastAPI backend 目錄：
 
 ```text
-apps/api/app/
+api/app/
   main.py
   api/
     health.py
@@ -86,7 +82,7 @@ apps/api/app/
 建議 Nuxt frontend 目錄：
 
 ```text
-apps/web/
+web/
   app.vue
   pages/
     index.vue
@@ -230,7 +226,7 @@ cost_estimates
 
 ## 9. MVP 實作順序
 
-1. 建立 monorepo skeleton：`apps/web`、`apps/api`、`infra/docker`。
+1. 建立 single repo / modular folders skeleton：`web`、`api`、`worker`、`mcp-gateway`、`infra/docker`。
 2. 建立 FastAPI `/health` 與 `/chat` endpoint。
 3. 建立 Custom Router contracts 與 mock routing。
 4. 建立 Nuxt Chat UI 與 Mermaid preview。
@@ -251,23 +247,19 @@ cost_estimates
 
 ## 1. Purpose
 
-This SD (Software Design) document turns the SA decisions into implementable module design, directory structure, interface contracts, data models, and MVP implementation order. It guides dev-agent when creating the first Cloud-360 monorepo skeleton.
+This SD (Software Design) document turns the SA decisions into implementable module design, directory structure, interface contracts, data models, and MVP implementation order. It guides dev-agent when creating the first Cloud-360 single repo / modular folders skeleton.
 
-## 2. Monorepo Directory Design
+## 2. Single Repo / Modular Folders Directory Design
 
 ```text
 cloud-360/
-  apps/
-    web/                    # Nuxt / Vue frontend
-    api/                    # FastAPI backend
-  packages/
-    shared-types/           # shared schema / generated API client
-  services/
-    workers/                # background workers
-    mcp-gateway/            # MCP registry / proxy / tool gateway
+  web/                    # Nuxt / Vue frontend
+  api/                    # FastAPI backend
+  worker/                 # background workers
+  mcp-gateway/            # MCP registry / proxy / tool gateway
   infra/
-    docker/                 # local dev containers
-    opentofu/               # IaC modules and examples
+    docker/               # local dev containers
+    opentofu/             # IaC modules and examples
   docs/
     srs/
     sa/
@@ -284,7 +276,7 @@ cloud-360/
 Recommended FastAPI backend layout:
 
 ```text
-apps/api/app/
+api/app/
   main.py
   api/
     health.py
@@ -330,7 +322,7 @@ apps/api/app/
 Recommended Nuxt frontend layout:
 
 ```text
-apps/web/
+web/
   app.vue
   pages/
     index.vue
@@ -474,7 +466,7 @@ Key design:
 
 ## 9. MVP Implementation Order
 
-1. Create monorepo skeleton: `apps/web`, `apps/api`, `infra/docker`.
+1. Create the single repo / modular folders skeleton: `web`, `api`, `worker`, `mcp-gateway`, `infra/docker`.
 2. Create FastAPI `/health` and `/chat` endpoints.
 3. Create Custom Router contracts and mock routing.
 4. Create Nuxt Chat UI and Mermaid preview.

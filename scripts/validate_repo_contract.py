@@ -60,7 +60,7 @@ REQUIRED_TEXT = {
     ),
     "docs/sd/software-design.md": (
         "Software Design",
-        "Monorepo",
+        "Single repo / modular folders",
         "FastAPI",
         "Nuxt",
         "AgentRouteRequest",
