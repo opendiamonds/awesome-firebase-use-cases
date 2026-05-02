@@ -15,6 +15,7 @@ Cloud-360 的目標是提供一個 Web-first 的多雲管理與設計工作台�
 - 將確認後的架構轉成 Terraform / OpenTofu 模組草稿。
 - 透過 Agentic AI 主動檢查成本、安全、效能、可用性與維運風險。
 - 透過 MCP / SDK / CLI / Skills 安全地整合雲平台管理能力。
+- 內建 MCP 與 Skill 管理功能，讓平台可治理工具目錄、版本、權限、啟用狀態與審批流程。
 
 ## Core Modules
 
@@ -53,6 +54,11 @@ Cloud-360 的目標是提供一個 Web-first 的多雲管理與設計工作台�
    - 產生 least-privilege、Policy-as-Code、IaC patch 與 remediation plan 建議。
    - 高風險修復必須通過 human approval gate。
 
+8. **MCP & Skill Management**
+   - 管理 MCP servers、tools、AI Skills、cloud provider connectors 與 reusable workflows。
+   - 支援註冊、啟用/停用、版本控管、權限範圍、健康檢查、相依性檢查與審批流程。
+   - 將工具能力納入 Agent Routing Layer，讓 AI 能安全選用合適工具執行 read-only 分析或經審批後的維運操作。
+
 ## Web-Based Desktop and Mobile Experience
 
 Cloud-360 是 Web-first 平台，第一階段不做 native iOS / Android app。
@@ -79,9 +85,23 @@ Cloud-360 透過以下方式整合雲平台：
 - Cloud CLIs
 - Terraform / OpenTofu providers
 - AI Skills
+- MCP / Skill Registry
 - Cloud-native monitoring, billing, IAM, policy and security APIs
 
 Read-only 查詢與分析可直接執行；write / delete / deploy / permission change / production-impacting action 必須先產生 plan、impact、rollback strategy，並通過 human approval gate。
+
+## MCP & Skill Management
+
+Cloud-360 內建 MCP 與 Skill 管理功能，用來治理平台可呼叫的工具能力。
+
+核心能力：
+
+- MCP Server Registry：登錄 AWS / GCP / Azure / internal tools MCP server。
+- Skill Catalog：管理 reusable AI Skills，例如 FinOps 分析、安全檢查、Terraform 產生、incident triage。
+- Tool Permission Model：定義每個 tool / skill 的 read-only、write、deploy、delete、permission-change 風險等級。
+- Versioning & Approval：管理版本、變更紀錄、啟用/停用與審批。
+- Health Check：檢查 MCP server 可用性、schema、auth scope、latency 與錯誤率。
+- Agent Routing Integration：讓 Routing Agent 可根據任務、權限、風險與上下文選擇合適 MCP / Skill。
 
 ## Documentation
 
@@ -91,6 +111,7 @@ Read-only 查詢與分析可直接執行；write / delete / deploy / permission 
 - [ADR 0001: Repository Scope](docs/adr/0001-repo-scope.md)
 - [ADR 0002: Agent Routing Layer](docs/adr/0002-agent-routing-layer.md)
 - [ADR 0003: Web-Based Desktop and Mobile Experience](docs/adr/0003-web-based-experience.md)
+- [ADR 0004: MCP and Skill Management](docs/adr/0004-mcp-skill-management.md)
 
 ## Repository Contract
 

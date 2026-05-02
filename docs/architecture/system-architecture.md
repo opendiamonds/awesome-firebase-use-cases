@@ -15,6 +15,7 @@ flowchart TB
     Desktop --> FinOpsUI[FinOps Dashboard]
     Desktop --> SecUI[Security Posture Dashboard]
     Desktop --> OpsUI[Operations Dashboard]
+    Desktop --> ToolAdmin[MCP / Skill Management Console]
 
     Mobile --> MobileChat[Mobile Web AI Chat]
     Mobile --> Alerts[Alerts / Findings]
@@ -28,6 +29,7 @@ flowchart TB
     FinOpsUI --> APIGW
     SecUI --> APIGW
     OpsUI --> APIGW
+    ToolAdmin --> APIGW
     MobileChat --> APIGW
     Alerts --> APIGW
     ApprovalUI --> APIGW
@@ -43,6 +45,7 @@ flowchart TB
     Backend --> Audit[(Audit Log)]
     Backend --> Policy[Policy / Permission Engine]
     Backend --> Approval[Human Approval Gate]
+    Backend --> ToolRegistry[(MCP / Skill Registry)]
 
     Router --> Intent[Intent Parser Agent]
     Router --> Design[Design Agent]
@@ -53,6 +56,7 @@ flowchart TB
     Router --> Security[Security Policy Advisor Agent]
     Router --> ToolExec[Tool Execution Agent]
     Router --> Guardrail[Guardrail Agent]
+    Router --> ToolManager[MCP / Skill Manager Agent]
 
     DrawIO --> DiagramAdapter[draw.io XML Adapter]
     DiagramAdapter --> ArchGraph[Internal Architecture Graph]
@@ -63,10 +67,14 @@ flowchart TB
     ArchGraph --> Ops
     ArchGraph --> Security
 
+    ToolManager --> ToolRegistry
+    ToolManager --> Integration
+    ToolExec --> ToolRegistry
     ToolExec --> Integration[Cloud Operation Integration Layer]
 
     Integration --> MCP[MCP Servers]
     Integration --> Skills[AI Skills]
+    Integration --> ToolHealth[MCP / Skill Health Checks]
     Integration --> SDK[Cloud SDKs]
     Integration --> CLI[Cloud CLIs]
     Integration --> IaCTools[Terraform / OpenTofu / tfsec / trivy / Checkov]
@@ -95,7 +103,8 @@ flowchart TB
 3. **Agentic AI with guardrails**：Agent 可主動分析與建議，但高風險操作需 human approval。
 4. **Diagram as structured context**：draw.io 圖面需轉為 internal architecture graph，供 agents 使用。
 5. **Cloud operations through controlled integration layer**：所有 AWS/GCP/Azure 操作經 MCP / SDK / CLI / Skills abstraction。
-6. **No secret leakage**：secrets 不得進入 Git、log、prompt、artifact 或 final report。
+6. **MCP / Skill lifecycle governance**：MCP servers、tools 與 Skills 必須有 registry、version、owner、permission scope、health check 與 approval workflow。
+7. **No secret leakage**：secrets 不得進入 Git、log、prompt、artifact 或 final report。
 
 ## Agent Routing Example
 
