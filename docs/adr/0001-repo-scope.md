@@ -1,43 +1,66 @@
-# ADR 0001: Repository Scope
+# ADR 0001: Cloud-360 Repository Scope
 
 - Status: Accepted
 - Date: 2026-05-02
 
 ## Context
 
-This repository is being initialized with a minimal repository contract so future changes have a stable baseline for structure, validation, and CI.
+Cloud-360 is being defined through Spec-Driven Development before application implementation begins. The repository needs a clear contract so future changes can extend the platform safely without introducing production configuration, secrets, or uncontrolled cloud operations.
 
-The current top-level README is known to be inaccurate and is intentionally excluded from this contract. This ADR defines the minimal scope without relying on README content.
+The platform vision is an AI-native multi-cloud architecture, governance, security and operations platform for Cloud Architects, SRE, FinOps and Security teams.
 
 ## Decision
 
-The repository contract is limited to:
+This repository tracks the Cloud-360 SDD baseline:
 
-1. Ignore local-only, generated, secret, and build artifacts via `.gitignore`.
-2. Keep repository-level architectural decisions under `docs/adr/`.
-3. Validate the contract with `scripts/validate_repo_contract.py`.
-4. Run the validation script in GitHub Actions on pull requests and pushes.
+1. Product README.
+2. System Requirement Specification under `docs/srs/`.
+3. System architecture documents under `docs/architecture/`.
+4. User stories under `docs/user-stories/`.
+5. Architecture Decision Records under `docs/adr/`.
+6. Repository validation script under `scripts/`.
+7. Baseline GitHub Actions CI under `.github/workflows/`.
 
-This contract does not introduce production configuration, deployment targets, infrastructure credentials, runtime secrets, or environment-specific settings.
+Cloud-360 scope includes:
 
-## Scope
+- AWS / GCP / Azure multi-cloud architecture design.
+- Cross-cloud component selection.
+- FinOps and cost estimation.
+- Terraform / OpenTofu IaC generation.
+- Operations optimization.
+- AI Chat driven cloud management.
+- Agentic AI proactive operations analysis.
+- Cloud Security Posture & Policy Advisory.
+- draw.io / diagrams.net compatible architecture canvas.
+- Web-based desktop and mobile experience.
 
-In scope:
+## Guardrails
 
-- Documentation for repository-level decisions.
-- Local development hygiene such as `.gitignore`.
-- CI validation that checks repository contract files exist and avoids accidental README dependency.
+The repository must not introduce the following without a future explicit ADR and approval:
 
-Out of scope:
+- Plaintext cloud credentials or secrets.
+- Production-specific deployment configuration.
+- Direct production Terraform state or backend configuration.
+- Autonomous destructive cloud actions.
+- Unreviewed IAM/RBAC, firewall, KMS, storage policy or production-impacting changes.
 
-- Production deployment configuration.
-- Infrastructure-as-code for production resources.
-- Environment secrets or credentials.
-- Application runtime implementation.
-- README correction or rewrite.
+All write/delete/deploy/permission-changing cloud operations must include:
+
+- plan
+- impact analysis
+- affected resources
+- rollback strategy
+- verification steps
+- human approval gate
+- audit log
+
+## Branch Collaboration Constraint
+
+`feature/cloud_architecture` is a collaborative branch and must remain read-only unless Danniel explicitly authorizes modifications. Do not clean, rebase, force-push, delete, or rewrite that branch.
 
 ## Consequences
 
-- Future changes can extend the contract through additional ADRs and validation checks.
-- CI provides an early guardrail without assuming application language, package manager, or deployment platform.
-- README remediation remains a separate task and must not block this minimal contract.
+- README is now allowed to represent Cloud-360 product direction.
+- SDD documents become the source of truth for initial implementation.
+- CI validates that required contract documents exist and contain key platform concepts.
+- Future implementation work should extend this contract through new ADRs and tests.

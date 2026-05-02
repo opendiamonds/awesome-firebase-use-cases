@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the minimal repository contract for cloud-360.
-
-This intentionally avoids README.md because the current README is known to be
-incorrect and must not be treated as the source of truth for this contract.
-"""
+"""Validate the Cloud-360 repository contract."""
 
 from __future__ import annotations
 
@@ -11,19 +7,81 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
+
 REQUIRED_FILES = (
+    "README.md",
     ".gitignore",
-    "docs/adr/0001-repo-scope.md",
-    "scripts/validate_repo_contract.py",
     ".github/workflows/ci.yml",
+    "docs/srs/cloud-360-srs.md",
+    "docs/architecture/system-architecture.md",
+    "docs/user-stories/core-pillars.md",
+    "docs/adr/0001-repo-scope.md",
+    "docs/adr/0002-agent-routing-layer.md",
+    "docs/adr/0003-web-based-experience.md",
+    "scripts/validate_repo_contract.py",
 )
+
+REQUIRED_TEXT = {
+    "README.md": (
+        "Cloud-360",
+        "AWS",
+        "GCP",
+        "Azure",
+        "draw.io",
+        "Mobile Web",
+        "Cloud Security Posture",
+        "human approval gate",
+    ),
+    "docs/srs/cloud-360-srs.md": (
+        "AI Multi-Cloud Operations",
+        "Cloud Security Posture & Policy Advisory",
+        "Mobile Web",
+        "MCP servers",
+        "Terraform / OpenTofu",
+    ),
+    "docs/architecture/system-architecture.md": (
+        "Agent Routing Layer",
+        "Cloud Operation Integration Layer",
+        "draw.io",
+        "Security Policy Advisor Agent",
+    ),
+    "docs/user-stories/core-pillars.md": (
+        "Architecture Design",
+        "Cost Estimation & FinOps",
+        "Cloud Security Posture",
+        "Mobile Web",
+    ),
+    "docs/adr/0001-repo-scope.md": (
+        "Spec-Driven Development",
+        "feature/cloud_architecture",
+        "read-only",
+    ),
+    "docs/adr/0002-agent-routing-layer.md": (
+        "Routing Agent",
+        "Security Policy Advisor Agent",
+        "human approval",
+    ),
+    "docs/adr/0003-web-based-experience.md": (
+        "Web-first",
+        "Mobile Web",
+        "Native iOS app",
+        "Native Android app",
+    ),
+}
+
 FORBIDDEN_NEW_PATH_PARTS = {
     "prod",
     "production",
     "secrets",
 }
+
+FORBIDDEN_CONTENT_PATTERNS = (
+    "BEGIN " + "PRIVATE KEY",
+    "AWS_" + "SECRET_ACCESS_KEY",
+    "AZURE_" + "CLIENT_SECRET=",
+    "GOOGLE_" + "APPLICATION_CREDENTIALS=",
+)
 
 
 def fail(message: str) -> int:
@@ -49,10 +107,15 @@ def validate_required_files() -> int:
     return 0
 
 
-def validate_readme_not_modified() -> int:
-    changed_files = set(git_diff_name_only("--cached")) | set(git_diff_name_only())
-    if "README.md" in changed_files:
-        return fail("README.md must not be modified by the minimal repo contract")
+def validate_required_text() -> int:
+    violations: list[str] = []
+    for rel_path, required_terms in REQUIRED_TEXT.items():
+        text = (ROOT / rel_path).read_text(encoding="utf-8")
+        for term in required_terms:
+            if term not in text:
+                violations.append(f"{rel_path} missing {term!r}")
+    if violations:
+        return fail("Required contract text missing: " + "; ".join(violations))
     return 0
 
 
@@ -73,18 +136,34 @@ def validate_no_production_config_added() -> int:
     return 0
 
 
+def validate_no_obvious_secrets() -> int:
+    violations: list[str] = []
+    for rel_path in REQUIRED_FILES:
+        path = ROOT / rel_path
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern in FORBIDDEN_CONTENT_PATTERNS:
+            if pattern in text:
+                violations.append(f"{rel_path}: {pattern}")
+    if violations:
+        return fail("Forbidden secret-like content found: " + ", ".join(violations))
+    return 0
+
+
 def main() -> int:
     checks = (
         validate_required_files,
-        validate_readme_not_modified,
+        validate_required_text,
         validate_no_production_config_added,
+        validate_no_obvious_secrets,
     )
     for check in checks:
         result = check()
         if result != 0:
             return result
 
-    print("Repository contract validation passed.")
+    print("Cloud-360 repository contract validation passed.")
     return 0
 
 
