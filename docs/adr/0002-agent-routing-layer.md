@@ -1,5 +1,10 @@
 # ADR 0002: Agent Routing Layer
 
+> 本文件必須同時包含中文版與英文版。
+> This document must include both Chinese and English versions.
+
+## 中文版
+
 - Status: Accepted
 - Date: 2026-05-02
 
@@ -59,3 +64,11 @@ Read-only queries may execute after policy classification. High-risk actions req
 - Tool execution is isolated behind policy and approval gates.
 - All recommendations can be traced to source context and tool output.
 - Future agents can be added through ADRs without changing the core platform contract.
+
+## English Version
+
+Decision: Cloud-360 uses an OpenClaw-like Agent Routing Layer to coordinate intent parsing, architecture design, component selection, FinOps, IaC generation, operations review, security policy advisory, tool execution, and guardrails.
+
+Agents share structured context such as user requirements, assumptions, architecture graph, draw.io XML, cost model, selected cloud components, generated IaC, security findings, approval decisions, and audit records.
+
+Read-only operations may run after policy classification. High-risk actions such as write, delete, deploy, permission changes, firewall changes, KMS/storage policy changes, production Terraform apply, or scaling changes require human approval.

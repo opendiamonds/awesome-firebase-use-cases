@@ -19,7 +19,9 @@ REQUIRED_FILES = (
     "docs/adr/0001-repo-scope.md",
     "docs/adr/0002-agent-routing-layer.md",
     "docs/adr/0003-web-based-experience.md",
+    "docs/README.md",
     "docs/adr/0004-mcp-skill-management.md",
+    "docs/adr/0005-bilingual-documentation.md",
     "scripts/validate_repo_contract.py",
 )
 
@@ -79,6 +81,16 @@ REQUIRED_TEXT = {
         "Agent Routing Integration",
         "Health Checks",
     ),
+    "docs/adr/0005-bilingual-documentation.md": (
+        "Bilingual Documentation",
+        "## 中文版",
+        "## English Version",
+    ),
+    "docs/README.md": (
+        "Cloud-360 Documentation",
+        "## 中文版",
+        "## English Version",
+    ),
 }
 
 FORBIDDEN_NEW_PATH_PARTS = {
@@ -130,6 +142,21 @@ def validate_required_text() -> int:
     return 0
 
 
+def validate_docs_are_bilingual() -> int:
+    violations: list[str] = []
+    for path in sorted((ROOT / "docs").rglob("*.md")):
+        rel_path = path.relative_to(ROOT).as_posix()
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if "## 中文版" not in text or "## English Version" not in text:
+            violations.append(rel_path)
+    if violations:
+        return fail(
+            "Docs must include both '## 中文版' and '## English Version': "
+            + ", ".join(violations)
+        )
+    return 0
+
+
 def validate_no_production_config_added() -> int:
     changed_files = set(git_diff_name_only("--cached")) | set(git_diff_name_only())
     violations: list[str] = []
@@ -166,6 +193,7 @@ def main() -> int:
     checks = (
         validate_required_files,
         validate_required_text,
+        validate_docs_are_bilingual,
         validate_no_production_config_added,
         validate_no_obvious_secrets,
     )

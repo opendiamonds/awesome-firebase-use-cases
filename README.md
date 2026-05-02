@@ -191,6 +191,10 @@ Cloud-360 內建 MCP 與 Skill 管理功能，用來治理平台可呼叫的工�
 
 ## Documentation
 
+Cloud-360 的 `docs/` 文件必須同時包含中文版與英文版。
+All Cloud-360 documents under `docs/` must include both Chinese and English versions.
+
+- [Documentation Index](docs/README.md)
 - [System Requirement Specification](docs/srs/cloud-360-srs.md)
 - [System Architecture](docs/architecture/system-architecture.md)
 - [Core Pillars User Stories](docs/user-stories/core-pillars.md)
@@ -198,6 +202,7 @@ Cloud-360 內建 MCP 與 Skill 管理功能，用來治理平台可呼叫的工�
 - [ADR 0002: Agent Routing Layer](docs/adr/0002-agent-routing-layer.md)
 - [ADR 0003: Web-Based Desktop and Mobile Experience](docs/adr/0003-web-based-experience.md)
 - [ADR 0004: MCP and Skill Management](docs/adr/0004-mcp-skill-management.md)
+- [ADR 0005: Bilingual Documentation](docs/adr/0005-bilingual-documentation.md)
 
 ## Repository Contract
 

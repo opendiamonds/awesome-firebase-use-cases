@@ -1,5 +1,10 @@
 # Cloud-360 Core Pillars User Stories
 
+> 本文件必須同時包含中文版與英文版。
+> This document must include both Chinese and English versions.
+
+## 中文版
+
 ## A. Architecture Design
 
 ### A1. Natural Language to Architecture
@@ -270,3 +275,19 @@ Acceptance criteria:
 - Shows selected tool/skill, reason, input summary, permission level, approval status and execution result.
 - Redacts secrets and sensitive payloads.
 - Links tool execution back to user request, agent trace and audit log.
+
+## English Version
+
+This document defines Cloud-360 user stories across the core platform pillars:
+
+- Architecture Design.
+- Cross-Cloud Component Selection.
+- Cost Estimation and FinOps.
+- Terraform/OpenTofu IaC Generation.
+- Operations Optimization Review.
+- AI Multi-Cloud Operations.
+- Cloud Security Posture and Policy Advisory.
+- Web-Based Desktop and Mobile Experience.
+- MCP and Skill Management.
+
+Each story includes acceptance criteria so implementation work can be validated through Spec-Driven Development. The MCP and Skill Management stories require registries, catalogs, permission/risk classification, approval workflow, and observability for agent tool selection.
