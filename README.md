@@ -21,84 +21,30 @@ Cloud-360 的目標是提供一個 Web-first 的多雲管理與設計工作台�
 
 ```mermaid
 flowchart TB
-    User[Cloud Architect / SRE / FinOps / Security] --> Browser[Web Browser]
+    User[Cloud Architect / SRE / FinOps / Security] --> Web[Web App]
 
-    Browser --> Desktop[Desktop Web Full Workspace]
-    Browser --> Mobile[Mobile Web / Responsive Web / PWA]
+    Web --> Chat[AI Chat]
+    Web --> Canvas[draw.io Architecture Canvas]
+    Web --> Console[MCP / Skill Management]
 
-    Desktop --> Chat[AI Chat]
-    Desktop --> DrawIO[draw.io / diagrams.net Canvas]
-    Desktop --> IaCEditor[Terraform / Policy Editor]
-    Desktop --> Dashboards[FinOps / Security / Ops Dashboards]
-    Desktop --> ToolAdmin[MCP / Skill Management Console]
-
-    Mobile --> MobileChat[Mobile Web AI Chat]
-    Mobile --> Alerts[Alerts / Findings]
-    Mobile --> ApprovalUI[Approval Workflow]
-    Mobile --> Digest[Cloud Health Digest]
-    Mobile --> DiagramRO[Readonly Diagram View]
-
-    Chat --> APIGW[API Gateway]
-    DrawIO --> APIGW
-    IaCEditor --> APIGW
-    Dashboards --> APIGW
-    ToolAdmin --> APIGW
-    MobileChat --> APIGW
-    Alerts --> APIGW
-    ApprovalUI --> APIGW
-    Digest --> APIGW
-    DiagramRO --> APIGW
-
-    APIGW --> Auth[Auth / RBAC / MFA / WebAuthn]
-    Auth --> Backend[Backend Service Python or Java]
+    Chat --> Backend[Cloud-360 Backend]
+    Canvas --> Backend
+    Console --> Backend
 
     Backend --> Router[Agent Routing Layer]
-    Backend --> Memory[(Shared Context / Memory)]
-    Backend --> ArtifactStore[(Artifact Store)]
-    Backend --> Audit[(Audit Log)]
-    Backend --> Policy[Policy / Permission Engine]
+    Backend --> Store[(Context / Artifacts / Audit Logs)]
     Backend --> Approval[Human Approval Gate]
-    Backend --> ToolRegistry[(MCP / Skill Registry)]
 
-    Router --> Design[Design Agent]
-    Router --> Selector[Component Selection Agent]
-    Router --> FinOps[FinOps Agent]
-    Router --> IaC[IaC Agent]
-    Router --> Ops[Operations Agent]
-    Router --> Security[Security Policy Advisor Agent]
-    Router --> ToolManager[MCP / Skill Manager Agent]
-    Router --> ToolExec[Tool Execution Agent]
-    Router --> Guardrail[Guardrail Agent]
+    Router --> Design[Architecture Design]
+    Router --> FinOps[FinOps]
+    Router --> IaC[Terraform / OpenTofu]
+    Router --> Security[Security Policy Advisor]
+    Router --> Ops[Operations Optimization]
+    Router --> Tools[MCP / SDK / CLI / Skills]
 
-    DrawIO --> DiagramAdapter[draw.io XML Adapter]
-    DiagramAdapter --> ArchGraph[Internal Architecture Graph]
-    ArchGraph --> Memory
-    ArchGraph --> Design
-    ArchGraph --> FinOps
-    ArchGraph --> IaC
-    ArchGraph --> Ops
-    ArchGraph --> Security
-
-    ToolManager --> ToolRegistry
-    ToolExec --> ToolRegistry
-    ToolExec --> Integration[Cloud Operation Integration Layer]
-
-    Integration --> MCP[MCP Servers]
-    Integration --> Skills[AI Skills]
-    Integration --> SDK[Cloud SDKs]
-    Integration --> CLI[Cloud CLIs]
-    Integration --> IaCTools[Terraform / OpenTofu / Security Scanners]
-
-    Integration --> AWS[AWS APIs]
-    Integration --> GCP[GCP APIs]
-    Integration --> Azure[Azure APIs]
-
-    AWS --> Agentic[Agentic AI Operations]
-    GCP --> Agentic
-    Azure --> Agentic
-    Agentic --> Router
-    Agentic --> Alerts
-    Agentic --> Digest
+    Tools --> AWS[AWS]
+    Tools --> GCP[GCP]
+    Tools --> Azure[Azure]
 ```
 
 完整架構說明請見 [System Architecture](docs/architecture/system-architecture.md)。
