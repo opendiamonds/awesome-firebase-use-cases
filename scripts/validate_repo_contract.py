@@ -19,6 +19,7 @@ REQUIRED_FILES = (
     "docs/adr/0001-repo-scope.md",
     "docs/adr/0002-agent-routing-layer.md",
     "docs/adr/0003-web-based-experience.md",
+    "docs/adr/0004-mcp-skill-management.md",
     "scripts/validate_repo_contract.py",
 )
 
@@ -32,6 +33,7 @@ REQUIRED_TEXT = {
         "Mobile Web",
         "Cloud Security Posture",
         "human approval gate",
+        "MCP & Skill Management",
     ),
     "docs/srs/cloud-360-srs.md": (
         "AI Multi-Cloud Operations",
@@ -39,18 +41,21 @@ REQUIRED_TEXT = {
         "Mobile Web",
         "MCP servers",
         "Terraform / OpenTofu",
+        "MCP & Skill Management",
     ),
     "docs/architecture/system-architecture.md": (
         "Agent Routing Layer",
         "Cloud Operation Integration Layer",
         "draw.io",
         "Security Policy Advisor Agent",
+        "MCP / Skill Registry",
     ),
     "docs/user-stories/core-pillars.md": (
         "Architecture Design",
         "Cost Estimation & FinOps",
         "Cloud Security Posture",
         "Mobile Web",
+        "MCP & Skill Management",
     ),
     "docs/adr/0001-repo-scope.md": (
         "Spec-Driven Development",
@@ -67,6 +72,12 @@ REQUIRED_TEXT = {
         "Mobile Web",
         "Native iOS app",
         "Native Android app",
+    ),
+    "docs/adr/0004-mcp-skill-management.md": (
+        "MCP and Skill Management",
+        "Permission and Risk Classification",
+        "Agent Routing Integration",
+        "Health Checks",
     ),
 }
 

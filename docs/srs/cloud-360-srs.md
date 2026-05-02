@@ -8,7 +8,7 @@
 
 Cloud-360 是專為雲端架構師、SRE、FinOps 與 Security 團隊設計的 AI-native 多雲架構與維運管理平台。
 
-平台深度整合 LLM、多智能體協作框架、MCP servers、Cloud SDKs、Cloud CLIs、Terraform / OpenTofu 與可重用 Skills，提供涵蓋 AWS、GCP、Azure 的端到端生命週期管理能力。
+平台深度整合 LLM、多智能體協作框架、MCP servers、Cloud SDKs、Cloud CLIs、Terraform / OpenTofu 與可重用 Skills，並提供 MCP 與 Skill 管理功能，提供涵蓋 AWS、GCP、Azure 的端到端生命週期管理能力。
 
 ## 2. Target Users
 
@@ -97,6 +97,21 @@ Required capabilities:
 - 針對 findings 產生 severity、evidence、impact、recommended policy、remediation plan、IaC patch suggestion、verification command、rollback strategy。
 - 支援 Policy-as-Code 建議，例如 OPA/Rego、Sentinel、Azure Policy、GCP Org Policy、AWS Config rule。
 
+### H. MCP & Skill Management
+
+Cloud-360 需提供 MCP servers、MCP tools、AI Skills 與 cloud provider connectors 的集中管理功能。
+
+Required capabilities:
+
+- MCP Server Registry：登錄、設定、啟用/停用與檢查 MCP servers。
+- Tool Catalog：列出 MCP tools、cloud SDK/CLI wrappers、Terraform tools 與 internal tools。
+- Skill Catalog：管理 reusable AI Skills，例如 architecture design、FinOps、security posture review、Terraform generation、incident response。
+- Permission & Risk Model：針對每個 MCP tool / Skill 標示 read-only、write、deploy、delete、permission-change、production-impacting 風險等級。
+- Versioning：記錄版本、schema、owner、相依性、變更紀錄與 rollback target。
+- Health Check：檢查 MCP server availability、tool schema、auth scope、latency、error rate 與最近執行狀態。
+- Approval Workflow：新增、升級、停用高風險 MCP / Skill 或擴權時需 human approval。
+- Agent Routing Integration：Routing Agent 需可依任務、上下文、風險與權限選擇合適 MCP / Skill。
+
 ## 4. User Experience Requirements
 
 ### Desktop Web
@@ -154,6 +169,7 @@ Integration types:
 - Cloud APIs
 - Terraform / OpenTofu providers
 - AI Skills
+- MCP / Skill Registry and Management APIs
 
 Safety requirements:
 
@@ -173,6 +189,7 @@ Safety requirements:
 - Reproducible IaC generation
 - Clear separation between recommendation and execution
 - Responsive Web support for desktop, tablet and mobile browsers
+- Governed MCP / Skill lifecycle management
 
 ## 8. Initial Out of Scope
 

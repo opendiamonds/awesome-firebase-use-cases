@@ -217,3 +217,56 @@ Acceptance criteria:
 - Shows plan, affected resources, risk, impact and rollback.
 - High-risk approval requires MFA, passkey or WebAuthn.
 - Records audit log and supports timeout/escalation.
+
+## I. MCP & Skill Management
+
+### I1. MCP Server Registry
+
+As a platform engineer, I want to register and manage MCP servers so that Cloud-360 can safely expose external and internal tools to agents.
+
+Acceptance criteria:
+
+- Supports server name, endpoint/transport, owner, environment, auth scope, enabled status and version.
+- Supports health checks for availability, schema compatibility, latency and recent errors.
+- Disallows secrets in stored configuration or logs.
+
+### I2. Skill Catalog
+
+As an AI platform operator, I want to manage reusable AI Skills so that agents can reuse approved workflows.
+
+Acceptance criteria:
+
+- Tracks skill name, domain, owner, version, description, required tools, risk level and change log.
+- Supports enable, disable, deprecate and rollback states.
+- Shows dependencies between skills, MCP tools, SDK/CLI wrappers and cloud providers.
+
+### I3. Tool Permission and Risk Model
+
+As a security reviewer, I want every MCP tool and Skill to have a permission/risk classification.
+
+Acceptance criteria:
+
+- Classifies tools as read-only, write, deploy, delete, permission-change or production-impacting.
+- High-risk tools require approval before enablement or execution.
+- Agent Routing Layer must use this classification before selecting tools.
+
+### I4. MCP / Skill Approval Workflow
+
+As a platform owner, I want risky MCP/Skill changes to require approval.
+
+Acceptance criteria:
+
+- Adding a new high-risk tool requires review.
+- Expanding auth scope requires approval.
+- Disabling critical tools requires impact summary and rollback plan.
+- All changes are written to audit log.
+
+### I5. Agent Tool Selection Observability
+
+As an SRE, I want to see why an agent selected a specific MCP tool or Skill.
+
+Acceptance criteria:
+
+- Shows selected tool/skill, reason, input summary, permission level, approval status and execution result.
+- Redacts secrets and sensitive payloads.
+- Links tool execution back to user request, agent trace and audit log.
