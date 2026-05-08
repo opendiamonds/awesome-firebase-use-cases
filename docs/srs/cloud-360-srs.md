@@ -29,33 +29,41 @@ Cloud-360 是專為雲端架構師、SRE、FinOps 與 Security 團隊設計的 A
 
 Cloud-360 將自然語言需求轉成單雲或多雲架構藍圖。
 
-Required capabilities:
+#### A1. 功能需求 (Functional Requirements)
+- **自然語言解析**: 必須能識別關鍵詞標籤，包含 workload 類型 (e.g., E-commerce, Data Processing)、HA 需求 (Multi-AZ, Multi-Region)、RTO/RPO 目標。
+- **架構圖生成**: 支援生成 Mermaid、PlantUML 與符合 `.drawio` XML 規範的格式。
+- **最佳實踐檢查**: 自動檢查 AWS / GCP / Azure Well-Architected Framework 的合規性。
+- **災難復原設計**: 自動生成 Active-Active 或 Active-Passive 的跨雲災難復原方案建議。
 
-- 解析 workload、HA、DR、RTO/RPO、scalability、security、compliance、latency 與 region 需求。
-- 產生 Mermaid / PlantUML / draw.io 架構圖。
-- 檢查 AWS / GCP / Azure Well-Architected Framework。
-- 支援 Active-Active / Active-Passive cross-cloud disaster recovery design。
+#### A2. 技術約束 (Technical Constraints)
+- **輸出格式**: draw.io XML 必須包含正確的雲端供應商元件圖示 (Shapes/Icons) 與 metadata。
+- **架構上下文**: 生成的架構圖必須能轉換為內部 JSON 格式，供後續 Agent 讀取。
 
 ### B. Cross-Cloud Component Selection
 
 Cloud-360 根據 workload profile 提供 AWS / GCP / Azure 託管服務選型建議。
 
-Required capabilities:
+#### B1. 功能需求 (Functional Requirements)
+- **等效服務比較**: 核心支援 Compute (VM/Container/Serverless)、Database (SQL/NoSQL/Cache)、Storage (Object/Block/File) 的對等比較。
+- **選型指標**: 比較參數必須包含 SLA、硬體限制 (vCPU/Mem limits)、區域可用性、成本風險與廠商鎖定 (Vendor Lock-in) 指數。
+- **決策矩陣**: 生成包含理由、優點、缺點與替代方案的決策矩陣。
 
-- 比較同質服務，例如 AWS RDS、GCP Cloud SQL、Azure SQL Database。
-- 輸出效能、SLA、限制、相容性、lock-in、維運複雜度與成本風險。
-- 產生 decision matrix 與替代方案。
+#### B2. 技術約束 (Technical Constraints)
+- **數據時效性**: 服務元件的規格與限制數據必須與雲端供應商官方文檔保持同步（或定義緩存過期機制）。
+- **權重模型**: 推薦引擎需支援可調整的權重（例如：性能優先 vs. 成本優先）。
 
 ### C. Cost Estimation & FinOps
 
 Cloud-360 針對架構方案與雲端元件估算多雲 TCO。
 
-Required capabilities:
+#### C1. 功能需求 (Functional Requirements)
+- **多維度成本預估**: 包含基礎設施（運算、儲存）、網路（Data Transfer/Egress）、數據服務（資料庫、快取）與維運工具。
+- **計費模式比較**: 同時顯示 On-demand、Spot (AWS/Azure/GCP) 與預留實例 (RI/Savings Plan) 的對比。
+- **跨雲傳輸分析**: 精確計算跨雲與跨區的 Data Egress 費用，並標註潛在的高額支出路徑。
 
-- 根據流量、運算資源、資料量、儲存、備援、observability 與 data transfer 估算月費。
-- 比較 AWS Spot、Azure Spot Virtual Machines、GCP Spot / Preemptible VMs。
-- 計算跨雲與跨區 Data Egress。
-- 主動偵測 cost spike、idle resources、over-provisioned resources 與 right-sizing opportunity。
+#### C2. 技術約束 (Technical Constraints)
+- **API 整合**: 必須整合 AWS Price List API、GCP Cloud Billing Catalog API 與 Azure Retail Prices API。
+- **估算準確度**: 預估值需標註價格假設與數據來源的時間戳記。
 
 ### D. Infrastructure as Code - Terraform / OpenTofu
 

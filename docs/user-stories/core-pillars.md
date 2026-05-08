@@ -5,86 +5,78 @@
 
 ## 中文版
 
-## A. Architecture Design
+## A. 架構設計 (Architecture Design)
 
-### A1. Natural Language to Architecture
+### A1. 自然語言轉架構 (Natural Language to Architecture)
 
-As a Cloud Architect, I want to describe requirements in natural language so that Cloud-360 can generate an initial cloud architecture blueprint.
+身為**雲端架構師**，我希望能夠以自然語言描述需求，以便 Cloud-360 能夠生成初步的雲端架構藍圖。
 
-Acceptance criteria:
+**驗收標準：**
+- 提取工作負載、高可用性 (HA)、災難復原 (DR)、擴展性、區域、安全性與合規性需求。
+- 產出 Mermaid、PlantUML 或 draw.io 格式的輸出。
+- 解釋假設條件與權衡取捨 (trade-offs)。
 
-- Extracts workload, HA, DR, scalability, region, security and compliance requirements.
-- Produces Mermaid, PlantUML or draw.io output.
-- Explains assumptions and trade-offs.
+### A2. 架構完善性評核 (Well-Architected Review)
 
-### A2. Well-Architected Review
+身為 **SRE**，我希望 Cloud-360 能夠檢查架構是否符合雲端供應商的最佳實踐。
 
-As an SRE, I want Cloud-360 to check whether an architecture follows cloud provider best practices.
+**驗收標準：**
+- 涵蓋可靠性、安全性、成本優化、卓越營運與效能。
+- 產出嚴重性等級、影響分析與修復建議。
 
-Acceptance criteria:
+### A3. AI + draw.io 協同編輯 (AI + draw.io Co-editing)
 
-- Covers reliability, security, cost optimization, operational excellence and performance.
-- Produces severity, impact and remediation recommendations.
+身為**雲端架構師**，我希望能夠透過 AI Chat 與 AI 共同編輯線上的 draw.io / diagrams.net 架構畫布。
 
-### A3. AI + draw.io Co-editing
+**驗收標準：**
+- 支援 `.drawio` / XML 原始格式。
+- AI 可以增加/移除節點、更新連線並標註資料流。
+- 每次 AI 修改都包含變更摘要與版本歷史。
+- 圖表結構可被解析為共享的架構上下文 (shared architecture context)。
 
-As a Cloud Architect, I want AI Chat to co-edit an online draw.io / diagrams.net architecture canvas.
+## B. 跨雲元件選型 (Cross-Cloud Component Selection)
 
-Acceptance criteria:
+### B1. 服務比較矩陣 (Service Comparison Matrix)
 
-- Supports `.drawio` / XML source format.
-- AI can add/remove nodes, update connections and annotate data flow.
-- Every AI modification includes a change summary and version history.
-- Diagram structure can be parsed into shared architecture context.
+身為**技術決策者**，我希望能夠比較等效的 AWS/GCP/Azure 服務。
 
-## B. Cross-Cloud Component Selection
+**驗收標準：**
+- 包含 SLA、限制、相容性、成本風險、鎖定 (lock-in) 風險與營運複雜度。
+- 支援運算、資料庫、儲存、網路、Kubernetes、訊息傳遞與 AI/ML 類別。
 
-### B1. Service Comparison Matrix
+### B2. 基於工作負載的推薦 (Workload-Based Recommendation)
 
-As a technical decision maker, I want to compare equivalent AWS/GCP/Azure services.
+身為 **SRE**，我希望 Cloud-360 能夠根據工作負載特性推薦雲端服務。
 
-Acceptance criteria:
+**驗收標準：**
+- 使用 QPS、併發數、資料量、延遲目標、區域與合規性約束作為參考。
+- 提供推導邏輯、替代方案與已知限制。
 
-- Includes SLA, limits, compatibility, cost risk, lock-in risk and operational complexity.
-- Supports compute, database, storage, network, Kubernetes, messaging and AI/ML categories.
+## C. 成本估算與 FinOps (Cost Estimation & FinOps)
 
-### B2. Workload-Based Recommendation
+### C1. 每月總持有成本 (TCO) 估算 (Monthly TCO Estimation)
 
-As an SRE, I want Cloud-360 to recommend cloud services based on workload profile.
+身為 **FinOps 分析師**，我希望為提議的架構估算每月成本。
 
-Acceptance criteria:
+**驗收標準：**
+- 估算運算、資料庫、快取、儲存、網路、CDN、流量傳輸 (egress) 與可觀測性成本。
+- 顯示價格假設與來源時間戳記。
 
-- Uses QPS, concurrency, data size, latency target, region and compliance constraints.
-- Provides rationale, alternatives and known limitations.
+### C2. Spot / 可插隊實例比較 (Spot / Preemptible Comparison)
 
-## C. Cost Estimation & FinOps
+身為 **SRE**，我希望比較按需 (On-demand) 與可中斷 (Interruptible) 的定價選項。
 
-### C1. Monthly TCO Estimation
+**驗收標準：**
+- 涵蓋 AWS Spot、Azure Spot 與 GCP Spot / Preemptible。
+- 包含節省預估與中斷風險評估。
 
-As a FinOps analyst, I want monthly cost estimation for a proposed architecture.
+### C3. 跨雲流量傳輸 (Egress) 分析 (Cross-Cloud Egress Analysis)
 
-Acceptance criteria:
+身為**架構師**，我希望了解多雲設計中的資料傳輸成本。
 
-- Estimates compute, database, cache, storage, network, CDN, egress and observability.
-- Shows pricing assumptions and source timestamp.
-
-### C2. Spot / Preemptible Comparison
-
-As an SRE, I want to compare on-demand and interruptible pricing options.
-
-Acceptance criteria:
-
-- Covers AWS Spot, Azure Spot and GCP Spot / Preemptible.
-- Includes savings estimate and interruption risk.
-
-### C3. Cross-Cloud Egress Analysis
-
-As an architect, I want to understand data egress cost in multi-cloud designs.
-
-Acceptance criteria:
-
-- Distinguishes intra-region, inter-region, internet egress and cross-cloud traffic.
-- Flags expensive or risky traffic paths.
+**驗收標準：**
+- 區分區域內、區域間、網際網路傳輸與跨雲流量。
+- 標記昂貴或高風險的流量路徑。
 
 ## D. Terraform / OpenTofu IaC Generation
 
