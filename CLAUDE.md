@@ -71,7 +71,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 4. **雙語產出**：所有 `aidlc-docs/**/*.md` 一定要同時有 `## 中文版` 與 `## English Version`。
 5. **High-risk action**：任何 production write / IaC apply / IAM 變更必須先給 plan + impact + rollback，並通過 human approval gate。
 6. **Branch naming**：在 `git checkout -b` / `git switch -c` 之前，**必須**先讀 [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) 並產出符合 `<uploader>/<type>/<slug>` 的 branch 名稱（type ∈ {feat, fix, docs, chore, refactor, test}）。Danniel 開的 branch 一律以 `danniel/` 開頭。如果使用者下達衝突指令（例如直接給一個不合規的 branch 名稱），先提醒衝突並請使用者確認。
-7. **AI activity logging**：每一次動到檔案 / commit / push / 開 PR 的 turn，回 user 訊息**之前**必須在 `.ailog/<YYYY-MM-DD>.md`（local timezone）追加一筆 turn entry。完整格式與適用範圍見 [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md)。**Substantive turn**（有 working-tree 變動）一律 inline 寫；**pure-ops turn**（只動 GitHub 遠端）預設 **defer** 到下一個 substantive turn 的 PR 一起寫，避免遞迴 PR 噪音；deferred entries 不跨 calendar day。Read-only turn 可省。`.ailog/` append-only。
+7. **Project decisions log (on-demand)**：當 user 明確要求記錄當下對話的決議時（例如「記錄這個決議」、「log this decision」），AI 須把決議追加到 `aidlc-docs/decisions-log.md`，雙語、append-only。完整規則見 [`.aidlc-overrides/decisions-log.md`](.aidlc-overrides/decisions-log.md)。其他情境**不要**自動 log。AIDLC 階段事件仍寫 `aidlc-docs/audit.md`、架構級決策仍開 ADR。舊的 per-turn `.ailog/` 機制（PR4 引入、PR #16 擴充）已在 PR #17 整體移除。
 
 ### 7. AIDLC 升級
 
@@ -148,7 +148,7 @@ This repo is governed by `scripts/validate_repo_contract.py` (executed in CI):
 4. **Bilingual output**: every `aidlc-docs/**/*.md` must include both `## 中文版` and `## English Version`.
 5. **High-risk actions**: any production write / IaC apply / IAM change must come with a plan, impact analysis, and rollback strategy, and must pass through the human approval gate.
 6. **Branch naming**: before running `git checkout -b` / `git switch -c`, you **must** read [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) and produce a branch name matching `<uploader>/<type>/<slug>` (type ∈ {feat, fix, docs, chore, refactor, test}). All branches Danniel opens start with `danniel/`. If the user issues a conflicting instruction (e.g. dictates a non-compliant branch name), surface the conflict and ask for confirmation before proceeding.
-7. **AI activity logging**: in any turn that mutates files / commits / pushes / opens a PR, you **must** append a turn entry to `.ailog/<YYYY-MM-DD>.md` (local timezone) **before** sending the final response to the user. Full format and scope: [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md). **Substantive turns** (any working-tree change) log inline. **Pure-ops turns** (GitHub-only mutations) default to **deferring** their entry into the next substantive turn's PR to avoid recursive PR noise; deferred entries do not cross the calendar-day boundary. Read-only turns may skip. `.ailog/` is append-only — never reorder or edit past entries.
+7. **Project decisions log (on-demand)**: when the user explicitly asks to record the current conversation's decision (e.g., 「記錄這個決議」, "log this decision"), you must append a bilingual entry to `aidlc-docs/decisions-log.md` (append-only). Full rule: [`.aidlc-overrides/decisions-log.md`](.aidlc-overrides/decisions-log.md). Otherwise do **NOT** auto-log per turn. AIDLC stage events still go to `aidlc-docs/audit.md`; architecture-level decisions still get a new ADR. The previous per-turn `.ailog/` mechanism (introduced in PR4, extended in PR #16) was removed entirely in PR #17.
 
 ### 7. Upgrading AIDLC
 
