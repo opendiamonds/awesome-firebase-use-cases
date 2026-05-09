@@ -5,9 +5,11 @@
 
 ## 中文版
 
-- Status: Accepted
+- Status: Accepted（PR1 + PR2 已完成）
 - Date: 2026-05-09
 - AIDLC Version Adopted: 0.1.8
+- Migration Status: ✅ PR1（rules + CLAUDE.md）合併中、✅ PR2（docs/ → aidlc-docs/inception/）合併中
+- This file location: 本 ADR 已隨 PR2 從 `docs/adr/0006-adopt-aidlc-framework.md` 搬到目前路徑
 
 ### Context
 
@@ -25,9 +27,9 @@ Cloud-360 是 AI-native multi-cloud platform，仰賴 Claude Code 與其他 AI c
    - `extensions/security/baseline/`（官方）
    - `extensions/testing/property-based/`（官方）
    - `extensions/bilingual-docs/`（客製，永遠強制，對齊 ADR-0005）
-6. **遷移分兩階段**：
-   - **PR1**（本 ADR 所屬 PR）：安裝 rules tree、CLAUDE.md、aidlc-docs 骨架；`docs/` 不動。
-   - **PR2**：將 `docs/srs/`、`docs/architecture/`、`docs/user-stories/`、`docs/adr/`（含本 ADR）搬到 `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`，並更新 README、validate script、所有 cross-link。
+6. **遷移分兩階段（已完成）**：
+   - **PR1** ✅ 安裝 rules tree、CLAUDE.md、aidlc-docs 骨架；`docs/` 不動（branch `feat/aidlc-framework-rules`）。
+   - **PR2** ✅ 用 `git mv` 將 `docs/srs/`、`docs/architecture/`、`docs/user-stories/`、`docs/adr/`（含本 ADR）搬到 `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`；移除 `docs/` 目錄；更新 README、validate script、CLAUDE.md、bilingual-docs.md 與所有 cross-link（branch `feat/aidlc-docs-migration`）。
 7. 重大變更（架構、外部依賴、production 影響）必須以新 ADR 紀錄。
 8. AIDLC 升級流程：對照官方 release，更新 `.aidlc-rule-details/VERSION` 與內容；客製 `extensions/bilingual-docs/` 不得被覆蓋；升級記錄寫入新 ADR。
 
@@ -43,12 +45,12 @@ Cloud-360 是 AI-native multi-cloud platform，仰賴 Claude Code 與其他 AI c
 **負面 / 取捨**：
 
 - 學習成本：team 需熟悉 AIDLC 三階段、question format、stage-completion summary。
-- PR1 與 PR2 拆開造成短期路徑不一致（例如 `docs/adr/0006-...` 在 PR2 後會搬到 `aidlc-docs/inception/decisions/0006-...`）。
+- PR1 與 PR2 拆開造成短期路徑不一致（PR2 完成後 `docs/adr/...` 已全數搬到 `aidlc-docs/inception/decisions/...`）。
 - 升級需要手動處理：客製 extension 不能被官方覆蓋。
 
 ### Repository Contract 影響
 
-`scripts/validate_repo_contract.py` 在 PR1 新增以下必要檔案檢查：
+`scripts/validate_repo_contract.py` 隨 PR1 新增、PR2 重新對應到 `aidlc-docs/inception/...` 路徑。當前必要檔案包括：
 
 - `CLAUDE.md`
 - `.aidlc-rule-details/VERSION`
@@ -57,17 +59,22 @@ Cloud-360 是 AI-native multi-cloud platform，仰賴 Claude Code 與其他 AI c
 - `aidlc-docs/aidlc-state.md`
 - `aidlc-docs/audit.md`
 - `aidlc-docs/README.md`
-- `docs/adr/0006-adopt-aidlc-framework.md`
+- `aidlc-docs/inception/requirements/cloud-360-srs.md`
+- `aidlc-docs/inception/application-design/system-architecture.md`
+- `aidlc-docs/inception/user-stories/core-pillars.md`
+- `aidlc-docs/inception/decisions/0001..0006-*.md`
 
-雙語掃描範圍從 `docs/**/*.md` 擴增為 `docs/**/*.md` 與 `aidlc-docs/**/*.md`。
+雙語掃描範圍 PR2 後固定為 `aidlc-docs/**/*.md`（PR1 暫過渡期同時掃 `docs/` 與 `aidlc-docs/`）。
 
 ---
 
 ## English Version
 
-- Status: Accepted
+- Status: Accepted (PR1 + PR2 completed)
 - Date: 2026-05-09
 - AIDLC Version Adopted: 0.1.8
+- Migration status: ✅ PR1 (rules + CLAUDE.md) merging, ✅ PR2 (docs/ → aidlc-docs/inception/) merging
+- This file location: moved by PR2 from `docs/adr/0006-adopt-aidlc-framework.md` to its current path
 
 ### Context
 
@@ -85,9 +92,9 @@ Cloud-360 is an AI-native multi-cloud platform that relies on Claude Code and ot
    - `extensions/security/baseline/` (upstream)
    - `extensions/testing/property-based/` (upstream)
    - `extensions/bilingual-docs/` (custom, always enforced, aligned with ADR-0005)
-6. **Two-phase migration**:
-   - **PR1** (the PR that introduces this ADR): install the rules tree, CLAUDE.md, and aidlc-docs skeleton; `docs/` is left untouched.
-   - **PR2**: move `docs/srs/`, `docs/architecture/`, `docs/user-stories/`, and `docs/adr/` (including this ADR) into `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`, and update README, the validation script, and all cross-links.
+6. **Two-phase migration (completed)**:
+   - **PR1** ✅ install the rules tree, CLAUDE.md, and aidlc-docs skeleton; `docs/` left untouched (branch `feat/aidlc-framework-rules`).
+   - **PR2** ✅ `git mv` `docs/srs/`, `docs/architecture/`, `docs/user-stories/`, and `docs/adr/` (including this ADR) to `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`; remove the `docs/` directory; update README, the validation script, CLAUDE.md, bilingual-docs.md, and all cross-links (branch `feat/aidlc-docs-migration`).
 7. Significant changes (architecture, external dependencies, production impact) must be recorded as new ADRs.
 8. AIDLC upgrade process: compare against upstream releases, bump `.aidlc-rule-details/VERSION` and refresh contents; the custom `extensions/bilingual-docs/` must not be overwritten; record the upgrade in a new ADR.
 
@@ -103,12 +110,12 @@ Cloud-360 is an AI-native multi-cloud platform that relies on Claude Code and ot
 **Negative / Trade-offs**:
 
 - Learning cost: the team must familiarize themselves with AIDLC's three phases, question format, and stage-completion summaries.
-- Splitting PR1 and PR2 creates short-term path inconsistency (e.g. `docs/adr/0006-...` will move to `aidlc-docs/inception/decisions/0006-...` after PR2).
+- Splitting PR1 and PR2 created short-term path inconsistency, now resolved (`docs/adr/...` were fully moved into `aidlc-docs/inception/decisions/...` by PR2).
 - Upgrades require manual care: custom extensions must not be overwritten by upstream.
 
 ### Repository Contract Impact
 
-`scripts/validate_repo_contract.py` adds the following required files in PR1:
+`scripts/validate_repo_contract.py` was extended in PR1 and remapped in PR2 to the `aidlc-docs/inception/...` paths. The current required files include:
 
 - `CLAUDE.md`
 - `.aidlc-rule-details/VERSION`
@@ -117,6 +124,9 @@ Cloud-360 is an AI-native multi-cloud platform that relies on Claude Code and ot
 - `aidlc-docs/aidlc-state.md`
 - `aidlc-docs/audit.md`
 - `aidlc-docs/README.md`
-- `docs/adr/0006-adopt-aidlc-framework.md`
+- `aidlc-docs/inception/requirements/cloud-360-srs.md`
+- `aidlc-docs/inception/application-design/system-architecture.md`
+- `aidlc-docs/inception/user-stories/core-pillars.md`
+- `aidlc-docs/inception/decisions/0001..0006-*.md`
 
-The bilingual scan now covers both `docs/**/*.md` and `aidlc-docs/**/*.md`.
+After PR2 the bilingual scan is fixed to `aidlc-docs/**/*.md` (during the PR1 transitional period it scanned both `docs/` and `aidlc-docs/`).

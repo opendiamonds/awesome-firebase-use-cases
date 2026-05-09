@@ -13,16 +13,15 @@ REQUIRED_FILES = (
     "README.md",
     ".gitignore",
     ".github/workflows/ci.yml",
-    "docs/srs/cloud-360-srs.md",
-    "docs/architecture/system-architecture.md",
-    "docs/user-stories/core-pillars.md",
-    "docs/adr/0001-repo-scope.md",
-    "docs/adr/0002-agent-routing-layer.md",
-    "docs/adr/0003-web-based-experience.md",
-    "docs/README.md",
-    "docs/adr/0004-mcp-skill-management.md",
-    "docs/adr/0005-bilingual-documentation.md",
-    "docs/adr/0006-adopt-aidlc-framework.md",
+    "aidlc-docs/inception/requirements/cloud-360-srs.md",
+    "aidlc-docs/inception/application-design/system-architecture.md",
+    "aidlc-docs/inception/user-stories/core-pillars.md",
+    "aidlc-docs/inception/decisions/0001-repo-scope.md",
+    "aidlc-docs/inception/decisions/0002-agent-routing-layer.md",
+    "aidlc-docs/inception/decisions/0003-web-based-experience.md",
+    "aidlc-docs/inception/decisions/0004-mcp-skill-management.md",
+    "aidlc-docs/inception/decisions/0005-bilingual-documentation.md",
+    "aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md",
     "scripts/validate_repo_contract.py",
     "CLAUDE.md",
     ".aidlc-rule-details/VERSION",
@@ -47,7 +46,7 @@ REQUIRED_TEXT = {
         "human approval gate",
         "MCP & Skill Management",
     ),
-    "docs/srs/cloud-360-srs.md": (
+    "aidlc-docs/inception/requirements/cloud-360-srs.md": (
         "AI Multi-Cloud Operations",
         "Cloud Security Posture & Policy Advisory",
         "Mobile Web",
@@ -55,59 +54,54 @@ REQUIRED_TEXT = {
         "Terraform / OpenTofu",
         "MCP & Skill Management",
     ),
-    "docs/architecture/system-architecture.md": (
+    "aidlc-docs/inception/application-design/system-architecture.md": (
         "Agent Routing Layer",
         "Cloud Operation Integration Layer",
         "draw.io",
         "Security Policy Advisor Agent",
         "MCP / Skill Registry",
     ),
-    "docs/user-stories/core-pillars.md": (
+    "aidlc-docs/inception/user-stories/core-pillars.md": (
         "Architecture Design",
         "Cost Estimation & FinOps",
         "Cloud Security Posture",
         "Mobile Web",
         "MCP & Skill Management",
     ),
-    "docs/adr/0001-repo-scope.md": (
+    "aidlc-docs/inception/decisions/0001-repo-scope.md": (
         "Spec-Driven Development",
         "feature/cloud_architecture",
         "read-only",
     ),
-    "docs/adr/0002-agent-routing-layer.md": (
+    "aidlc-docs/inception/decisions/0002-agent-routing-layer.md": (
         "Routing Agent",
         "Security Policy Advisor Agent",
         "human approval",
     ),
-    "docs/adr/0003-web-based-experience.md": (
+    "aidlc-docs/inception/decisions/0003-web-based-experience.md": (
         "Web-first",
         "Mobile Web",
         "Native iOS app",
         "Native Android app",
     ),
-    "docs/adr/0004-mcp-skill-management.md": (
+    "aidlc-docs/inception/decisions/0004-mcp-skill-management.md": (
         "MCP and Skill Management",
         "Permission and Risk Classification",
         "Agent Routing Integration",
         "Health Checks",
     ),
-    "docs/adr/0005-bilingual-documentation.md": (
+    "aidlc-docs/inception/decisions/0005-bilingual-documentation.md": (
         "Bilingual Documentation",
         "## 中文版",
         "## English Version",
     ),
-    "docs/adr/0006-adopt-aidlc-framework.md": (
+    "aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md": (
         "Adopt AIDLC",
         "AIDLC v0.1.8",
         "Hybrid",
         "extensions/security/baseline/",
         "extensions/testing/property-based/",
         "extensions/bilingual-docs/",
-        "## 中文版",
-        "## English Version",
-    ),
-    "docs/README.md": (
-        "Cloud-360 Documentation",
         "## 中文版",
         "## English Version",
     ),
@@ -188,13 +182,10 @@ def validate_required_text() -> int:
 
 
 def validate_docs_are_bilingual() -> int:
-    """Bilingual enforcement covers both docs/ (SDD baseline) and aidlc-docs/ (AIDLC artifacts)."""
+    """Bilingual enforcement applies to all AIDLC artifacts under aidlc-docs/."""
     violations: list[str] = []
-    bilingual_roots = ("docs", "aidlc-docs")
-    for root_name in bilingual_roots:
-        root_dir = ROOT / root_name
-        if not root_dir.is_dir():
-            continue
+    root_dir = ROOT / "aidlc-docs"
+    if root_dir.is_dir():
         for path in sorted(root_dir.rglob("*.md")):
             rel_path = path.relative_to(ROOT).as_posix()
             text = path.read_text(encoding="utf-8", errors="ignore")

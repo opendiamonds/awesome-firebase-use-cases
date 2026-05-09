@@ -51,7 +51,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 
 - **必要文件**：列在 `REQUIRED_FILES`（包含 SRS、ADRs、user stories、architecture、AIDLC entry、CLAUDE.md 等）
 - **必要文字**：列在 `REQUIRED_TEXT`（每個 contract 文件須包含特定關鍵字）
-- **雙語強制**：所有 `docs/**/*.md` 與 `aidlc-docs/**/*.md` 必須含 `## 中文版` 與 `## English Version`
+- **雙語強制**：所有 `aidlc-docs/**/*.md` 必須含 `## 中文版` 與 `## English Version`
 - **禁止路徑**：path parts 含 `prod`、`production`、`secrets` 不得新增
 - **禁止內容**：不得 commit 私鑰、AWS / Azure / GCP credential 字串
 
@@ -124,7 +124,7 @@ This repo is governed by `scripts/validate_repo_contract.py` (executed in CI):
 
 - **Required files**: listed in `REQUIRED_FILES` (SRS, ADRs, user stories, architecture, AIDLC entry, CLAUDE.md, etc.).
 - **Required text**: listed in `REQUIRED_TEXT` (each contract file must contain certain keywords).
-- **Bilingual enforcement**: every `docs/**/*.md` and `aidlc-docs/**/*.md` must contain `## 中文版` and `## English Version`.
+- **Bilingual enforcement**: every `aidlc-docs/**/*.md` must contain `## 中文版` and `## English Version`.
 - **Forbidden paths**: file paths whose parts include `prod`, `production`, or `secrets` are not allowed.
 - **Forbidden content**: no private keys or AWS / Azure / GCP credential strings.
 

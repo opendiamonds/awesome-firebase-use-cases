@@ -9,8 +9,8 @@
 - **Project Name**: Cloud-360
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
 - **AIDLC Version**: 0.1.8（見 `.aidlc-rule-details/VERSION`）
-- **AIDLC 啟用 PR**: `feat/aidlc-framework-rules`（PR1：rules + CLAUDE.md，docs/ 不動）
-- **Current Stage**: INCEPTION — Adoption / Onboarding（PR1 完成後即進入正式 Inception）
+- **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1：rules + CLAUDE.md）→ `feat/aidlc-docs-migration`（PR2：docs/ → aidlc-docs/inception/ 完成）
+- **Current Stage**: INCEPTION — 已完成 framework adoption + artifact migration，可進入正式 AIDLC stage（reverse-engineering / requirements analysis）
 
 ### Workspace State
 
@@ -30,22 +30,20 @@
 
 > `core-workflow.md` requirements analysis 階段不需再次詢問三項 extensions 是否啟用，預設皆為 enabled。
 
-### 已存在 Inception Artifacts（PR1 階段尚未遷移）
+### 已存在 Inception Artifacts（PR2 完成後）
 
-PR1 維持 `docs/` 結構，PR2 才會搬到 `aidlc-docs/inception/...`：
-
-| Artifact | 目前位置 | PR2 後位置 |
+| Artifact | 位置 | History 來源 |
 |---|---|---|
-| SRS | `docs/srs/cloud-360-srs.md` | `aidlc-docs/inception/requirements/cloud-360-srs.md` |
-| User Stories | `docs/user-stories/core-pillars.md` | `aidlc-docs/inception/user-stories/core-pillars.md` |
-| Application Design | `docs/architecture/system-architecture.md` | `aidlc-docs/inception/application-design/system-architecture.md` |
-| ADR-0001 ~ ADR-0006 | `docs/adr/` | `aidlc-docs/inception/decisions/` |
+| SRS | `aidlc-docs/inception/requirements/cloud-360-srs.md` | git mv from `docs/srs/cloud-360-srs.md` |
+| User Stories | `aidlc-docs/inception/user-stories/core-pillars.md` | git mv from `docs/user-stories/core-pillars.md` |
+| Application Design | `aidlc-docs/inception/application-design/system-architecture.md` | git mv from `docs/architecture/system-architecture.md` |
+| ADR-0001 ~ ADR-0006 | `aidlc-docs/inception/decisions/` | git mv from `docs/adr/` |
 
 ### Phase Tracking
 
 - 🔵 Inception
   - Workspace Detection: ✅（本檔案即為產出）
-  - Reverse Engineering: ⏳（待 PR2 後正式啟動，先反推 SRS / architecture）
+  - Reverse Engineering: ⏳（PR2 已完成 artifact migration，可正式啟動以反推 SRS / architecture 與既有程式碼一致性）
   - Requirements Analysis: ⏳
   - User Stories: 🔄（已有 baseline，待 AIDLC stage 補強）
   - Workflow Planning: ⏳
@@ -63,8 +61,8 @@ PR1 維持 `docs/` 結構，PR2 才會搬到 `aidlc-docs/inception/...`：
 - **Project Name**: Cloud-360
 - **Project Type**: Brownfield (existing SRS / architecture / user stories / ADR baseline)
 - **AIDLC Version**: 0.1.8 (see `.aidlc-rule-details/VERSION`)
-- **AIDLC Adoption PR**: `feat/aidlc-framework-rules` (PR1: rules + CLAUDE.md, no docs migration)
-- **Current Stage**: INCEPTION — Adoption / Onboarding (formal Inception begins after PR1 lands)
+- **AIDLC Adoption PRs**: `feat/aidlc-framework-rules` (PR1: rules + CLAUDE.md) → `feat/aidlc-docs-migration` (PR2: docs/ → aidlc-docs/inception/ migration completed)
+- **Current Stage**: INCEPTION — Framework adoption and artifact migration complete; ready to enter formal AIDLC stages (reverse-engineering / requirements analysis)
 
 ### Workspace State
 
@@ -84,22 +82,20 @@ PR1 維持 `docs/` 結構，PR2 才會搬到 `aidlc-docs/inception/...`：
 
 > The Requirements Analysis stage in `core-workflow.md` does not need to re-prompt the user about these three extensions — they are enabled by default.
 
-### Existing Inception Artifacts (not migrated in PR1)
+### Existing Inception Artifacts (post-PR2)
 
-PR1 keeps the `docs/` layout untouched; PR2 will move them under `aidlc-docs/inception/...`:
-
-| Artifact | Current Path | After PR2 |
+| Artifact | Path | History Source |
 |---|---|---|
-| SRS | `docs/srs/cloud-360-srs.md` | `aidlc-docs/inception/requirements/cloud-360-srs.md` |
-| User Stories | `docs/user-stories/core-pillars.md` | `aidlc-docs/inception/user-stories/core-pillars.md` |
-| Application Design | `docs/architecture/system-architecture.md` | `aidlc-docs/inception/application-design/system-architecture.md` |
-| ADR-0001 ~ ADR-0006 | `docs/adr/` | `aidlc-docs/inception/decisions/` |
+| SRS | `aidlc-docs/inception/requirements/cloud-360-srs.md` | git mv from `docs/srs/cloud-360-srs.md` |
+| User Stories | `aidlc-docs/inception/user-stories/core-pillars.md` | git mv from `docs/user-stories/core-pillars.md` |
+| Application Design | `aidlc-docs/inception/application-design/system-architecture.md` | git mv from `docs/architecture/system-architecture.md` |
+| ADR-0001 ~ ADR-0006 | `aidlc-docs/inception/decisions/` | git mv from `docs/adr/` |
 
 ### Phase Tracking
 
 - 🔵 Inception
   - Workspace Detection: ✅ (this file is the output)
-  - Reverse Engineering: ⏳ (post-PR2, reverse-engineer existing SRS / architecture)
+  - Reverse Engineering: ⏳ (PR2 artifact migration complete; can now reverse-engineer the existing SRS / architecture against the codebase)
   - Requirements Analysis: ⏳
   - User Stories: 🔄 (baseline exists; to be refined under AIDLC)
   - Workflow Planning: ⏳
