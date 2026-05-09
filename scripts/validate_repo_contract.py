@@ -34,8 +34,8 @@ REQUIRED_FILES = (
     "aidlc-docs/audit.md",
     ".aidlc-overrides/README.md",
     ".aidlc-overrides/branch-naming.md",
-    ".aidlc-overrides/ai-logging.md",
-    ".ailog/README.md",
+    ".aidlc-overrides/decisions-log.md",
+    "aidlc-docs/decisions-log.md",
 )
 
 REQUIRED_TEXT = {
@@ -152,23 +152,17 @@ REQUIRED_TEXT = {
         "## 中文版",
         "## English Version",
     ),
-    ".aidlc-overrides/ai-logging.md": (
-        "AI Activity Logging Rule",
-        ".ailog/",
-        "<YYYY-MM-DD>.md",
-        "append-only",
-        "No secrets",
-        "Deferred Logging",
-        "Substantive turn",
-        "Pure-ops turn",
-        "Deferred from",
+    ".aidlc-overrides/decisions-log.md": (
+        "Project Decisions Log Rule",
+        "aidlc-docs/decisions-log.md",
+        "explicit user request",
+        "Trigger",
+        "Decision",
         "## 中文版",
         "## English Version",
     ),
-    ".ailog/README.md": (
-        "AI Activity Log",
-        "append-only",
-        ".aidlc-overrides/ai-logging.md",
+    "aidlc-docs/decisions-log.md": (
+        "Project Decisions Log",
         "## 中文版",
         "## English Version",
     ),

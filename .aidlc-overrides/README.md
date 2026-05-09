@@ -24,6 +24,7 @@ CLAUDE.md 指示 Claude Code（與其他 AI agent）依下列順序載入規則�
 | 檔案 | 規範 | 對應 upstream |
 |---|---|---|
 | `branch-naming.md` | Cloud-360 git branch 命名規範 | upstream 無此規則，純疊加 |
+| `decisions-log.md` | 使用者明確要求時，把對話決議記錄到 `aidlc-docs/decisions-log.md` | upstream 無此規則，純疊加（取代 PR #17 移除的 `ai-logging.md`） |
 
 ### 撰寫新 override 的原則
 
@@ -55,6 +56,7 @@ When an upstream rule conflicts with an override, **the override always wins**.
 | File | Rule | Corresponding Upstream |
 |---|---|---|
 | `branch-naming.md` | Cloud-360 git branch naming convention | No upstream equivalent — pure addition |
+| `decisions-log.md` | On explicit user request, capture the conversation's decision into `aidlc-docs/decisions-log.md` | No upstream equivalent — pure addition (replaces the `ai-logging.md` removed in PR #17) |
 
 ### Authoring New Overrides
 

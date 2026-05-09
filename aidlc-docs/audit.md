@@ -117,6 +117,22 @@
 **Outcome**: PR #16 待合併到 main。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-09 — 移除 ai-logging，改採 on-demand decisions-log（PR #17）
+
+**User request (raw)**: 「幫我將ai-logging 規則移除，新增一個專案重要決議記錄，當使用這要求時，就記錄當下與AI對話的決議」
+**Stage**: Inception → Process governance（log 機制換代，supersedes PR4 + PR #16）
+**Decisions**:
+- **移除** `.ailog/`（README + 2026-05-09 daily log）與 `.aidlc-overrides/ai-logging.md`（per-turn 強制 log + deferred-logging clause）。歷史紀錄保留在 git（PR4 / PR #14 / PR #15 / PR #16 commits）。
+- **新增** `.aidlc-overrides/decisions-log.md` 規則：**僅**在使用者明確要求時（如「記錄這個決議」、「log this decision」），把當下對話達成的決議寫進 `aidlc-docs/decisions-log.md`，雙語、append-only。
+- 觸發判斷以**語意**而非死記字串為準；不確定時先反問。
+- 與其他 log 區隔：AIDLC 階段事件仍寫 `audit.md`；架構級決策仍開 ADR；`decisions-log.md` 只記錄 user-driven 一般決議。
+- CLAUDE.md item 7 改寫為 decisions-log（on-demand），明確標示舊 per-turn `.ailog/` 已移除。
+- `.aidlc-overrides/README.md` Current Overrides 表新增 `decisions-log.md` 列。
+- `scripts/validate_repo_contract.py`：REQUIRED_FILES 移除 `.ailog/README.md`、`.aidlc-overrides/ai-logging.md`，新增 `.aidlc-overrides/decisions-log.md`、`aidlc-docs/decisions-log.md`；REQUIRED_TEXT 同步換鎖鑰字。
+- 自我示範：「移除 ai-logging、改採 on-demand decisions-log」這個決議本身已寫成 `aidlc-docs/decisions-log.md` 第一筆。
+**Outcome**: PR #17 待合併到 main。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -231,4 +247,20 @@ Each entry uses the following structure:
 - `validate_repo_contract.py` `REQUIRED_TEXT` now requires keywords `Deferred Logging`, `Substantive turn`, `Pure-ops turn`, `Deferred from` to prevent future drift.
 - Self-applied: this turn is substantive (file changes), so Turn 5 is logged inline on this PR's branch.
 **Outcome**: PR #16 pending merge to main.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Remove ai-logging, adopt on-demand decisions-log (PR #17)
+
+**User request (raw)**: "幫我將ai-logging 規則移除，新增一個專案重要決議記錄，當使用這要求時，就記錄當下與AI對話的決議"
+**Stage**: Inception → Process governance (logging mechanism replacement, supersedes PR4 + PR #16)
+**Decisions**:
+- **Removed** `.ailog/` (README + the 2026-05-09 daily log) and `.aidlc-overrides/ai-logging.md` (per-turn forced-log mechanism + deferred-logging clause). Historical entries remain in git (PR4 / PR #14 / PR #15 / PR #16 commits).
+- **Added** `.aidlc-overrides/decisions-log.md` rule: **only** when the user explicitly asks (e.g. "log this decision", "記錄這個決議") does the AI capture the conversation's decision into `aidlc-docs/decisions-log.md`, bilingual, append-only.
+- Triggering relies on **semantic judgment** rather than literal string matching; the AI confirms with the user when uncertain.
+- Separation from other logs: AIDLC stage events still go to `audit.md`; architecture decisions still get an ADR; `decisions-log.md` is for user-driven general decisions only.
+- CLAUDE.md item 7 rewritten as decisions-log (on-demand), explicitly noting that the old per-turn `.ailog/` mechanism is gone.
+- `.aidlc-overrides/README.md` Current Overrides table now lists `decisions-log.md`.
+- `scripts/validate_repo_contract.py`: `REQUIRED_FILES` drops `.ailog/README.md` and `.aidlc-overrides/ai-logging.md`, adds `.aidlc-overrides/decisions-log.md` and `aidlc-docs/decisions-log.md`; `REQUIRED_TEXT` keys swapped accordingly.
+- Self-applied: the decision itself ("remove ai-logging, adopt on-demand decisions-log") is the first entry in `aidlc-docs/decisions-log.md`.
+**Outcome**: PR #17 pending merge to main.
 **Approver**: dannielchung@gmail.com
