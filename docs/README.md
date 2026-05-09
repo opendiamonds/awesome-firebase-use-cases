@@ -25,6 +25,7 @@ Cloud-360 的 `docs/` 文件必須同時包含中文版與英文版。
 - [ADR 0003: Web-Based Experience](adr/0003-web-based-experience.md)
 - [ADR 0004: MCP and Skill Management](adr/0004-mcp-skill-management.md)
 - [ADR 0005: Bilingual Documentation](adr/0005-bilingual-documentation.md)
+- [ADR 0006: Adopt AIDLC Framework](adr/0006-adopt-aidlc-framework.md)
 
 ## English Version
 
@@ -48,3 +49,4 @@ Main documents:
 - [ADR 0003: Web-Based Experience](adr/0003-web-based-experience.md)
 - [ADR 0004: MCP and Skill Management](adr/0004-mcp-skill-management.md)
 - [ADR 0005: Bilingual Documentation](adr/0005-bilingual-documentation.md)
+- [ADR 0006: Adopt AIDLC Framework](adr/0006-adopt-aidlc-framework.md)

@@ -149,6 +149,20 @@ All Cloud-360 documents under `docs/` must include both Chinese and English vers
 - [ADR 0003: Web-Based Desktop and Mobile Experience](docs/adr/0003-web-based-experience.md)
 - [ADR 0004: MCP and Skill Management](docs/adr/0004-mcp-skill-management.md)
 - [ADR 0005: Bilingual Documentation](docs/adr/0005-bilingual-documentation.md)
+- [ADR 0006: Adopt AIDLC Framework](docs/adr/0006-adopt-aidlc-framework.md)
+
+## AI-SDLC Framework: AIDLC
+
+Cloud-360 採用 [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) 作為 AI-SDLC 開發方法論，提升 Claude Code 與其他 AI agent 的開發精準度與需求完整性。詳見 [ADR 0006](docs/adr/0006-adopt-aidlc-framework.md) 與專案根目錄 [`CLAUDE.md`](CLAUDE.md)。
+
+- AIDLC version: 0.1.8（見 `.aidlc-rule-details/VERSION`）
+- Entry point: `.aidlc-rules/aws-aidlc-rules/core-workflow.md`
+- Detail rules: `.aidlc-rule-details/{common,inception,construction,operations,extensions}/`
+- Artifact 輸出位置：`aidlc-docs/`（state、audit、inception/construction/operations）
+- Pre-enabled extensions：security baseline、property-based testing、bilingual-docs（永遠強制）
+- 啟動口令：`Using AI-DLC, ...`，或請 AI agent 進行需求分析、設計、實作、IaC 產製、運維工作
+
+> 目前處於 **PR1（rules + CLAUDE.md）**，現有 `docs/` 結構暫不變動；PR2 會把 `docs/srs/`、`docs/architecture/`、`docs/user-stories/`、`docs/adr/` 搬到 `aidlc-docs/inception/...`。
 
 ## Repository Contract
 
