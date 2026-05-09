@@ -11,14 +11,14 @@
 
 ### 何時寫 log
 
-| 情境 | 是否必寫 |
-|---|---|
-| AI 用 Write / Edit / NotebookEdit 建檔或改檔 | ✅ 必寫 |
-| AI 用 Bash 執行 `git mv`、`git rm`、`mkdir`、`rm` 等修改 working tree 的指令 | ✅ 必寫 |
-| AI 執行 `git commit` / `git push` | ✅ 必寫 |
-| AI 用 `gh pr create` / `gh pr edit` / `gh pr merge` 等動到 GitHub 狀態 | ✅ 必寫 |
-| AI 純粹回答問題、查資料、跑 read-only `grep` / `git log` 沒動檔案 | ⏸ 可選（建議寫，量大時可省） |
-| 自動化 / 排程任務（scheduled cron job、loop） | ✅ 必寫，每跑一次寫一筆 |
+依該 turn 是否有 **working-tree 檔案變動** 區分為 **substantive** 與 **pure-ops** 兩類；後者支援 deferred logging（見下方 Deferred Logging 條款）。
+
+| 情境 | 必寫？ | 立即 vs deferred |
+|---|---|---|
+| **Substantive turn**：用 Write / Edit / NotebookEdit / `git mv` / `git rm` 等動到 working tree 的檔案 | ✅ 必寫 | ❌ 不可 defer，立刻 append 到當前 branch 並 commit |
+| **Pure-ops turn**：只動 GitHub 遠端（`git push --delete`、`gh pr merge`、`gh pr edit`、`gh pr close`、`gh release *`、`gh issue *`），working tree 無變動 | ✅ 必寫 | ✅ 可 defer 到下一個 substantive turn 的 PR（預設行為，避免遞迴 PR 噪音） |
+| **Read-only turn**：純粹回答問題、查資料、跑 `grep` / `git log` / `gh pr view` 等 | ⏸ 可選（建議寫，量大時可省） | — |
+| **自動化任務（cron / loop / 背景 watcher）** | ✅ 必寫，每跑一次寫一筆 | 若該 watcher 純粹動到 GitHub 遠端視為 pure-ops，可 defer |
 
 ### 檔案格式
 
@@ -64,6 +64,56 @@
 **PRs**: opendiamonds/cloud-360#13
 ```
 
+### Deferred Logging — pure-ops turn 可延後
+
+**問題**：pure-ops turn（例如 `gh pr merge`、`git push --delete`）唯一的「檔案變動」是 log entry 本身。如果嚴格要求 turn 結束前必須開 PR 把 entry 送進 main，會形成「**為了寫 log 而開 PR → 那個 PR 開出來又是新 turn → 又要寫 log**」的遞迴噪音；2026-05-09 PR #15 / Turn 3-4 已實際發生過。
+
+**規則**：
+
+1. **Pure-ops turn 的 entry 可以 defer 到下一個 substantive turn 的 PR branch**，**不必為 pure-ops turn 單獨開 PR**。Defer 為預設行為。
+2. Substantive turn 寫自己的 entry 時，把累積的 deferred entries 一併補進 `.ailog/<YYYY-MM-DD>.md`，依**原 turn 時間順序**排在前面；每筆都加 `**Deferred from**: <原 turn 時間 +TZ> (<context, 例如 watcher id>)` 標記。
+3. 多個連續 pure-ops turn 可累積批次處理。
+4. **不跨 calendar day**：deferred entries 必須在當天內被某個 substantive turn 帶進 main。若一直沒 substantive turn 而當地時間（+0800）即將跨日，AI 必須**主動開 chore PR** 把當天的 deferred entries 送進 main，以免日誌斷點。
+5. **Substantive turn 永遠 inline 寫**：不能 defer 自己。
+
+**判斷自己**：當前 turn 結束時，working tree 有沒有 commit-able 變動？
+
+- **有** → substantive → 立刻 append 並 commit。
+- **無** → pure-ops → 預設 defer（也可選擇立刻開小 PR，但通常沒必要）。
+
+**Deferred entry 範例**：
+
+```markdown
+## Turn 7 — 09:30:15 +0800
+
+**User request**: <substantive turn 的 user 訊息>
+**Branch**: danniel/feat/cost-calc-rewrite
+**Files**: <substantive turn 自己的檔案變動 …>
+**Summary**: <substantive turn 自己做了什麼>
+
+> **Deferred entries appended below in chronological order:**
+
+### Turn 5 (deferred) — 08:12:03 +0800
+
+**Deferred from**: pure-ops turn at 2026-05-10 08:12:03 +0800 (watcher xyz123)
+**Original user request**: 砍掉 stale branches
+**GitHub-side mutations**:
+- DEL origin/old/feature-a
+- DEL origin/old/feature-b
+**Tool calls**: `git push origin --delete x2`
+**Summary**: Background watcher cleaned up two stale branches after PR #99 merged.
+
+### Turn 6 (deferred) — 08:30:47 +0800
+
+**Deferred from**: pure-ops turn at 2026-05-10 08:30:47 +0800
+**Original user request**: 把 PR #100 description 補上 test plan
+**GitHub-side mutations**: edited PR #100 body
+**Tool calls**: `gh pr edit 100 --body ...`
+**Summary**: Added test plan section per user request.
+```
+
+> 注意 H3 (`###`) 用於 deferred 子條目，避免跟 substantive turn 的 H2 (`##`) 衝突。每筆 deferred 仍然 append-only：未來 substantive turn 補 deferred 時，**不修改**已存在的 entries。
+
 ### 隱私與資安
 
 - **禁止記錄秘密**：任何 token、API key、production credential 都絕對不可寫入 `.ailog/`。`scripts/validate_repo_contract.py` 的 `FORBIDDEN_CONTENT_PATTERNS` 會掃，違反等同 contract 違規。
@@ -107,14 +157,14 @@ After every AI turn (Claude Code or any other AI agent) that **creates / modifie
 
 ### When to Log
 
-| Situation | Required? |
-|---|---|
-| AI uses Write / Edit / NotebookEdit to create or change files | ✅ Required |
-| AI uses Bash to run mutating commands such as `git mv`, `git rm`, `mkdir`, `rm` | ✅ Required |
-| AI runs `git commit` / `git push` | ✅ Required |
-| AI runs `gh pr create` / `gh pr edit` / `gh pr merge` or anything that mutates GitHub | ✅ Required |
-| AI only answers questions / queries data / runs read-only `grep` / `git log` without touching files | ⏸ Optional (recommended; may skip when noisy) |
-| Automated / scheduled tasks (cron, loop) | ✅ Required, one entry per run |
+Turns are classified by whether they produce **working-tree file changes** — `substantive` vs `pure-ops`. Pure-ops turns support deferred logging (see the Deferred Logging clause below).
+
+| Situation | Required? | Inline vs deferred |
+|---|---|---|
+| **Substantive turn**: Write / Edit / NotebookEdit / `git mv` / `git rm` and similar working-tree mutations | ✅ Required | ❌ Cannot defer — append immediately on the current branch and commit |
+| **Pure-ops turn**: GitHub-only mutations (`git push --delete`, `gh pr merge`, `gh pr edit`, `gh pr close`, `gh release *`, `gh issue *`) with no working-tree change | ✅ Required | ✅ MAY defer to the next substantive turn's PR (default — avoids recursive PR noise) |
+| **Read-only turn**: questions, lookups, `grep`, `git log`, `gh pr view`, etc. | ⏸ Optional (recommended; skip when noisy) | — |
+| **Automated tasks (cron / loop / background watcher)** | ✅ Required, one entry per run | If the watcher only mutates GitHub remote refs it counts as pure-ops and may defer |
 
 ### File Format
 
@@ -159,6 +209,56 @@ After every AI turn (Claude Code or any other AI agent) that **creates / modifie
 **Commits**: cf28bfa, ...
 **PRs**: opendiamonds/cloud-360#13
 ```
+
+### Deferred Logging — pure-ops turns may defer
+
+**Problem**: a pure-ops turn (e.g. `gh pr merge`, `git push --delete`) produces no file change other than the log entry itself. Strictly requiring such a turn to land its entry in a dedicated PR creates a recursive noise loop: **opening a PR just to write the log → that PR creation is another turn → which itself needs a log entry**. PR #15 / Turn 3-4 on 2026-05-09 hit this exact loop.
+
+**Rule**:
+
+1. A pure-ops turn's entry MAY be **deferred** and appended on the next substantive turn's PR branch — no dedicated PR is required for pure-ops alone. Deferring is the default.
+2. The substantive turn, when authoring its own entry, also appends all accumulated deferred entries to `.ailog/<YYYY-MM-DD>.md` in **chronological order** ahead of its own entry; each deferred entry carries a `**Deferred from**: <original turn timestamp +TZ> (<context, e.g. watcher id>)` marker.
+3. Multiple consecutive pure-ops turns may batch.
+4. **No cross-day deferral**: deferred entries must land on `main` within the same calendar day (local timezone, +0800). If no substantive turn is in sight and the day is about to roll over, the AI agent **must proactively open a chore PR** to land the day's deferred entries before midnight.
+5. **Substantive turns always log inline** — they cannot defer themselves.
+
+**Quick self-check**: at the end of the current turn, is there commit-able change in the working tree?
+
+- **Yes** → substantive turn → append the entry **immediately** to the current branch and commit.
+- **No** → pure-ops turn → default to deferring (or open a small dedicated PR if you must, but it is usually unnecessary).
+
+**Deferred entry example**:
+
+```markdown
+## Turn 7 — 09:30:15 +0800
+
+**User request**: <the substantive turn's user message>
+**Branch**: danniel/feat/cost-calc-rewrite
+**Files**: <the substantive turn's own file changes …>
+**Summary**: <what the substantive turn did>
+
+> **Deferred entries appended below in chronological order:**
+
+### Turn 5 (deferred) — 08:12:03 +0800
+
+**Deferred from**: pure-ops turn at 2026-05-10 08:12:03 +0800 (watcher xyz123)
+**Original user request**: 砍掉 stale branches
+**GitHub-side mutations**:
+- DEL origin/old/feature-a
+- DEL origin/old/feature-b
+**Tool calls**: `git push origin --delete x2`
+**Summary**: Background watcher cleaned up two stale branches after PR #99 merged.
+
+### Turn 6 (deferred) — 08:30:47 +0800
+
+**Deferred from**: pure-ops turn at 2026-05-10 08:30:47 +0800
+**Original user request**: edit PR #100 description to add a test plan
+**GitHub-side mutations**: edited PR #100 body
+**Tool calls**: `gh pr edit 100 --body ...`
+**Summary**: Added the test plan section as requested.
+```
+
+> Deferred sub-entries use H3 (`###`) so they nest cleanly under the substantive turn's H2 (`##`). Each remains append-only: when a future substantive turn adds new deferred entries, **do not edit existing ones**.
 
 ### Privacy and Security
 
