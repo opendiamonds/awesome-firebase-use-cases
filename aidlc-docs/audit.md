@@ -75,6 +75,27 @@
 **Outcome**: PR4 待合併（branch `danniel/feat/ai-activity-logging`，stacked on PR3）。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-09 — Stacked-merge 修復（PR #14）
+
+**User request (raw)**: 「開修復 PR」
+**Stage**: Inception → Process governance（事故修復 + 流程教訓）
+**Incident**:
+- PR #10 (PR1) 正確 merge 進 `main`（commit `99db585`）。
+- PR #11 / #12 / #13 在 GitHub UI 各別點 "Merge" 時，因 base 仍指向上一個 stacked branch、未 retarget 到 `main`，分別被 merge 進它們的上層 base：
+  - PR #11 → merge 進 `feat/aidlc-framework-rules`（不是 main）
+  - PR #12 → merge 進 `feat/aidlc-docs-migration`
+  - PR #13 → merge 進 `danniel/feat/branch-naming-rule`
+- 三個 PR 顯示 MERGED 但 `main` 並未拿到 PR2 / PR3 / PR4 的內容。
+**Decisions**:
+- 修復策略：開新 PR 從 `danniel/feat/ai-activity-logging` → `main`。該 branch tip 已 stacked PR2 + PR3 + PR4 三個 commit，merge 一次即把三份內容一併送進 main，保留 commit 歷史。
+- 不採 cherry-pick / rebase / 重開 4 個 PR：太多噪音；現有 branch 已是正確的「未進 main」累積結果。
+- 同步把這次事故與修復寫入 `.ailog/2026-05-09.md` Turn 2，作為 stacked PR 操作的反例案例。
+**Lesson learned (流程教訓)**:
+- Stacked PR 在 GitHub 沒有自動 base retarget。**每 merge 一個 PR，必須手動把下一個 PR 的 base 改成 `main`，再 merge**；否則會 merge 進已過時的 base。
+- Memory 已新增 `feedback_stacked_pr_merge.md`（避免再犯）。
+**Outcome**: 修復 PR (#14) 待合併到 main。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -147,4 +168,25 @@ Each entry uses the following structure:
 - `validate_repo_contract.py` adds `.aidlc-overrides/ai-logging.md` and `.ailog/README.md` to `REQUIRED_FILES`, with bilingual sentinels and key terms in `REQUIRED_TEXT`.
 - Self-applied: this PR's own turn was logged to `.ailog/2026-05-09.md`.
 **Outcome**: PR4 pending merge (branch `danniel/feat/ai-activity-logging`, stacked on PR3).
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Stacked-merge remediation (PR #14)
+
+**User request (raw)**: "開修復 PR"
+**Stage**: Inception → Process governance (incident remediation + lesson learned)
+**Incident**:
+- PR #10 (PR1) merged into `main` correctly (commit `99db585`).
+- PR #11 / #12 / #13 were each merged via GitHub UI without retargeting their bases to `main`. They were merged **into their stacked base branches** instead of `main`:
+  - PR #11 → merged into `feat/aidlc-framework-rules` (not main)
+  - PR #12 → merged into `feat/aidlc-docs-migration`
+  - PR #13 → merged into `danniel/feat/branch-naming-rule`
+- All three show as MERGED, but `main` never received the PR2 / PR3 / PR4 content.
+**Decisions**:
+- Remediation: open a new PR from `danniel/feat/ai-activity-logging` → `main`. The branch tip already stacks PR2 + PR3 + PR4 commits on top of PR1; one merge brings everything in, with each commit's history preserved.
+- Did NOT cherry-pick / rebase / reopen four PRs — too noisy; the existing branch is the correct "not-yet-on-main" accumulation.
+- Logged the incident and remediation in `.ailog/2026-05-09.md` Turn 2 as a counter-example for stacked-PR handling.
+**Lesson learned**:
+- GitHub does not auto-retarget stacked PR bases. **Every time a PR merges, manually change the next PR's base to `main` before merging**; otherwise merging lands the change into the now-stale base.
+- Added memory `feedback_stacked_pr_merge.md` so this doesn't repeat.
+**Outcome**: remediation PR (#14) pending merge into main.
 **Approver**: dannielchung@gmail.com
