@@ -96,6 +96,27 @@
 **Outcome**: 修復 PR (#14) 待合併到 main。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-09 — ai-logging override 增補 deferred-logging 條款（PR #16）
+
+**User request (raw)**: 「不能在同一個RP一起寫ailog嗎？」→「幫我更新 rule」
+**Stage**: Inception → Process governance（rule 條款增補）
+**Context**:
+- PR #15 / Turn 3-4 實際遇到的遞迴問題：pure ops turn（`git push --delete`、`gh pr merge`）唯一檔案變動是 log entry → 為了寫 log 必須開 PR → 開 PR 又是新 turn → 又要寫 log。
+- 之前已用「把 Turn N append 到 active PR 同一 branch」的手法閃過幾次，但缺乏明文授權。
+**Decisions**:
+- `.aidlc-overrides/ai-logging.md` 增 **Deferred Logging 條款**：
+  1. Pure-ops turn（無 working-tree 變動）entry **預設 defer** 到下一個 substantive turn 的 PR；不必為 pure-ops 單獨開 PR。
+  2. Substantive turn 補寫 deferred entries 時依時間順序排在自己前面，每筆加 `**Deferred from**: <原 turn 時間>` 標記。
+  3. 多個 pure-ops turn 可累積 batch。
+  4. **不跨 calendar day**：當天 deferred entries 必須在當地時間（+0800）跨日前進 main，否則 AI 須主動開 chore PR 收尾。
+  5. Substantive turn 永遠 inline 寫，不能 defer 自己。
+- 重新分類「何時寫 log」表為 substantive / pure-ops / read-only / automated 四類，明確標 defer 是否允許。
+- CLAUDE.md item 7 同步更新摘要這個分類與 deferred 預設行為。
+- validate REQUIRED_TEXT 新增 `Deferred Logging`、`Substantive turn`、`Pure-ops turn`、`Deferred from` 等關鍵字防止未來誤改。
+- 自我示範：本 turn 是 substantive（有檔案變動），Turn 5 entry inline 寫於本 PR branch。
+**Outcome**: PR #16 待合併到 main。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -189,4 +210,25 @@ Each entry uses the following structure:
 - GitHub does not auto-retarget stacked PR bases. **Every time a PR merges, manually change the next PR's base to `main` before merging**; otherwise merging lands the change into the now-stale base.
 - Added memory `feedback_stacked_pr_merge.md` so this doesn't repeat.
 **Outcome**: remediation PR (#14) pending merge into main.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — ai-logging override gains deferred-logging clause (PR #16)
+
+**User request (raw)**: "不能在同一個RP一起寫ailog嗎？" → "幫我更新 rule"
+**Stage**: Inception → Process governance (clause amendment)
+**Context**:
+- PR #15 / Turn 3-4 actually triggered the recursion: a pure-ops turn (`git push --delete`, `gh pr merge`) produces no file change other than the log entry → opening a PR just to write the log is itself a new turn → which also needs a log entry.
+- The "append Turn N to the active PR's branch" workaround had been used a few times without explicit authorization in the rule.
+**Decisions**:
+- `.aidlc-overrides/ai-logging.md` gains a **Deferred Logging clause**:
+  1. A pure-ops turn (no working-tree change) defaults to **deferring** its entry to the next substantive turn's PR; pure-ops alone does not require a dedicated PR.
+  2. The substantive turn appends deferred entries in chronological order ahead of its own, with a `**Deferred from**: <original turn timestamp>` marker.
+  3. Multiple consecutive pure-ops turns may batch.
+  4. **No cross-day deferral**: deferred entries must reach `main` within the same calendar day (+0800); otherwise the AI must proactively open a chore PR before midnight.
+  5. Substantive turns always log inline — they cannot defer themselves.
+- Reclassified the "When to log" table into substantive / pure-ops / read-only / automated, with deferral eligibility per row.
+- CLAUDE.md item 7 updated to summarize the classification and deferral default.
+- `validate_repo_contract.py` `REQUIRED_TEXT` now requires keywords `Deferred Logging`, `Substantive turn`, `Pure-ops turn`, `Deferred from` to prevent future drift.
+- Self-applied: this turn is substantive (file changes), so Turn 5 is logged inline on this PR's branch.
+**Outcome**: PR #16 pending merge to main.
 **Approver**: dannielchung@gmail.com

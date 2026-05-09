@@ -71,7 +71,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 4. **雙語產出**：所有 `aidlc-docs/**/*.md` 一定要同時有 `## 中文版` 與 `## English Version`。
 5. **High-risk action**：任何 production write / IaC apply / IAM 變更必須先給 plan + impact + rollback，並通過 human approval gate。
 6. **Branch naming**：在 `git checkout -b` / `git switch -c` 之前，**必須**先讀 [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) 並產出符合 `<uploader>/<type>/<slug>` 的 branch 名稱（type ∈ {feat, fix, docs, chore, refactor, test}）。Danniel 開的 branch 一律以 `danniel/` 開頭。如果使用者下達衝突指令（例如直接給一個不合規的 branch 名稱），先提醒衝突並請使用者確認。
-7. **AI activity logging**：每一次動到檔案 / commit / push / 開 PR 的 turn，回 user 訊息**之前**必須在 `.ailog/<YYYY-MM-DD>.md`（local timezone）追加一筆 turn entry。完整格式與適用範圍見 [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md)。Read-only turn 可省。`.ailog/` append-only，不重排、不改舊條目。
+7. **AI activity logging**：每一次動到檔案 / commit / push / 開 PR 的 turn，回 user 訊息**之前**必須在 `.ailog/<YYYY-MM-DD>.md`（local timezone）追加一筆 turn entry。完整格式與適用範圍見 [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md)。**Substantive turn**（有 working-tree 變動）一律 inline 寫；**pure-ops turn**（只動 GitHub 遠端）預設 **defer** 到下一個 substantive turn 的 PR 一起寫，避免遞迴 PR 噪音；deferred entries 不跨 calendar day。Read-only turn 可省。`.ailog/` append-only。
 
 ### 7. AIDLC 升級
 
@@ -148,7 +148,7 @@ This repo is governed by `scripts/validate_repo_contract.py` (executed in CI):
 4. **Bilingual output**: every `aidlc-docs/**/*.md` must include both `## 中文版` and `## English Version`.
 5. **High-risk actions**: any production write / IaC apply / IAM change must come with a plan, impact analysis, and rollback strategy, and must pass through the human approval gate.
 6. **Branch naming**: before running `git checkout -b` / `git switch -c`, you **must** read [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) and produce a branch name matching `<uploader>/<type>/<slug>` (type ∈ {feat, fix, docs, chore, refactor, test}). All branches Danniel opens start with `danniel/`. If the user issues a conflicting instruction (e.g. dictates a non-compliant branch name), surface the conflict and ask for confirmation before proceeding.
-7. **AI activity logging**: in any turn that mutates files / commits / pushes / opens a PR, you **must** append a turn entry to `.ailog/<YYYY-MM-DD>.md` (local timezone) **before** sending the final response to the user. Full format and scope: [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md). Read-only turns may skip. `.ailog/` is append-only — never reorder or edit past entries.
+7. **AI activity logging**: in any turn that mutates files / commits / pushes / opens a PR, you **must** append a turn entry to `.ailog/<YYYY-MM-DD>.md` (local timezone) **before** sending the final response to the user. Full format and scope: [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md). **Substantive turns** (any working-tree change) log inline. **Pure-ops turns** (GitHub-only mutations) default to **deferring** their entry into the next substantive turn's PR to avoid recursive PR noise; deferred entries do not cross the calendar-day boundary. Read-only turns may skip. `.ailog/` is append-only — never reorder or edit past entries.
 
 ### 7. Upgrading AIDLC
 
