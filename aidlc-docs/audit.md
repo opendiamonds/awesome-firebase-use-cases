@@ -146,6 +146,20 @@
 **Outcome**: PR #18 待合併到 main。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-10 — PR #18 補強：HTML 改 kanban + 開 GitHub Project
+
+**User request (raw)**: 「剛剛的PR請調整HTML，輸出的HTML以看板模式呈現，或者輸出到Project看板功能裡」（決議：兩個都做、欄位依 Wave）
+**Stage**: Inception → Workflow Planning（視覺化 + 線上 live 看板）
+**Decisions**:
+- 在 PR #18 同一 branch 補 commit：HTML 把 §2 從堆疊式 wave cards 改為 4 欄 kanban board（W0/W1/W2/W3），每個 user story 為卡片，含 ID、title、pillar tag、deps；保留相依圖、story table、pillar 細節等其他段落。
+- 新增 GitHub Project: **Cloud-360 Development Plan**（owner=Dannielchung，public，URL: <https://github.com/users/Dannielchung/projects/1>）。Org-level project 因 `opendiamonds` 是 user account 而非 org，無法在該 owner 下建 Project，故掛 Dannielchung 個人；可連結 opendiamonds/cloud-360 的 issues / PRs。
+- Project 自訂 3 個欄位：Wave（W0–W3 single-select）、Pillar（A–I single-select）、Story ID（text）。內建 Status 欄位保留。
+- 寫入 26 個 draft items（每條 user story 一個），自動填上 Wave / Pillar / Story ID。
+- HTML header 加入 "View on GitHub Project" 按鈕；plans/README.md 表格新增 live project 列。
+- Auth：因 `gh` token 缺 `project` scope，請 user 手動跑 `gh auth refresh -h github.com -s project` 後才得以建 Project。
+**Outcome**: PR #18 取得新 commit；Project 公開可看。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -289,4 +303,18 @@ Each entry uses the following structure:
 - No changes to SRS or user-stories source files; this plan is a derived artifact.
 - Plan does not add or remove SRS pillars, so no new ADR is required; if future wave breakdowns change scope, a new ADR will be opened.
 **Outcome**: PR #18 pending merge to main.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — PR #18 follow-up: HTML kanban + GitHub Project
+
+**User request (raw)**: "剛剛的PR請調整HTML，輸出的HTML以看板模式呈現，或者輸出到Project看板功能裡" (decision: both, columns by Wave)
+**Stage**: Inception → Workflow Planning (visualization + live online board)
+**Decisions**:
+- Added a follow-up commit to the same PR #18 branch: HTML §2 switched from stacked wave cards to a 4-column kanban board (W0/W1/W2/W3); every user story is a card showing ID, title, pillar tag, and dependencies. Other sections (dependency graph, story table, pillar details) preserved.
+- Created GitHub Project **Cloud-360 Development Plan** (owner=Dannielchung, public, URL: <https://github.com/users/Dannielchung/projects/1>). Project lives under Dannielchung because `opendiamonds` is a user account (not an organization), so we cannot create projects under that owner; the project still links to issues / PRs in opendiamonds/cloud-360.
+- Project has three custom fields: Wave (single-select W0–W3), Pillar (single-select A–I), Story ID (text). Built-in Status field retained.
+- Seeded with 26 draft items (one per user story) with Wave / Pillar / Story ID populated.
+- HTML header gains a "View on GitHub Project" button; `plans/README.md` table lists the live project row.
+- Auth note: the `gh` CLI was missing the `project` scope, so the user manually ran `gh auth refresh -h github.com -s project` before project creation could proceed.
+**Outcome**: PR #18 receives a new commit; the GitHub Project is public.
 **Approver**: dannielchung@gmail.com

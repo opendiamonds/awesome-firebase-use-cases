@@ -197,6 +197,118 @@
     text-align: center;
   }
 
+  /* Kanban board */
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
+    gap: 0.9rem;
+    margin-top: 0.8rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  @media (max-width: 1024px) {
+    .kanban {
+      grid-template-columns: repeat(4, minmax(260px, 320px));
+    }
+  }
+  .kanban-col {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 0.9rem 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .kanban-col-header {
+    border-top: 4px solid var(--accent);
+    border-radius: 6px 6px 0 0;
+    padding: 0.6rem 0.65rem 0.7rem;
+    background: var(--card);
+    margin-bottom: 0.3rem;
+  }
+  .kanban-col.w0 .kanban-col-header { border-top-color: var(--w0); }
+  .kanban-col.w1 .kanban-col-header { border-top-color: var(--w1); }
+  .kanban-col.w2 .kanban-col-header { border-top-color: var(--w2); }
+  .kanban-col.w3 .kanban-col-header { border-top-color: var(--w3); }
+  .kanban-col-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .kanban-col-meta {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+  }
+  .kanban-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 0.65rem 0.75rem;
+    border-left: 3px solid var(--accent);
+    cursor: default;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .kanban-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  .kanban-col.w0 .kanban-card { border-left-color: var(--w0); }
+  .kanban-col.w1 .kanban-card { border-left-color: var(--w1); }
+  .kanban-col.w2 .kanban-card { border-left-color: var(--w2); }
+  .kanban-col.w3 .kanban-card { border-left-color: var(--w3); }
+  .kanban-card-id {
+    font-weight: 700;
+    color: var(--accent2);
+    font-size: 0.78rem;
+    letter-spacing: 0.4px;
+  }
+  .kanban-card-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+    margin: 0.2rem 0 0.3rem;
+    line-height: 1.35;
+  }
+  .kanban-card-pillar {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--accent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 0.3rem;
+  }
+  .kanban-card-deps {
+    color: var(--muted);
+    font-size: 0.74rem;
+    margin-top: 0.35rem;
+  }
+  .kanban-legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .kanban-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .kanban-legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+  .kanban-legend-dot.w0 { background: var(--w0); }
+  .kanban-legend-dot.w1 { background: var(--w1); }
+  .kanban-legend-dot.w2 { background: var(--w2); }
+  .kanban-legend-dot.w3 { background: var(--w3); }
+
   .bilingual {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -278,14 +390,22 @@
     <h1>Cloud-360 開發計劃 / Development Plan</h1>
     <div class="subtitle">9 Pillars · 26 User Stories · 4 Waves · AIDLC v0.1.8 inception artifact</div>
     <div class="meta-row">
-      Generated 2026-05-09 · Source: <code>aidlc-docs/inception/{requirements,user-stories,application-design}/</code> · Status: Draft
+      Generated 2026-05-09 · Updated 2026-05-10 · Source: <code>aidlc-docs/inception/{requirements,user-stories,application-design}/</code> · Status: Draft
+    </div>
+    <div style="margin-top:0.9rem;">
+      <a href="https://github.com/users/Dannielchung/projects/1"
+         target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#0f172a; font-weight:700; text-decoration:none; border-radius:6px; font-size:0.9rem;">
+        ▶ View on GitHub Project (live kanban)
+      </a>
+      <span style="color:var(--muted); font-size:0.82rem; margin-left:0.7rem;">本 HTML 是靜態快照；GitHub Project 是 live 看板，可拖卡片改 status</span>
     </div>
   </header>
 
   <nav class="toc">
     <strong>目錄</strong>
     <a href="#summary">總覽</a>
-    <a href="#waves">4 個 Wave</a>
+    <a href="#kanban">Kanban 看板</a>
     <a href="#dep-graph">相依圖</a>
     <a href="#story-table">26 條 Stories</a>
     <a href="#pillars">9 個 Pillar 細節</a>
@@ -315,81 +435,209 @@
     </div>
   </section>
 
-  <section id="waves">
-    <h2>2. 4 個 Wave / Delivery Waves</h2>
+  <section id="kanban">
+    <h2>2. Kanban 看板 / Wave-based Kanban</h2>
+    <p style="color:var(--muted); font-size:0.92rem;">
+      四欄看板對應 4 個 delivery wave；卡片左邊色條同 wave。<a href="https://github.com/users/Dannielchung/projects/1" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">在 GitHub Project 上拖卡片可改 Status / Wave</a>，本 HTML 是靜態快照。
+    </p>
 
-    <div class="wave w0">
-      <h3>Wave 0 <span class="wave-tag w0">Foundation</span></h3>
-      <div class="goal">先做基礎設施才會有東西可裝。<br><span style="color:var(--muted)">Build the foundation that everything else relies on.</span></div>
-      <div class="meta">
-        <span><b>Stories:</b> 8</span>
-        <span><b>Deps:</b> none</span>
-        <span><b>Theme:</b> Registry · Routing · Auth · Shell</span>
-      </div>
-      <div class="stories">
-        <span class="story-chip"><span class="id">I1</span>MCP Server Registry</span>
-        <span class="story-chip"><span class="id">I2</span>Skill Catalog</span>
-        <span class="story-chip"><span class="id">I3</span>Tool Permission/Risk Model</span>
-        <span class="story-chip"><span class="id">I4</span>MCP/Skill Approval Workflow</span>
-        <span class="story-chip"><span class="id">I5</span>Agent Tool Selection Observability</span>
-        <span class="story-chip"><span class="id">F1</span>AI Chat Cloud Query (read-only)</span>
-        <span class="story-chip"><span class="id">F2</span>AI Chat Cloud Operation (with approval)</span>
-        <span class="story-chip"><span class="id">H1</span>Desktop Web Full Workspace shell</span>
-      </div>
+    <div class="kanban-legend">
+      <span class="kanban-legend-item"><span class="kanban-legend-dot w0"></span>W0 Foundation · 8 stories · no deps</span>
+      <span class="kanban-legend-item"><span class="kanban-legend-dot w1"></span>W1 Core · 9 stories · ← W0</span>
+      <span class="kanban-legend-item"><span class="kanban-legend-dot w2"></span>W2 FinOps/Ops/Mobile · 8 stories · ← W1</span>
+      <span class="kanban-legend-item"><span class="kanban-legend-dot w3"></span>W3 Extensions · 1 story · ← W1</span>
     </div>
 
-    <div class="wave w1">
-      <h3>Wave 1 <span class="wave-tag w1">Core Differentiators</span></h3>
-      <div class="goal">使用者最有感的入口：自然語言設計 + 共編 draw.io、選型與 IaC、安全檢視。<br><span style="color:var(--muted)">The signature capabilities users come for.</span></div>
-      <div class="meta">
-        <span><b>Stories:</b> 9</span>
-        <span><b>Deps:</b> Wave 0</span>
-        <span><b>Theme:</b> Architecture · Selection · IaC · Security</span>
-      </div>
-      <div class="stories">
-        <span class="story-chip"><span class="id">A1</span>Natural Language → Architecture</span>
-        <span class="story-chip"><span class="id">A2</span>Well-Architected Review</span>
-        <span class="story-chip"><span class="id">A3</span>AI + draw.io Co-editing</span>
-        <span class="story-chip"><span class="id">B1</span>Service Comparison Matrix</span>
-        <span class="story-chip"><span class="id">B2</span>Workload-Based Recommendation</span>
-        <span class="story-chip"><span class="id">D1</span>Modular IaC Generation</span>
-        <span class="story-chip"><span class="id">D2</span>IaC Security Scan</span>
-        <span class="story-chip"><span class="id">G1</span>Multi-Cloud Security Review</span>
-        <span class="story-chip"><span class="id">G2</span>Least-Privilege Analysis</span>
-      </div>
-    </div>
+    <div class="kanban">
 
-    <div class="wave w2">
-      <h3>Wave 2 <span class="wave-tag w2">FinOps · Ops · Mobile</span></h3>
-      <div class="goal">把 architecture graph 餵給 FinOps / Ops，把 Mobile Web approval 補齊。<br><span style="color:var(--muted)">Cost insights, ops optimization, and mobile companion.</span></div>
-      <div class="meta">
-        <span><b>Stories:</b> 8</span>
-        <span><b>Deps:</b> Wave 1（FinOps/Ops 需要 architecture graph）</span>
-        <span><b>Theme:</b> Cost · Ops · Mobile · Agentic</span>
+      <!-- W0 -->
+      <div class="kanban-col w0">
+        <div class="kanban-col-header">
+          <div class="kanban-col-title">Wave 0 — Foundation <span class="wave-tag w0">8</span></div>
+          <div class="kanban-col-meta">Registry · Routing · Auth · Shell · no deps</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">I1</div>
+          <div class="kanban-card-title">MCP Server Registry</div>
+          <span class="kanban-card-pillar">I MCP/Skill</span>
+          <div class="kanban-card-deps">Deps: foundation</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">I2</div>
+          <div class="kanban-card-title">Skill Catalog</div>
+          <span class="kanban-card-pillar">I MCP/Skill</span>
+          <div class="kanban-card-deps">Deps: I1</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">I3</div>
+          <div class="kanban-card-title">Tool Permission &amp; Risk Model</div>
+          <span class="kanban-card-pillar">I MCP/Skill</span>
+          <div class="kanban-card-deps">Deps: I1, I2</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">I4</div>
+          <div class="kanban-card-title">MCP / Skill Approval Workflow</div>
+          <span class="kanban-card-pillar">I MCP/Skill</span>
+          <div class="kanban-card-deps">Deps: I1–I3, Audit</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">I5</div>
+          <div class="kanban-card-title">Agent Tool Selection Observability</div>
+          <span class="kanban-card-pillar">I MCP/Skill</span>
+          <div class="kanban-card-deps">Deps: I1–I4, Routing trace</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">F1</div>
+          <div class="kanban-card-title">AI Chat Cloud Query (read-only)</div>
+          <span class="kanban-card-pillar">F AI Multi-Cloud</span>
+          <div class="kanban-card-deps">Deps: I1, Agent Routing</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">F2</div>
+          <div class="kanban-card-title">AI Chat Cloud Operation (with approval)</div>
+          <span class="kanban-card-pillar">F AI Multi-Cloud</span>
+          <div class="kanban-card-deps">Deps: F1, Approval Gate, I3</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">H1</div>
+          <div class="kanban-card-title">Desktop Web Full Workspace</div>
+          <span class="kanban-card-pillar">H Web UX</span>
+          <div class="kanban-card-deps">Deps: API GW, Auth/MFA/WebAuthn</div>
+        </div>
       </div>
-      <div class="stories">
-        <span class="story-chip"><span class="id">C1</span>Monthly TCO Estimation</span>
-        <span class="story-chip"><span class="id">C2</span>Spot/Preemptible Comparison</span>
-        <span class="story-chip"><span class="id">C3</span>Cross-Cloud Egress Analysis</span>
-        <span class="story-chip"><span class="id">E1</span>Right-sizing Recommendation</span>
-        <span class="story-chip"><span class="id">E2</span>Architecture Modernization</span>
-        <span class="story-chip"><span class="id">F3</span>Agentic AI Operations</span>
-        <span class="story-chip"><span class="id">H2</span>Mobile Web Ops Companion</span>
-        <span class="story-chip"><span class="id">H3</span>Mobile Web Approval (MFA/WebAuthn)</span>
-      </div>
-    </div>
 
-    <div class="wave w3">
-      <h3>Wave 3 <span class="wave-tag w3">Extensions / Governance Depth</span></h3>
-      <div class="goal">Policy-as-Code 自動產生、深層 audit 與可重用治理規則。<br><span style="color:var(--muted)">Policy-as-Code automation and deeper governance.</span></div>
-      <div class="meta">
-        <span><b>Stories:</b> 1</span>
-        <span><b>Deps:</b> Wave 1（G1/G2 finding stream）</span>
-        <span><b>Theme:</b> Policy-as-Code</span>
+      <!-- W1 -->
+      <div class="kanban-col w1">
+        <div class="kanban-col-header">
+          <div class="kanban-col-title">Wave 1 — Core <span class="wave-tag w1">9</span></div>
+          <div class="kanban-col-meta">Architecture · Selection · IaC · Security · ← W0</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">A1</div>
+          <div class="kanban-card-title">Natural Language → Architecture</div>
+          <span class="kanban-card-pillar">A Architecture</span>
+          <div class="kanban-card-deps">Deps: Routing (W0), Intent Parser, Design Agent</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">A2</div>
+          <div class="kanban-card-title">Well-Architected Review</div>
+          <span class="kanban-card-pillar">A Architecture</span>
+          <div class="kanban-card-deps">Deps: A1, provider best-practice rules</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">A3</div>
+          <div class="kanban-card-title">AI + draw.io Co-editing</div>
+          <span class="kanban-card-pillar">A Architecture</span>
+          <div class="kanban-card-deps">Deps: draw.io XML adapter → Architecture Graph</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">B1</div>
+          <div class="kanban-card-title">Service Comparison Matrix</div>
+          <span class="kanban-card-pillar">B Cross-Cloud</span>
+          <div class="kanban-card-deps">Deps: cloud catalog data</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">B2</div>
+          <div class="kanban-card-title">Workload-Based Recommendation</div>
+          <span class="kanban-card-pillar">B Cross-Cloud</span>
+          <div class="kanban-card-deps">Deps: B1 + Component Selection Agent</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">D1</div>
+          <div class="kanban-card-title">Modular IaC Generation</div>
+          <span class="kanban-card-pillar">D IaC</span>
+          <div class="kanban-card-deps">Deps: Architecture Graph, provider templates</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">D2</div>
+          <div class="kanban-card-title">IaC Security Scan</div>
+          <span class="kanban-card-pillar">D IaC</span>
+          <div class="kanban-card-deps">Deps: D1, tfsec/trivy/Checkov MCP</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">G1</div>
+          <div class="kanban-card-title">Multi-Cloud Security Review</div>
+          <span class="kanban-card-pillar">G Security</span>
+          <div class="kanban-card-deps">Deps: IAM/Config/SCC/Defender MCP</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">G2</div>
+          <div class="kanban-card-title">Least-Privilege Analysis</div>
+          <span class="kanban-card-pillar">G Security</span>
+          <div class="kanban-card-deps">Deps: G1 + IAM Access Analyzer-style data</div>
+        </div>
       </div>
-      <div class="stories">
-        <span class="story-chip"><span class="id">G3</span>Policy-as-Code Recommendation (OPA / Sentinel / Azure Policy / GCP Org Policy / AWS Config rule)</span>
+
+      <!-- W2 -->
+      <div class="kanban-col w2">
+        <div class="kanban-col-header">
+          <div class="kanban-col-title">Wave 2 — FinOps · Ops · Mobile <span class="wave-tag w2">8</span></div>
+          <div class="kanban-col-meta">Cost · Ops · Mobile · Agentic · ← W1</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">C1</div>
+          <div class="kanban-card-title">Monthly TCO Estimation</div>
+          <span class="kanban-card-pillar">C FinOps</span>
+          <div class="kanban-card-deps">Deps: Architecture Graph, pricing API</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">C2</div>
+          <div class="kanban-card-title">Spot / Preemptible Comparison</div>
+          <span class="kanban-card-pillar">C FinOps</span>
+          <div class="kanban-card-deps">Deps: C1 base pricing</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">C3</div>
+          <div class="kanban-card-title">Cross-Cloud Egress Analysis</div>
+          <span class="kanban-card-pillar">C FinOps</span>
+          <div class="kanban-card-deps">Deps: Architecture Graph traffic edges</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">E1</div>
+          <div class="kanban-card-title">Right-sizing Recommendation</div>
+          <span class="kanban-card-pillar">E Operations</span>
+          <div class="kanban-card-deps">Deps: cloud metrics MCP, Approval Gate</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">E2</div>
+          <div class="kanban-card-title">Architecture Modernization</div>
+          <span class="kanban-card-pillar">E Operations</span>
+          <div class="kanban-card-deps">Deps: Architecture Graph + new-service catalog</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">F3</div>
+          <div class="kanban-card-title">Agentic AI Operations</div>
+          <span class="kanban-card-pillar">F AI Multi-Cloud</span>
+          <div class="kanban-card-deps">Deps: provider signal pipelines + Memory + Routing</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">H2</div>
+          <div class="kanban-card-title">Mobile Web Ops Companion</div>
+          <span class="kanban-card-pillar">H Web UX</span>
+          <div class="kanban-card-deps">Deps: responsive shell, F1/F3 outputs</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">H3</div>
+          <div class="kanban-card-title">Mobile Web Approval (MFA/WebAuthn)</div>
+          <span class="kanban-card-pillar">H Web UX</span>
+          <div class="kanban-card-deps">Deps: H2 + WebAuthn / Passkey</div>
+        </div>
       </div>
+
+      <!-- W3 -->
+      <div class="kanban-col w3">
+        <div class="kanban-col-header">
+          <div class="kanban-col-title">Wave 3 — Extensions <span class="wave-tag w3">1</span></div>
+          <div class="kanban-col-meta">Policy-as-Code · ← W1</div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-id">G3</div>
+          <div class="kanban-card-title">Policy-as-Code Recommendation</div>
+          <span class="kanban-card-pillar">G Security</span>
+          <div class="kanban-card-deps">Deps: G1+G2 findings, Approval Gate. Targets: OPA/Rego, Sentinel, Azure Policy, GCP Org Policy, AWS Config rule</div>
+        </div>
+      </div>
+
     </div>
   </section>
 
