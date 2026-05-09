@@ -133,6 +133,19 @@
 **Outcome**: PR #17 待合併到 main。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-10 — 新增 wave-based 開發計劃 HTML（PR #18）
+
+**User request (raw)**: 「幫我把SRS 裡 9 個 pillar、26 條 user stories 整理成一個開發計劃，輸出成一個HTML給我」
+**Stage**: Inception → Workflow Planning（pillar 級 wave 規劃）
+**Decisions**:
+- 新增 `aidlc-docs/inception/plans/development-plan.html`：依 SRS pillars 與 user-stories 整理，分 4 個 wave（W0 Foundation、W1 Core Differentiators、W2 FinOps/Ops/Mobile、W3 Extensions），含相依圖（Mermaid）、story table、pillar 細節、NFR、已知風險、下一步建議。
+- 採單檔 HTML（inline CSS、Mermaid via CDN），可直接 `open` 瀏覽，亦可離線閱讀（Mermaid 不可用時純文字仍可看）。
+- 新增 `aidlc-docs/inception/plans/README.md`（雙語），說明 plans/ 目錄角色與其他 inception 子目錄的關係。
+- 不對 SRS / user-stories 原檔做改動；本計劃為衍生 artifact。
+- 此計劃尚未對 SRS scope 加 / 減 pillar，所以不需要新 ADR；後續 wave 拆細時若改變 scope 再開 ADR。
+**Outcome**: PR #18 待合併到 main。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -263,4 +276,17 @@ Each entry uses the following structure:
 - `scripts/validate_repo_contract.py`: `REQUIRED_FILES` drops `.ailog/README.md` and `.aidlc-overrides/ai-logging.md`, adds `.aidlc-overrides/decisions-log.md` and `aidlc-docs/decisions-log.md`; `REQUIRED_TEXT` keys swapped accordingly.
 - Self-applied: the decision itself ("remove ai-logging, adopt on-demand decisions-log") is the first entry in `aidlc-docs/decisions-log.md`.
 **Outcome**: PR #17 pending merge to main.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — Add wave-based development plan HTML (PR #18)
+
+**User request (raw)**: "幫我把SRS 裡 9 個 pillar、26 條 user stories 整理成一個開發計劃，輸出成一個HTML給我"
+**Stage**: Inception → Workflow Planning (pillar-level wave plan)
+**Decisions**:
+- Added `aidlc-docs/inception/plans/development-plan.html`: SRS pillars and user stories organized into four waves (W0 Foundation, W1 Core Differentiators, W2 FinOps/Ops/Mobile, W3 Extensions). Contains a dependency graph (Mermaid), full story table, pillar details, NFRs, known risks, and recommended next steps.
+- Single-file HTML (inline CSS, Mermaid via CDN) — can be opened directly in a browser and remains readable offline (text-only fallback if Mermaid is unavailable).
+- Added `aidlc-docs/inception/plans/README.md` (bilingual) describing the role of `plans/` and its relationship to other inception subdirectories.
+- No changes to SRS or user-stories source files; this plan is a derived artifact.
+- Plan does not add or remove SRS pillars, so no new ADR is required; if future wave breakdowns change scope, a new ADR will be opened.
+**Outcome**: PR #18 pending merge to main.
 **Approver**: dannielchung@gmail.com

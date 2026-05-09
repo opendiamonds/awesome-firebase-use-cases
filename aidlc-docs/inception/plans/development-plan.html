@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud-360 開發計劃 / Development Plan</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-2: #273548;
+    --accent: #38bdf8;
+    --accent2: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #334155;
+    --w0: #f43f5e;
+    --w1: #38bdf8;
+    --w2: #34d399;
+    --w3: #fbbf24;
+    --done: #22c55e;
+    --pending: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+                 "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  header h1 {
+    font-size: 2.1rem;
+    margin: 0 0 0.4rem;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { color: var(--muted); font-size: 0.95rem; }
+  .meta-row { color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem; }
+  nav.toc {
+    background: var(--card);
+    padding: 0.9rem 1.2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    border-left: 3px solid var(--accent2);
+  }
+  nav.toc strong { color: var(--accent2); margin-right: 0.6rem; }
+  nav.toc a {
+    color: var(--accent);
+    text-decoration: none;
+    margin-right: 1rem;
+    font-size: 0.9rem;
+  }
+  nav.toc a:hover { text-decoration: underline; }
+
+  section { margin: 2.5rem 0; scroll-margin-top: 1rem; }
+  h2 {
+    font-size: 1.4rem;
+    border-left: 4px solid var(--accent);
+    padding-left: 0.75rem;
+    margin: 2.5rem 0 1rem;
+  }
+  h3 { font-size: 1.15rem; margin: 1.25rem 0 0.75rem; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0 0.5rem;
+  }
+  .stat {
+    background: var(--card);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+  .stat .num {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+  .stat .label { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+
+  .wave {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1.2rem;
+    border-top: 4px solid var(--accent);
+  }
+  .wave.w0 { border-top-color: var(--w0); }
+  .wave.w1 { border-top-color: var(--w1); }
+  .wave.w2 { border-top-color: var(--w2); }
+  .wave.w3 { border-top-color: var(--w3); }
+  .wave h3 { margin-top: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.6rem; }
+  .wave .goal { color: var(--muted); margin-bottom: 0.8rem; font-size: 0.93rem; }
+  .wave .meta {
+    display: flex;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0.3rem 0 0.9rem;
+  }
+  .wave .meta b { color: var(--text); }
+  .wave .stories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .story-chip {
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+  .story-chip .id {
+    color: var(--accent2);
+    font-weight: 700;
+    margin-right: 0.3rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { background: rgba(56, 189, 248, 0.08); color: var(--accent); font-weight: 600; }
+  tr:hover td { background: rgba(255, 255, 255, 0.02); }
+  td.id-cell { color: var(--accent2); font-weight: 700; white-space: nowrap; }
+  td.wave-cell { white-space: nowrap; }
+
+  .pillar {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--accent);
+  }
+  .pillar h3 { margin-top: 0; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .pillar-id {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 0.15rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .pillar p.summary { color: var(--muted); margin: 0.3rem 0 0.9rem; font-size: 0.93rem; }
+  .pillar .story {
+    border-left: 2px solid var(--border);
+    padding: 0.4rem 0 0.4rem 1rem;
+    margin: 0.6rem 0;
+  }
+  .pillar .story-id { color: var(--accent2); font-weight: 700; font-size: 0.85rem; }
+  .pillar .story-title { font-weight: 600; }
+  .pillar .story-criteria { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+  .pillar .story-criteria li { margin: 0.2rem 0; }
+
+  .wave-tag {
+    display: inline-block;
+    padding: 0.1rem 0.55rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .wave-tag.w0 { background: rgba(244, 63, 94, 0.2); color: var(--w0); }
+  .wave-tag.w1 { background: rgba(56, 189, 248, 0.2); color: var(--w1); }
+  .wave-tag.w2 { background: rgba(52, 211, 153, 0.2); color: var(--w2); }
+  .wave-tag.w3 { background: rgba(251, 191, 36, 0.2); color: var(--w3); }
+
+  .mermaid-wrapper {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  .bilingual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 768px) { .bilingual { grid-template-columns: 1fr; } }
+  .lang-zh, .lang-en {
+    background: var(--card-2);
+    padding: 1rem 1.1rem;
+    border-radius: 6px;
+    font-size: 0.92rem;
+  }
+  .lang-zh::before {
+    content: "中文版";
+    display: block;
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.5px;
+  }
+  .lang-en::before {
+    content: "ENGLISH";
+    display: block;
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.5px;
+  }
+
+  .nfr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.8rem;
+  }
+  .nfr-item {
+    background: var(--card);
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    border-left: 3px solid var(--accent2);
+  }
+
+  .risks { padding-left: 1.3rem; }
+  .risks li { margin-bottom: 0.6rem; }
+
+  code, kbd {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-family: "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  footer a { color: var(--accent); }
+
+  @media print {
+    body { background: white; color: black; }
+    .wave, .pillar, .stat, .mermaid-wrapper, .lang-zh, .lang-en, .nfr-item, nav.toc {
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+    }
+    a { color: #0369a1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Cloud-360 開發計劃 / Development Plan</h1>
+    <div class="subtitle">9 Pillars · 26 User Stories · 4 Waves · AIDLC v0.1.8 inception artifact</div>
+    <div class="meta-row">
+      Generated 2026-05-09 · Source: <code>aidlc-docs/inception/{requirements,user-stories,application-design}/</code> · Status: Draft
+    </div>
+  </header>
+
+  <nav class="toc">
+    <strong>目錄</strong>
+    <a href="#summary">總覽</a>
+    <a href="#waves">4 個 Wave</a>
+    <a href="#dep-graph">相依圖</a>
+    <a href="#story-table">26 條 Stories</a>
+    <a href="#pillars">9 個 Pillar 細節</a>
+    <a href="#nfr">非功能性需求</a>
+    <a href="#risks">風險與待解</a>
+    <a href="#nextsteps">下一步</a>
+  </nav>
+
+  <section id="summary">
+    <h2>1. 總覽 / Overview</h2>
+    <div class="bilingual">
+      <div class="lang-zh">
+        Cloud-360 是 AI-native 多雲架構與維運平台，目前 SDD baseline 已寫入 9 大 pillar、26 條 user stories；尚未產製 application code。本計劃把這些 stories 依相依性切成 4 個 wave，從基礎設施（MCP/Skill registry、Agent Routing 骨架、Desktop shell）開始，逐步堆疊核心差異化功能、FinOps/Ops/Mobile 配套與擴充規範。
+      </div>
+      <div class="lang-en">
+        Cloud-360 is an AI-native multi-cloud architecture & operations platform. The SDD baseline currently captures 9 pillars and 26 user stories; no application code yet. This plan groups the stories into 4 waves by dependency, starting with foundational pieces (MCP/Skill registry, Agent Routing skeleton, Desktop shell) and progressively layering core differentiators, FinOps/Ops/Mobile supporting features, and extension governance.
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="num">9</div><div class="label">Core pillars (A–I)</div></div>
+      <div class="stat"><div class="num">26</div><div class="label">User stories</div></div>
+      <div class="stat"><div class="num">4</div><div class="label">Delivery waves</div></div>
+      <div class="stat"><div class="num">3</div><div class="label">Cloud providers (AWS / GCP / Azure)</div></div>
+      <div class="stat"><div class="num">0</div><div class="label">Application code yet</div></div>
+      <div class="stat"><div class="num">2</div><div class="label">Web targets (Desktop + Mobile PWA)</div></div>
+    </div>
+  </section>
+
+  <section id="waves">
+    <h2>2. 4 個 Wave / Delivery Waves</h2>
+
+    <div class="wave w0">
+      <h3>Wave 0 <span class="wave-tag w0">Foundation</span></h3>
+      <div class="goal">先做基礎設施才會有東西可裝。<br><span style="color:var(--muted)">Build the foundation that everything else relies on.</span></div>
+      <div class="meta">
+        <span><b>Stories:</b> 8</span>
+        <span><b>Deps:</b> none</span>
+        <span><b>Theme:</b> Registry · Routing · Auth · Shell</span>
+      </div>
+      <div class="stories">
+        <span class="story-chip"><span class="id">I1</span>MCP Server Registry</span>
+        <span class="story-chip"><span class="id">I2</span>Skill Catalog</span>
+        <span class="story-chip"><span class="id">I3</span>Tool Permission/Risk Model</span>
+        <span class="story-chip"><span class="id">I4</span>MCP/Skill Approval Workflow</span>
+        <span class="story-chip"><span class="id">I5</span>Agent Tool Selection Observability</span>
+        <span class="story-chip"><span class="id">F1</span>AI Chat Cloud Query (read-only)</span>
+        <span class="story-chip"><span class="id">F2</span>AI Chat Cloud Operation (with approval)</span>
+        <span class="story-chip"><span class="id">H1</span>Desktop Web Full Workspace shell</span>
+      </div>
+    </div>
+
+    <div class="wave w1">
+      <h3>Wave 1 <span class="wave-tag w1">Core Differentiators</span></h3>
+      <div class="goal">使用者最有感的入口：自然語言設計 + 共編 draw.io、選型與 IaC、安全檢視。<br><span style="color:var(--muted)">The signature capabilities users come for.</span></div>
+      <div class="meta">
+        <span><b>Stories:</b> 9</span>
+        <span><b>Deps:</b> Wave 0</span>
+        <span><b>Theme:</b> Architecture · Selection · IaC · Security</span>
+      </div>
+      <div class="stories">
+        <span class="story-chip"><span class="id">A1</span>Natural Language → Architecture</span>
+        <span class="story-chip"><span class="id">A2</span>Well-Architected Review</span>
+        <span class="story-chip"><span class="id">A3</span>AI + draw.io Co-editing</span>
+        <span class="story-chip"><span class="id">B1</span>Service Comparison Matrix</span>
+        <span class="story-chip"><span class="id">B2</span>Workload-Based Recommendation</span>
+        <span class="story-chip"><span class="id">D1</span>Modular IaC Generation</span>
+        <span class="story-chip"><span class="id">D2</span>IaC Security Scan</span>
+        <span class="story-chip"><span class="id">G1</span>Multi-Cloud Security Review</span>
+        <span class="story-chip"><span class="id">G2</span>Least-Privilege Analysis</span>
+      </div>
+    </div>
+
+    <div class="wave w2">
+      <h3>Wave 2 <span class="wave-tag w2">FinOps · Ops · Mobile</span></h3>
+      <div class="goal">把 architecture graph 餵給 FinOps / Ops，把 Mobile Web approval 補齊。<br><span style="color:var(--muted)">Cost insights, ops optimization, and mobile companion.</span></div>
+      <div class="meta">
+        <span><b>Stories:</b> 8</span>
+        <span><b>Deps:</b> Wave 1（FinOps/Ops 需要 architecture graph）</span>
+        <span><b>Theme:</b> Cost · Ops · Mobile · Agentic</span>
+      </div>
+      <div class="stories">
+        <span class="story-chip"><span class="id">C1</span>Monthly TCO Estimation</span>
+        <span class="story-chip"><span class="id">C2</span>Spot/Preemptible Comparison</span>
+        <span class="story-chip"><span class="id">C3</span>Cross-Cloud Egress Analysis</span>
+        <span class="story-chip"><span class="id">E1</span>Right-sizing Recommendation</span>
+        <span class="story-chip"><span class="id">E2</span>Architecture Modernization</span>
+        <span class="story-chip"><span class="id">F3</span>Agentic AI Operations</span>
+        <span class="story-chip"><span class="id">H2</span>Mobile Web Ops Companion</span>
+        <span class="story-chip"><span class="id">H3</span>Mobile Web Approval (MFA/WebAuthn)</span>
+      </div>
+    </div>
+
+    <div class="wave w3">
+      <h3>Wave 3 <span class="wave-tag w3">Extensions / Governance Depth</span></h3>
+      <div class="goal">Policy-as-Code 自動產生、深層 audit 與可重用治理規則。<br><span style="color:var(--muted)">Policy-as-Code automation and deeper governance.</span></div>
+      <div class="meta">
+        <span><b>Stories:</b> 1</span>
+        <span><b>Deps:</b> Wave 1（G1/G2 finding stream）</span>
+        <span><b>Theme:</b> Policy-as-Code</span>
+      </div>
+      <div class="stories">
+        <span class="story-chip"><span class="id">G3</span>Policy-as-Code Recommendation (OPA / Sentinel / Azure Policy / GCP Org Policy / AWS Config rule)</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="dep-graph">
+    <h2>3. Wave 相依圖 / Dependency Graph</h2>
+    <div class="mermaid-wrapper">
+      <pre class="mermaid">
+flowchart LR
+  classDef w0 fill:#3a1a25,stroke:#f43f5e,color:#fda4af;
+  classDef w1 fill:#0c2e44,stroke:#38bdf8,color:#bae6fd;
+  classDef w2 fill:#0f3a2a,stroke:#34d399,color:#bbf7d0;
+  classDef w3 fill:#3a2e0c,stroke:#fbbf24,color:#fde68a;
+
+  W0["<b>Wave 0 — Foundation</b><br/>I1 I2 I3 I4 I5<br/>F1 F2<br/>H1 + Auth/RBAC/MFA/WebAuthn"]:::w0
+  W1["<b>Wave 1 — Core Differentiators</b><br/>A1 A2 A3<br/>B1 B2<br/>D1 D2<br/>G1 G2"]:::w1
+  W2["<b>Wave 2 — FinOps · Ops · Mobile</b><br/>C1 C2 C3<br/>E1 E2<br/>F3<br/>H2 H3"]:::w2
+  W3["<b>Wave 3 — Extensions</b><br/>G3 (Policy-as-Code)"]:::w3
+
+  W0 --> W1
+  W1 --> W2
+  W1 --> W3
+  W2 -.optional.-> W3
+      </pre>
+    </div>
+  </section>
+
+  <section id="story-table">
+    <h2>4. 26 條 User Stories（含 Wave 與相依）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Pillar</th>
+          <th>Wave</th>
+          <th>Key dependencies</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="id-cell">A1</td><td>Natural Language to Architecture</td><td>A · Architecture Design</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>Routing Agent (W0), Intent Parser, Design Agent</td></tr>
+        <tr><td class="id-cell">A2</td><td>Well-Architected Review</td><td>A</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>A1 output, Provider best-practice rules</td></tr>
+        <tr><td class="id-cell">A3</td><td>AI + draw.io Co-editing</td><td>A</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>draw.io XML adapter → Architecture Graph</td></tr>
+        <tr><td class="id-cell">B1</td><td>Service Comparison Matrix</td><td>B · Cross-Cloud Selection</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>Cloud catalog data source</td></tr>
+        <tr><td class="id-cell">B2</td><td>Workload-Based Recommendation</td><td>B</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>B1 + Component Selection Agent</td></tr>
+        <tr><td class="id-cell">C1</td><td>Monthly TCO Estimation</td><td>C · FinOps</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>Architecture Graph (W1), pricing API</td></tr>
+        <tr><td class="id-cell">C2</td><td>Spot/Preemptible Comparison</td><td>C</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>C1 base pricing</td></tr>
+        <tr><td class="id-cell">C3</td><td>Cross-Cloud Egress Analysis</td><td>C</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>Architecture Graph traffic edges</td></tr>
+        <tr><td class="id-cell">D1</td><td>Modular IaC Generation</td><td>D · IaC</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>Architecture Graph (W1), provider templates</td></tr>
+        <tr><td class="id-cell">D2</td><td>IaC Security Scan</td><td>D</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>D1 output, tfsec/trivy/Checkov MCP</td></tr>
+        <tr><td class="id-cell">E1</td><td>Right-sizing Recommendation</td><td>E · Operations</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>Cloud metrics MCP, Approval Gate</td></tr>
+        <tr><td class="id-cell">E2</td><td>Architecture Modernization</td><td>E</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>Architecture Graph + provider new-service catalog</td></tr>
+        <tr><td class="id-cell">F1</td><td>AI Chat Cloud Query (read-only)</td><td>F · AI Multi-Cloud Ops</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>MCP registry (I1), Agent Routing</td></tr>
+        <tr><td class="id-cell">F2</td><td>AI Chat Cloud Operation</td><td>F</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>F1 + Approval Gate + Risk Model (I3)</td></tr>
+        <tr><td class="id-cell">F3</td><td>Agentic AI Operations</td><td>F</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>Provider signal pipelines + Memory + Routing</td></tr>
+        <tr><td class="id-cell">G1</td><td>Multi-Cloud Security Review</td><td>G · Security Posture</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>IAM/Config/SCC/Defender MCP, finding store</td></tr>
+        <tr><td class="id-cell">G2</td><td>Least-Privilege Analysis</td><td>G</td><td class="wave-cell"><span class="wave-tag w1">W1</span></td><td>G1 + IAM Access Analyzer-style data</td></tr>
+        <tr><td class="id-cell">G3</td><td>Policy-as-Code Recommendation</td><td>G</td><td class="wave-cell"><span class="wave-tag w3">W3</span></td><td>G1+G2 findings, Approval Gate</td></tr>
+        <tr><td class="id-cell">H1</td><td>Desktop Web Full Workspace</td><td>H · Web UX</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>API Gateway, Auth (RBAC/MFA/WebAuthn)</td></tr>
+        <tr><td class="id-cell">H2</td><td>Mobile Web Ops Companion</td><td>H</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>Responsive web shell, F1/F3 outputs</td></tr>
+        <tr><td class="id-cell">H3</td><td>Mobile Web Approval</td><td>H</td><td class="wave-cell"><span class="wave-tag w2">W2</span></td><td>H2 + WebAuthn / Passkey integration</td></tr>
+        <tr><td class="id-cell">I1</td><td>MCP Server Registry</td><td>I · MCP &amp; Skill Mgmt</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>(foundation)</td></tr>
+        <tr><td class="id-cell">I2</td><td>Skill Catalog</td><td>I</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>I1</td></tr>
+        <tr><td class="id-cell">I3</td><td>Tool Permission/Risk Model</td><td>I</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>I1 + I2</td></tr>
+        <tr><td class="id-cell">I4</td><td>MCP/Skill Approval Workflow</td><td>I</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>I1–I3 + Audit log</td></tr>
+        <tr><td class="id-cell">I5</td><td>Agent Tool Selection Observability</td><td>I</td><td class="wave-cell"><span class="wave-tag w0">W0</span></td><td>I1–I4 + Routing trace + Audit</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="pillars">
+    <h2>5. 9 個 Pillar 細節 / Pillar Details</h2>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">A</span>Architecture Design <span class="wave-tag w1">Wave 1</span></h3>
+      <p class="summary">把自然語言需求轉成單雲／多雲架構藍圖，整合 Mermaid / PlantUML / draw.io，並支援 Active-Active / Active-Passive cross-cloud DR。</p>
+      <div class="story">
+        <div><span class="story-id">A1</span> · <span class="story-title">Natural Language to Architecture</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>萃取 workload、HA、DR、scalability、region、security、compliance 需求</li>
+            <li>產生 Mermaid / PlantUML / draw.io 輸出</li>
+            <li>說明 assumption 與 trade-off</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">A2</span> · <span class="story-title">Well-Architected Review</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>覆蓋 reliability / security / cost / operational excellence / performance 五支柱</li>
+            <li>產生 severity、impact、remediation 建議</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">A3</span> · <span class="story-title">AI + draw.io Co-editing</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>支援 <code>.drawio</code> / XML source format</li>
+            <li>AI 可加 / 刪 node、改 connection、標 data flow</li>
+            <li>每次 AI 修改有 change summary 與 version history</li>
+            <li>圖面可解析成 architecture graph 給其他 agent 共用</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">B</span>Cross-Cloud Component Selection <span class="wave-tag w1">Wave 1</span></h3>
+      <p class="summary">依 workload profile 比較 AWS / GCP / Azure 同質託管服務，輸出 SLA、limits、lock-in、cost、ops complexity 與替代方案。</p>
+      <div class="story">
+        <div><span class="story-id">B1</span> · <span class="story-title">Service Comparison Matrix</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>含 SLA、限制、相容性、成本風險、lock-in、維運複雜度</li>
+            <li>覆蓋 compute、database、storage、network、Kubernetes、messaging、AI/ML</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">B2</span> · <span class="story-title">Workload-Based Recommendation</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>使用 QPS、concurrency、data size、latency、region、compliance 限制</li>
+            <li>提供 rationale、alternatives、known limitations</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">C</span>Cost Estimation &amp; FinOps <span class="wave-tag w2">Wave 2</span></h3>
+      <p class="summary">估算多雲 TCO、比較 Spot / Preemptible、計算跨雲 / 跨區 egress、提出 right-sizing 建議。</p>
+      <div class="story">
+        <div><span class="story-id">C1</span> · <span class="story-title">Monthly TCO Estimation</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>估算 compute、database、cache、storage、network、CDN、egress、observability</li>
+            <li>顯示 pricing assumption 與來源 timestamp</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">C2</span> · <span class="story-title">Spot / Preemptible Comparison</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>覆蓋 AWS Spot、Azure Spot、GCP Spot / Preemptible</li>
+            <li>含 savings estimate 與 interruption risk</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">C3</span> · <span class="story-title">Cross-Cloud Egress Analysis</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>區分 intra-region、inter-region、internet egress、cross-cloud traffic</li>
+            <li>標出昂貴 / 高風險 traffic path</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">D</span>Terraform / OpenTofu IaC <span class="wave-tag w1">Wave 1</span></h3>
+      <p class="summary">把確認後的架構轉為 Terraform / OpenTofu 模組草稿，支援 aws / google / azurerm provider，整合靜態安全掃描。</p>
+      <div class="story">
+        <div><span class="story-id">D1</span> · <span class="story-title">Modular IaC Generation</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>產出 <code>providers.tf</code>、<code>main.tf</code>、<code>variables.tf</code>、<code>outputs.tf</code> 與 <code>modules/</code></li>
+            <li>支援 aws / google / azurerm provider</li>
+            <li>禁止產生 plaintext secret</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">D2</span> · <span class="story-title">IaC Security Scan</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>支援 tfsec、trivy、Checkov</li>
+            <li>標出 public storage、過寬 ingress、缺加密、過寬 IAM/RBAC</li>
+            <li>產出 remediation guidance</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">E</span>Operations Optimization <span class="wave-tag w2">Wave 2</span></h3>
+      <p class="summary">針對部署中或設計中的架構持續做健康檢查、效能、可用性與現代化建議。</p>
+      <div class="story">
+        <div><span class="story-id">E1</span> · <span class="story-title">Right-sizing Recommendation</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>分析 CPU、memory、IOPS、network、storage</li>
+            <li>估算改動後的成本影響</li>
+            <li>調整 production 資源前需 approval</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">E2</span> · <span class="story-title">Architecture Modernization</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>找出 legacy / 高維運成本 / 高雲費的服務</li>
+            <li>建議 managed、serverless、container、event-driven 替代</li>
+            <li>含 migration risk 與預期效益</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">F</span>AI Multi-Cloud Operations <span class="wave-tag w0">Wave 0</span> <span class="wave-tag w2">Wave 2</span></h3>
+      <p class="summary">透過 AI Chat 與 Agentic AI 管理多雲環境；高風險操作必經 human approval；所有操作寫 audit log。</p>
+      <div class="story">
+        <div><span class="story-id">F1</span> · <span class="story-title">AI Chat Cloud Query</span> <span class="wave-tag w0">W0</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>支援 account / project / subscription、region 選擇</li>
+            <li>查 inventory、cost、metrics、logs、IAM/security findings</li>
+            <li>含 data source 與 query time，遮罩 secrets</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">F2</span> · <span class="story-title">AI Chat Cloud Operation</span> <span class="wave-tag w0">W0</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>Read-only action 經 policy 分類後可執行</li>
+            <li>Write / delete / deploy / permission change 需 human approval</li>
+            <li>顯示 plan、impact、rollback、verification step</li>
+            <li>記錄 audit log</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">F3</span> · <span class="story-title">Agentic AI Operations</span> <span class="wave-tag w2">W2</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>背景 agent 偵測 cost spike、安全風險、可用性缺口、效能瓶頸</li>
+            <li>產出建議與 remediation plan</li>
+            <li>無 explicit approval 時不執行高風險變更</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">G</span>Cloud Security Posture &amp; Policy Advisory <span class="wave-tag w1">Wave 1</span> <span class="wave-tag w3">Wave 3</span></h3>
+      <p class="summary">整合 AWS Config / Security Hub / GuardDuty / GCP SCC / Org Policy / Azure Policy / Defender 等資料源，提出可執行的治理建議。</p>
+      <div class="story">
+        <div><span class="story-id">G1</span> · <span class="story-title">Multi-Cloud Security Review</span> <span class="wave-tag w1">W1</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>檢查 IAM/RBAC、network exposure、storage access、encryption、audit logging、policy guardrails</li>
+            <li>產出 severity、evidence、impact、remediation</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">G2</span> · <span class="story-title">Least-Privilege Analysis</span> <span class="wave-tag w1">W1</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>偵測 wildcard permissions、stale identities、unused permissions</li>
+            <li>產出 least-privilege 建議</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">G3</span> · <span class="story-title">Policy-as-Code Recommendation</span> <span class="wave-tag w3">W3</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>支援 Terraform patch、OPA / Rego、Sentinel、Azure Policy、GCP Org Policy、AWS Config rule</li>
+            <li>套用前需 approval</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">H</span>Web-Based Desktop &amp; Mobile Experience <span class="wave-tag w0">Wave 0</span> <span class="wave-tag w2">Wave 2</span></h3>
+      <p class="summary">Desktop Web 為完整工作台、Mobile Web 走 PWA 走伴隨介面；不做 native iOS / Android app。</p>
+      <div class="story">
+        <div><span class="story-id">H1</span> · <span class="story-title">Desktop Web Full Workspace</span> <span class="wave-tag w0">W0</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>支援 AI Chat、draw.io editor、IaC editor、FinOps / Security / Ops dashboard、agent trace、approval mgmt console</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">H2</span> · <span class="story-title">Mobile Web Ops Companion</span> <span class="wave-tag w2">W2</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>Responsive web / PWA</li>
+            <li>支援 AI Chat、alerts、approvals、health digest、findings、readonly diagram</li>
+            <li>不需 native iOS / Android app</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">H3</span> · <span class="story-title">Mobile Web Approval</span> <span class="wave-tag w2">W2</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>顯示 plan、affected resources、risk、impact、rollback</li>
+            <li>高風險 approval 需 MFA、Passkey 或 WebAuthn</li>
+            <li>記錄 audit log，支援 timeout / escalation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <h3><span class="pillar-id">I</span>MCP &amp; Skill Management <span class="wave-tag w0">Wave 0</span></h3>
+      <p class="summary">整個治理層的命脈：MCP server registry、skill catalog、權限／風險模型、approval workflow、observability。</p>
+      <div class="story">
+        <div><span class="story-id">I1</span> · <span class="story-title">MCP Server Registry</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>欄位：name、endpoint/transport、owner、environment、auth scope、enabled、version</li>
+            <li>支援 health check（availability、schema 相容、latency、recent errors）</li>
+            <li>禁存 secrets 於 config 或 log</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">I2</span> · <span class="story-title">Skill Catalog</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>追蹤 skill name、domain、owner、version、description、required tools、risk level、change log</li>
+            <li>支援 enable / disable / deprecate / rollback</li>
+            <li>顯示 skill ↔ MCP tool ↔ SDK/CLI ↔ provider 的相依關係</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">I3</span> · <span class="story-title">Tool Permission &amp; Risk Model</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>分類：read-only、write、deploy、delete、permission-change、production-impacting</li>
+            <li>高風險 tool 啟用或執行前需 approval</li>
+            <li>Agent Routing Layer 必須在選 tool 前看分類</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">I4</span> · <span class="story-title">MCP / Skill Approval Workflow</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>新增高風險 tool、擴 auth scope、停用 critical tool 都要 review</li>
+            <li>停用需 impact summary 與 rollback plan</li>
+            <li>所有變更寫 audit log</li>
+          </ul>
+        </div>
+      </div>
+      <div class="story">
+        <div><span class="story-id">I5</span> · <span class="story-title">Agent Tool Selection Observability</span></div>
+        <div class="story-criteria">
+          <ul>
+            <li>顯示選用的 tool/skill、原因、input summary、permission level、approval status、execution result</li>
+            <li>遮罩 secrets 與敏感 payload</li>
+            <li>把 tool execution 連回原始 user request、agent trace、audit log</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="nfr">
+    <h2>6. 非功能性需求 / NFR (cross-cutting)</h2>
+    <div class="bilingual">
+      <div class="lang-zh">
+        所有 wave 的 story 在 construction 階段都必須對齊以下 NFR；它們是 SRS §7 的 hard constraints。
+      </div>
+      <div class="lang-en">
+        Every wave's stories must align with these NFRs during construction; they are hard constraints from SRS §7.
+      </div>
+    </div>
+    <div class="nfr-grid" style="margin-top:0.8rem;">
+      <div class="nfr-item">Security by default</div>
+      <div class="nfr-item">Auditability（所有操作有 audit log）</div>
+      <div class="nfr-item">RBAC and least privilege</div>
+      <div class="nfr-item">Human approval gate for high-risk action</div>
+      <div class="nfr-item">Multi-cloud extensibility</div>
+      <div class="nfr-item">Explainable AI decisions</div>
+      <div class="nfr-item">Reproducible IaC generation</div>
+      <div class="nfr-item">Recommendation vs execution 分離</div>
+      <div class="nfr-item">Responsive Web 支援桌機 / 平板 / 手機</div>
+      <div class="nfr-item">Governed MCP / Skill lifecycle</div>
+      <div class="nfr-item">Bilingual documentation（per ADR-0005）</div>
+      <div class="nfr-item">Property-based testing on IaC / cost / routing</div>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2>7. 已知風險與待解 / Risks &amp; Open Questions</h2>
+    <ul class="risks">
+      <li><b>Wave 0 太重</b>：MCP/Skill registry + Routing + Auth + Desktop shell 一次做太多。建議再細切成 W0a（registry + permission model + audit）／W0b（routing + chat shell）／W0c（desktop UI + auth）三個 sub-wave。</li>
+      <li><b>Architecture Graph 設計</b>：A3 → C/D/E/G 都要吃 architecture graph。Schema 沒對齊就會回頭翻工。建議在 Wave 0 末或 Wave 1 起手就把 graph schema 先定下來（單獨 ADR）。</li>
+      <li><b>Pricing 來源時效性</b>：C 系列要靠雲端 pricing API，價格資訊有時效；要規範 cache TTL、source timestamp、stale fallback。</li>
+      <li><b>跨雲 IAM 概念對齊</b>：G1/G2 要把 AWS IAM、GCP IAM、Azure RBAC 的差異攤平到統一 finding model，定義權限抽象層。</li>
+      <li><b>Approval Gate UX</b>：F2、E1、H3 都會經 approval。Approval payload schema 統一才能在 Mobile Web 安全展開（H3 需 MFA / WebAuthn）。</li>
+      <li><b>Agentic AI 的副作用控制</b>：F3 背景 agent 不可在沒 approval 時做高風險變更。建議用 Guardrail Agent + 預設 read-only。</li>
+      <li><b>Test 與 property-based 範圍</b>：cost calculator、IaC generator、routing 是預設 enable 的 property-based extension。要在 wave 進入 construction 前先寫 property 草稿。</li>
+    </ul>
+  </section>
+
+  <section id="nextsteps">
+    <h2>8. 下一步 / Next Steps</h2>
+    <ol>
+      <li><b>Workflow Planning（推薦下一步）</b>：以本計劃為輸入，跑 AIDLC <code>workflow-planning.md</code>，把每個 wave 拆成可執行的 unit / sprint。</li>
+      <li><b>NFR 落地</b>：把 SRS §7 的 NFR 各自寫成可驗收條件，作為 construction 階段的 hard constraint。</li>
+      <li><b>Wave 0 細切</b>：拆 W0a / W0b / W0c，避免「foundation 做太久卻沒可見成果」。</li>
+      <li><b>Architecture Graph schema ADR</b>：開 ADR-0007，定義 internal architecture graph 的 schema、序列化、版本策略。</li>
+      <li><b>Reverse Engineering</b>：repo 裡的 <code>firebase_templates/</code>、<code>workflows/n8n/</code>、<code>tools/</code> 跑一次 AIDLC reverse-engineering 對齊新 SRS，標出可重用 vs 要丟。</li>
+      <li><b>啟動 Pillar I 的 inception → construction</b>：Pillar I（MCP &amp; Skill Mgmt）是其他 pillar 的前置。建議第一個跑完 AIDLC 全 inception 階段。</li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>
+      Generated 2026-05-09 · Source files:
+      <code>aidlc-docs/inception/requirements/cloud-360-srs.md</code>,
+      <code>aidlc-docs/inception/user-stories/core-pillars.md</code>,
+      <code>aidlc-docs/inception/application-design/system-architecture.md</code>.
+    </p>
+    <p>
+      AIDLC v0.1.8 · Pre-enabled extensions: <code>security/baseline</code>, <code>testing/property-based</code>, <code>bilingual-docs</code>.
+      To open this file: <kbd>open aidlc-docs/inception/plans/development-plan.html</kbd>
+    </p>
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1e293b',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#38bdf8',
+        lineColor: '#94a3b8',
+        background: '#0f172a',
+      },
+    });
+  }
+</script>
+</body>
+</html>
