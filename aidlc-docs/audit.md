@@ -160,6 +160,20 @@
 **Outcome**: PR #18 取得新 commit；Project 公開可看。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-10 — PR #18 修正：改用 opendiamonds/projects/16 + 計劃內容繁中化
+
+**User request (raw)**: 「https://github.com/users/opendiamonds/projects/16 這才是Github Project的位置，不要額外另開一個，另外計劃內容要用繁體中文！」
+**Stage**: Inception → Workflow Planning（修正 Project 位置 + 完整翻 Traditional Chinese）
+**Decisions**:
+- 把 26 個 items 加到既有 `opendiamonds/projects/16`（標題前綴 `[Cloud-360]` 區分另外 4 個現有 items），並在該 project 上補建 3 個自訂欄位 Wave / Pillar / Story ID（皆繁中選項）；Status 沿用內建欄位，預設值設為 Backlog。
+- 刪除上一輪誤建的 Dannielchung project 1（`gh project delete 1`），避免有兩個來源的混淆。
+- HTML 內容繁中化：story titles、kanban 卡片、story table 標頭與內容、9 個 pillar block 標題、stat 卡片 label、相依圖節點、NFR/Risks/Next Steps 段落標題、footer。技術名詞（Mermaid、draw.io、IaC、MCP、OPA、Sentinel、Terraform、Spot/Preemptible 等）保留英文。
+- HTML header CTA 與 footer 連結指向 `https://github.com/users/opendiamonds/projects/16`。
+- README 更新為新位置、文字繁中化（指出 26 items 標題前綴 `[Cloud-360]`、自訂欄位、Status 流程）。
+- 不動 SRS / user stories 原檔（仍英中混合）；只改開發計劃 artifact。
+**Outcome**: PR #18 第 3 個 commit；live kanban 在 opendiamonds/projects/16；HTML 完全繁中。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -317,4 +331,18 @@ Each entry uses the following structure:
 - HTML header gains a "View on GitHub Project" button; `plans/README.md` table lists the live project row.
 - Auth note: the `gh` CLI was missing the `project` scope, so the user manually ran `gh auth refresh -h github.com -s project` before project creation could proceed.
 **Outcome**: PR #18 receives a new commit; the GitHub Project is public.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — PR #18 fix-up: use opendiamonds/projects/16 + Traditional Chinese plan content
+
+**User request (raw)**: "https://github.com/users/opendiamonds/projects/16 這才是Github Project的位置，不要額外另開一個，另外計劃內容要用繁體中文！"
+**Stage**: Inception → Workflow Planning (correct project location + full Traditional Chinese rendering)
+**Decisions**:
+- Added the 26 items into the **existing** `opendiamonds/projects/16` (titles prefixed `[Cloud-360]` to distinguish from the 4 unrelated items already there) and created three custom fields on that project: Wave / Pillar / Story ID (Traditional Chinese option labels). Status reuses the built-in field, defaulting to Backlog for new items.
+- Deleted the misplaced Dannielchung project 1 created earlier (`gh project delete 1`) to avoid two sources of truth.
+- Localized the HTML to Traditional Chinese: story titles, kanban cards, story-table headers and rows, 9 pillar block titles, stat-card labels, dependency-graph node text, section headers for NFR/Risks/Next Steps, and the footer. Technical proper nouns (Mermaid, draw.io, IaC, MCP, OPA, Sentinel, Terraform, Spot/Preemptible, etc.) remain in English.
+- HTML header CTA and footer link now point to `https://github.com/users/opendiamonds/projects/16`.
+- README updated to the new project location and rephrased in Traditional Chinese (noting the `[Cloud-360]` prefix, custom fields, and Status flow).
+- Source SRS / user-stories files are not modified (still mixed English/Chinese); only the planning artifact is localized.
+**Outcome**: PR #18 third commit; live kanban now lives at opendiamonds/projects/16; HTML fully in Traditional Chinese.
 **Approver**: dannielchung@gmail.com

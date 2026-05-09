@@ -11,8 +11,8 @@
 
 | 檔案 | 說明 |
 |---|---|
-| [`development-plan.html`](development-plan.html) | 9 pillar / 26 user story 的 wave-based 開發計劃；含 Kanban 看板、相依圖、story table、pillar 細節、NFR 與風險。**建議用瀏覽器開啟**：`open aidlc-docs/inception/plans/development-plan.html`。 |
-| [GitHub Project (live)](https://github.com/users/Dannielchung/projects/1) | live kanban，26 個 draft items，欄位：Wave / Pillar / Story ID。可直接拖卡片改 status |
+| [`development-plan.html`](development-plan.html) | 9 個支柱 / 26 條 user story 的 wave-based 開發計劃，內容已繁中化；含 Kanban 看板、相依圖、story table、pillar 細節、NFR 與風險。**建議用瀏覽器開啟**：`open aidlc-docs/inception/plans/development-plan.html`。 |
+| [GitHub Project（live）](https://github.com/users/opendiamonds/projects/16) | live kanban，26 個 draft items（標題前綴 `[Cloud-360]`），自訂欄位：Wave / Pillar / Story ID。Status 內建 Backlog / Ready / In progress / In review / Done。可直接拖卡片改狀態。 |
 
 ### 與其他 inception 子目錄的關係
 
@@ -38,8 +38,8 @@
 
 | File | Purpose |
 |---|---|
-| [`development-plan.html`](development-plan.html) | Wave-based development plan covering all 9 pillars and 26 user stories; includes Kanban board, dependency graph, story table, pillar details, NFRs, and known risks. **Open in a browser**: `open aidlc-docs/inception/plans/development-plan.html`. |
-| [GitHub Project (live)](https://github.com/users/Dannielchung/projects/1) | Live kanban with 26 draft items; custom fields Wave / Pillar / Story ID. Drag cards to update status. |
+| [`development-plan.html`](development-plan.html) | Wave-based development plan covering all 9 pillars and 26 user stories (content rendered in Traditional Chinese); includes Kanban board, dependency graph, story table, pillar details, NFRs, and known risks. **Open in a browser**: `open aidlc-docs/inception/plans/development-plan.html`. |
+| [GitHub Project (live)](https://github.com/users/opendiamonds/projects/16) | Live kanban with 26 draft items prefixed `[Cloud-360]`; custom fields Wave / Pillar / Story ID. Built-in Status: Backlog / Ready / In progress / In review / Done. Drag cards to update. |
 
 ### Relationship to other inception subdirectories
 
