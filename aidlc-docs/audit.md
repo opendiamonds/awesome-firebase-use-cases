@@ -32,6 +32,70 @@
 **Outcome**: PR1 待合併。AIDLC v0.1.8 安裝至 `.aidlc-rule-details/`，CLAUDE.md 完成，aidlc-state.md / audit.md 建立。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-09 — AIDLC docs migration（PR2）
+
+**User request (raw)**: 「繼續做 PR2 docs migration」
+**Stage**: Inception → Workspace Detection（artifact migration）
+**Decisions**:
+- 用 `git mv` 把 `docs/srs|architecture|user-stories|adr/` 全部搬到 `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/` 以保留 git history。
+- `docs/README.md` 與 `docs/` 目錄移除（`aidlc-docs/README.md` 取代）。
+- ADR-0001 在 in-place 更新路徑與 amendment note；ADR-0005 加 amendment 把雙語 scope 擴及 `aidlc-docs/`；ADR-0006 標記 PR1+PR2 已完成。
+- `validate_repo_contract.py` REQUIRED_FILES / REQUIRED_TEXT 改指 `aidlc-docs/inception/...`；雙語掃描固定為 `aidlc-docs/**/*.md`。
+- README、CLAUDE.md、bilingual-docs.md 全面移除 `docs/` 引用。
+**Outcome**: PR2 待合併（branch `feat/aidlc-docs-migration`，stacked on PR1）。所有 cross-link 皆已更新並通過 validation。
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — 新增 branch naming override（PR3）
+
+**User request (raw)**: 「未來分支名稱用 上傳人名字/feat/用途 這種命名規則來定義，請幫我調整流程，但不要動到aidlc框架的rule，額外疊加其他rule去蓋過」
+**Stage**: Inception → Process governance（override layer 新增）
+**Decisions**:
+- 新建 `.aidlc-overrides/` 目錄作為**專案 override 層**，不動 upstream `.aidlc-rule-details/`，避免未來 sync upstream 時受影響。
+- Override 載入順序固定為**最後一層**（CLAUDE.md 載入順序新增 step 5）；override 與 upstream 衝突時 override 永遠勝出。
+- 新增 `.aidlc-overrides/branch-naming.md` 規範 branch 格式 `<uploader>/<type>/<slug>`，type ∈ {feat, fix, docs, chore, refactor, test}；Danniel 一律以 `danniel/` 開頭。
+- CLAUDE.md 工作模式新增第 6 條：`git checkout -b` 之前必須先檢查 branch naming override。
+- CLAUDE.md 升級流程更新：明確 `.aidlc-overrides/` 永不被 upstream 覆蓋，新規則一律放這裡。
+- `validate_repo_contract.py` 把兩個 override 檔加進 REQUIRED_FILES 與 REQUIRED_TEXT，內含 enforcement 雙語與類型清單。
+- 採用本規則本身來示範：本次 PR 用 `danniel/feat/branch-naming-rule` 開分支。
+**Outcome**: PR3 待合併（branch `danniel/feat/branch-naming-rule`，stacked on PR2）。
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — 新增 `.ailog/` 與 ai-logging override（PR4）
+
+**User request (raw)**: 「幫我在git增加一個folder叫做.ailog，另外加入一個規則檔，每次AI生成的檔案跟回答都會記錄在.ailog，這個內容就幫我增加在裡面」
+**Stage**: Inception → Process governance（新增 AI 活動底層 log 機制）
+**Decisions**:
+- 新增 `.ailog/` 目錄作為**逐 turn AI 活動底層 log**，與 `aidlc-docs/audit.md`（粗粒度 AIDLC 階段稽核）形成上下兩層。
+- 新規則寫在 `.aidlc-overrides/ai-logging.md`（不動 upstream），格式為 `.ailog/<YYYY-MM-DD>.md`，每天一檔、append-only。
+- Turn entry 結構：User request、Branch、Files（A/M/D/R）、Tool calls、Summary、Commits、PRs。
+- 不溯及：本機制建立前的 turn 不必補登；PR1–PR3 的關鍵事件已記錄於本檔。
+- CLAUDE.md 工作模式新增第 7 條：mutating turn 在回 user 前必須先寫 `.ailog/` entry。
+- `validate_repo_contract.py` 新增 `.aidlc-overrides/ai-logging.md`、`.ailog/README.md` 為 REQUIRED_FILES，並驗 REQUIRED_TEXT 雙語與關鍵字。
+- 自我示範：本 PR 自身的 turn 已寫入 `.ailog/2026-05-09.md`。
+**Outcome**: PR4 待合併（branch `danniel/feat/ai-activity-logging`，stacked on PR3）。
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Stacked-merge 修復（PR #14）
+
+**User request (raw)**: 「開修復 PR」
+**Stage**: Inception → Process governance（事故修復 + 流程教訓）
+**Incident**:
+- PR #10 (PR1) 正確 merge 進 `main`（commit `99db585`）。
+- PR #11 / #12 / #13 在 GitHub UI 各別點 "Merge" 時，因 base 仍指向上一個 stacked branch、未 retarget 到 `main`，分別被 merge 進它們的上層 base：
+  - PR #11 → merge 進 `feat/aidlc-framework-rules`（不是 main）
+  - PR #12 → merge 進 `feat/aidlc-docs-migration`
+  - PR #13 → merge 進 `danniel/feat/branch-naming-rule`
+- 三個 PR 顯示 MERGED 但 `main` 並未拿到 PR2 / PR3 / PR4 的內容。
+**Decisions**:
+- 修復策略：開新 PR 從 `danniel/feat/ai-activity-logging` → `main`。該 branch tip 已 stacked PR2 + PR3 + PR4 三個 commit，merge 一次即把三份內容一併送進 main，保留 commit 歷史。
+- 不採 cherry-pick / rebase / 重開 4 個 PR：太多噪音；現有 branch 已是正確的「未進 main」累積結果。
+- 同步把這次事故與修復寫入 `.ailog/2026-05-09.md` Turn 2，作為 stacked PR 操作的反例案例。
+**Lesson learned (流程教訓)**:
+- Stacked PR 在 GitHub 沒有自動 base retarget。**每 merge 一個 PR，必須手動把下一個 PR 的 base 改成 `main`，再 merge**；否則會 merge 進已過時的 base。
+- Memory 已新增 `feedback_stacked_pr_merge.md`（避免再犯）。
+**Outcome**: 修復 PR (#14) 待合併到 main。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -61,4 +125,68 @@ Each entry uses the following structure:
 - ADR location: `aidlc-docs/inception/decisions/` (moved during PR2)
 **Stage**: Inception → Workspace Detection
 **Outcome**: PR1 pending merge. AIDLC v0.1.8 installed under `.aidlc-rule-details/`, CLAUDE.md authored, aidlc-state.md / audit.md created.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — AIDLC docs migration (PR2)
+
+**User request (raw)**: "繼續做 PR2 docs migration"
+**Stage**: Inception → Workspace Detection (artifact migration)
+**Decisions**:
+- Used `git mv` to relocate all of `docs/srs|architecture|user-stories|adr/` into `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`, preserving git history.
+- Removed `docs/README.md` and the `docs/` directory (superseded by `aidlc-docs/README.md`).
+- Updated paths in ADR-0001 in place with an amendment note; added an amendment to ADR-0005 extending the bilingual scope to `aidlc-docs/`; marked ADR-0006 as PR1+PR2 completed.
+- `validate_repo_contract.py` `REQUIRED_FILES` / `REQUIRED_TEXT` now point at `aidlc-docs/inception/...`; the bilingual scan is fixed to `aidlc-docs/**/*.md`.
+- Removed all `docs/` references from README, CLAUDE.md, and bilingual-docs.md.
+**Outcome**: PR2 pending merge (branch `feat/aidlc-docs-migration`, stacked on PR1). All cross-links updated and validation passes.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Add branch-naming override (PR3)
+
+**User request (raw)**: "未來分支名稱用 上傳人名字/feat/用途 這種命名規則來定義，請幫我調整流程，但不要動到aidlc框架的rule，額外疊加其他rule去蓋過"
+**Stage**: Inception → Process governance (introduce override layer)
+**Decisions**:
+- Create `.aidlc-overrides/` as the **project override layer** so we never have to modify upstream `.aidlc-rule-details/`; this keeps future upstream syncs safe.
+- Overrides are loaded **last** (CLAUDE.md rule-loading order gains step 5); on conflict between upstream and override, the override always wins.
+- Add `.aidlc-overrides/branch-naming.md` enforcing the format `<uploader>/<type>/<slug>` with type ∈ {feat, fix, docs, chore, refactor, test}; all Danniel branches must start with `danniel/`.
+- CLAUDE.md "Working Mode" gains item 6: check the branch-naming override before any `git checkout -b`.
+- CLAUDE.md "Upgrading AIDLC" updated to spell out that `.aidlc-overrides/` is never overwritten by upstream and that new project rules must go there.
+- `validate_repo_contract.py` now requires both override files in `REQUIRED_FILES` and `REQUIRED_TEXT`, including the bilingual sentinels and the allowed type list.
+- Self-applied: this PR itself uses the new format — branch `danniel/feat/branch-naming-rule`.
+**Outcome**: PR3 pending merge (branch `danniel/feat/branch-naming-rule`, stacked on PR2).
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Add `.ailog/` and ai-logging override (PR4)
+
+**User request (raw)**: "幫我在git增加一個folder叫做.ailog，另外加入一個規則檔，每次AI生成的檔案跟回答都會記錄在.ailog，這個內容就幫我增加在裡面"
+**Stage**: Inception → Process governance (introduce a per-turn AI activity log)
+**Decisions**:
+- Create `.ailog/` as the **per-turn AI activity log**, layered below `aidlc-docs/audit.md` (which remains the coarse AIDLC stage audit).
+- The new rule lives in `.aidlc-overrides/ai-logging.md` (upstream untouched). Format: `.ailog/<YYYY-MM-DD>.md`, one file per day, append-only.
+- Turn entry structure: User request / Branch / Files (A/M/D/R) / Tool calls / Summary / Commits / PRs.
+- Not retroactive: turns before this rule are not back-filled; PR1–PR3 key events already exist in this file.
+- CLAUDE.md "Working Mode" gains item 7: mutating turns must append a `.ailog/` entry before sending the final response.
+- `validate_repo_contract.py` adds `.aidlc-overrides/ai-logging.md` and `.ailog/README.md` to `REQUIRED_FILES`, with bilingual sentinels and key terms in `REQUIRED_TEXT`.
+- Self-applied: this PR's own turn was logged to `.ailog/2026-05-09.md`.
+**Outcome**: PR4 pending merge (branch `danniel/feat/ai-activity-logging`, stacked on PR3).
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Stacked-merge remediation (PR #14)
+
+**User request (raw)**: "開修復 PR"
+**Stage**: Inception → Process governance (incident remediation + lesson learned)
+**Incident**:
+- PR #10 (PR1) merged into `main` correctly (commit `99db585`).
+- PR #11 / #12 / #13 were each merged via GitHub UI without retargeting their bases to `main`. They were merged **into their stacked base branches** instead of `main`:
+  - PR #11 → merged into `feat/aidlc-framework-rules` (not main)
+  - PR #12 → merged into `feat/aidlc-docs-migration`
+  - PR #13 → merged into `danniel/feat/branch-naming-rule`
+- All three show as MERGED, but `main` never received the PR2 / PR3 / PR4 content.
+**Decisions**:
+- Remediation: open a new PR from `danniel/feat/ai-activity-logging` → `main`. The branch tip already stacks PR2 + PR3 + PR4 commits on top of PR1; one merge brings everything in, with each commit's history preserved.
+- Did NOT cherry-pick / rebase / reopen four PRs — too noisy; the existing branch is the correct "not-yet-on-main" accumulation.
+- Logged the incident and remediation in `.ailog/2026-05-09.md` Turn 2 as a counter-example for stacked-PR handling.
+**Lesson learned**:
+- GitHub does not auto-retarget stacked PR bases. **Every time a PR merges, manually change the next PR's base to `main` before merging**; otherwise merging lands the change into the now-stale base.
+- Added memory `feedback_stacked_pr_merge.md` so this doesn't repeat.
+**Outcome**: remediation PR (#14) pending merge into main.
 **Approver**: dannielchung@gmail.com

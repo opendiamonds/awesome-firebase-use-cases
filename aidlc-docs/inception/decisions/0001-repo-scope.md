@@ -7,6 +7,7 @@
 
 - Status: Accepted
 - Date: 2026-05-02
+- Amendment 2026-05-09: paths updated by ADR-0006 PR2 — SDD artifacts moved from `docs/` into `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`. Scope unchanged.
 
 ## Context
 
@@ -19,10 +20,10 @@ The platform vision is an AI-native multi-cloud architecture, governance, securi
 This repository tracks the Cloud-360 SDD baseline:
 
 1. Product README.
-2. System Requirement Specification under `docs/srs/`.
-3. System architecture documents under `docs/architecture/`.
-4. User stories under `docs/user-stories/`.
-5. Architecture Decision Records under `docs/adr/`.
+2. System Requirement Specification under `aidlc-docs/inception/requirements/`.
+3. System architecture documents under `aidlc-docs/inception/application-design/`.
+4. User stories under `aidlc-docs/inception/user-stories/`.
+5. Architecture Decision Records under `aidlc-docs/inception/decisions/`.
 6. Repository validation script under `scripts/`.
 7. Baseline GitHub Actions CI under `.github/workflows/`.
 

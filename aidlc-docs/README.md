@@ -12,11 +12,11 @@
 - `aidlc-state.md` — 專案 phase / extension 狀態追蹤
 - `audit.md` — append-only 稽核紀錄
 - `inception/` — 🔵 Inception phase artifacts
-  - `requirements/` — 需求分析輸出（PR2 起會放 cloud-360-srs.md）
-  - `user-stories/` — user stories（PR2 起會放 core-pillars.md）
-  - `application-design/` — 應用層設計（PR2 起會放 system-architecture.md）
-  - `decisions/` — 架構決策（ADRs，PR2 起從 `docs/adr/` 搬入）
-  - `plans/` — workflow planning 輸出
+  - `requirements/cloud-360-srs.md` — 需求分析輸出（SRS）
+  - `user-stories/core-pillars.md` — user stories
+  - `application-design/system-architecture.md` — 應用層設計
+  - `decisions/0001..0006-*.md` — 架構決策（ADRs）
+  - `plans/` — workflow planning 輸出（待 AIDLC stage 產生）
 - `construction/` — 🟢 Construction phase artifacts（NFR、functional design、build-and-test、code generation 結果）
 - `operations/` — 🟡 Operations phase artifacts（部署、監控、incident playbooks）
 
@@ -39,11 +39,11 @@ This directory is the AI-DLC artifact output location specified by [awslabs/aidl
 - `aidlc-state.md` — Project phase / extension state tracking
 - `audit.md` — Append-only audit log
 - `inception/` — 🔵 Inception phase artifacts
-  - `requirements/` — Requirements analysis outputs (will host `cloud-360-srs.md` after PR2)
-  - `user-stories/` — User stories (will host `core-pillars.md` after PR2)
-  - `application-design/` — Application-level design (will host `system-architecture.md` after PR2)
-  - `decisions/` — Architecture decisions (ADRs, moved from `docs/adr/` in PR2)
-  - `plans/` — Workflow planning outputs
+  - `requirements/cloud-360-srs.md` — Requirements analysis output (SRS)
+  - `user-stories/core-pillars.md` — User stories
+  - `application-design/system-architecture.md` — Application-level design
+  - `decisions/0001..0006-*.md` — Architecture decisions (ADRs)
+  - `plans/` — Workflow planning outputs (to be produced by AIDLC stages)
 - `construction/` — 🟢 Construction phase artifacts (NFR, functional design, build-and-test, code generation results)
 - `operations/` — 🟡 Operations phase artifacts (deployment, observability, incident playbooks)
 

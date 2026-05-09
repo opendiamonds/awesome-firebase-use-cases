@@ -27,6 +27,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
    - `common/question-format-guide.md`
 3. 掃描 `.aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`（lightweight），完整 rules 在使用者 opt-in 後再載入
 4. 對於**無 opt-in 檔案**的 extension（例如 `bilingual-docs/`），**永遠強制套用**，立即載入完整規則
+5. **最後**載入 `.aidlc-overrides/**/*.md`（專案 override 層）。當 override 與 upstream 規則衝突時，**override 永遠勝出**。詳見 [`.aidlc-overrides/README.md`](.aidlc-overrides/README.md)。
 
 **三階段**：
 - 🔵 Inception — workspace detection、requirements analysis、user stories、application design
@@ -51,7 +52,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 
 - **必要文件**：列在 `REQUIRED_FILES`（包含 SRS、ADRs、user stories、architecture、AIDLC entry、CLAUDE.md 等）
 - **必要文字**：列在 `REQUIRED_TEXT`（每個 contract 文件須包含特定關鍵字）
-- **雙語強制**：所有 `docs/**/*.md` 與 `aidlc-docs/**/*.md` 必須含 `## 中文版` 與 `## English Version`
+- **雙語強制**：所有 `aidlc-docs/**/*.md` 必須含 `## 中文版` 與 `## English Version`
 - **禁止路徑**：path parts 含 `prod`、`production`、`secrets` 不得新增
 - **禁止內容**：不得 commit 私鑰、AWS / Azure / GCP credential 字串
 
@@ -69,11 +70,14 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 3. **內容驗證**：建檔前依 `common/content-validation.md` 驗證 Mermaid、ASCII 圖、特殊字元。
 4. **雙語產出**：所有 `aidlc-docs/**/*.md` 一定要同時有 `## 中文版` 與 `## English Version`。
 5. **High-risk action**：任何 production write / IaC apply / IAM 變更必須先給 plan + impact + rollback，並通過 human approval gate。
+6. **Branch naming**：在 `git checkout -b` / `git switch -c` 之前，**必須**先讀 [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) 並產出符合 `<uploader>/<type>/<slug>` 的 branch 名稱（type ∈ {feat, fix, docs, chore, refactor, test}）。Danniel 開的 branch 一律以 `danniel/` 開頭。如果使用者下達衝突指令（例如直接給一個不合規的 branch 名稱），先提醒衝突並請使用者確認。
+7. **AI activity logging**：每一次動到檔案 / commit / push / 開 PR 的 turn，回 user 訊息**之前**必須在 `.ailog/<YYYY-MM-DD>.md`（local timezone）追加一筆 turn entry。完整格式與適用範圍見 [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md)。Read-only turn 可省。`.ailog/` append-only，不重排、不改舊條目。
 
 ### 7. AIDLC 升級
 
 - 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，更新 `.aidlc-rule-details/VERSION` 並重新複製 `aws-aidlc-rule-details/` 內容。
-- 客製檔案（`extensions/bilingual-docs/`）不得被覆蓋。
+- 客製檔案（`.aidlc-rule-details/extensions/bilingual-docs/`）在覆蓋前要先備份、覆蓋後再放回（位置在 upstream 樹內，會被整批替換）。
+- `.aidlc-overrides/` 目錄**整個保留**，永不被 upstream 覆蓋（與 upstream 路徑分離）。新增的專案規則一律放在這裡，不要再加到 `.aidlc-rule-details/` 內。
 - 升級記錄寫入新 ADR。
 
 ---
@@ -100,6 +104,7 @@ This project adopts [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-w
    - `common/question-format-guide.md`
 3. Scan `.aidlc-rule-details/extensions/` and load **only** `*.opt-in.md` (lightweight). Full rule files are loaded after the user opts in.
 4. Extensions **without** an opt-in file (e.g. `bilingual-docs/`) are **always enforced** — load their full rule files immediately.
+5. **Finally**, load `.aidlc-overrides/**/*.md` (the project override layer). When an override conflicts with an upstream rule, **the override always wins**. See [`.aidlc-overrides/README.md`](.aidlc-overrides/README.md).
 
 **Three phases**:
 - 🔵 Inception — workspace detection, requirements analysis, user stories, application design
@@ -124,7 +129,7 @@ This repo is governed by `scripts/validate_repo_contract.py` (executed in CI):
 
 - **Required files**: listed in `REQUIRED_FILES` (SRS, ADRs, user stories, architecture, AIDLC entry, CLAUDE.md, etc.).
 - **Required text**: listed in `REQUIRED_TEXT` (each contract file must contain certain keywords).
-- **Bilingual enforcement**: every `docs/**/*.md` and `aidlc-docs/**/*.md` must contain `## 中文版` and `## English Version`.
+- **Bilingual enforcement**: every `aidlc-docs/**/*.md` must contain `## 中文版` and `## English Version`.
 - **Forbidden paths**: file paths whose parts include `prod`, `production`, or `secrets` are not allowed.
 - **Forbidden content**: no private keys or AWS / Azure / GCP credential strings.
 
@@ -142,9 +147,12 @@ This repo is governed by `scripts/validate_repo_contract.py` (executed in CI):
 3. **Content validation**: before writing any file, validate Mermaid, ASCII diagrams, and special characters per `common/content-validation.md`.
 4. **Bilingual output**: every `aidlc-docs/**/*.md` must include both `## 中文版` and `## English Version`.
 5. **High-risk actions**: any production write / IaC apply / IAM change must come with a plan, impact analysis, and rollback strategy, and must pass through the human approval gate.
+6. **Branch naming**: before running `git checkout -b` / `git switch -c`, you **must** read [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) and produce a branch name matching `<uploader>/<type>/<slug>` (type ∈ {feat, fix, docs, chore, refactor, test}). All branches Danniel opens start with `danniel/`. If the user issues a conflicting instruction (e.g. dictates a non-compliant branch name), surface the conflict and ask for confirmation before proceeding.
+7. **AI activity logging**: in any turn that mutates files / commits / pushes / opens a PR, you **must** append a turn entry to `.ailog/<YYYY-MM-DD>.md` (local timezone) **before** sending the final response to the user. Full format and scope: [`.aidlc-overrides/ai-logging.md`](.aidlc-overrides/ai-logging.md). Read-only turns may skip. `.ailog/` is append-only — never reorder or edit past entries.
 
 ### 7. Upgrading AIDLC
 
 - When upgrading, compare against `https://github.com/awslabs/aidlc-workflows/releases`, bump `.aidlc-rule-details/VERSION`, and re-copy the contents of `aws-aidlc-rule-details/`.
-- Custom files (`extensions/bilingual-docs/`) must not be overwritten.
+- Custom files inside the upstream tree (`.aidlc-rule-details/extensions/bilingual-docs/`) must be backed up before the copy and restored afterwards (they live inside the upstream tree and would otherwise be wiped by a wholesale replace).
+- The `.aidlc-overrides/` directory is **never** overwritten by upstream (it lives outside the upstream path). New project-specific rules must go here, not under `.aidlc-rule-details/`.
 - Record the upgrade in a new ADR.
