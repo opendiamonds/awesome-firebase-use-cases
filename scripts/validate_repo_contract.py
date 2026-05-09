@@ -32,6 +32,8 @@ REQUIRED_FILES = (
     "aidlc-docs/README.md",
     "aidlc-docs/aidlc-state.md",
     "aidlc-docs/audit.md",
+    ".aidlc-overrides/README.md",
+    ".aidlc-overrides/branch-naming.md",
 )
 
 REQUIRED_TEXT = {
@@ -127,6 +129,24 @@ REQUIRED_TEXT = {
     "aidlc-docs/README.md": (
         "AIDLC",
         "Bilingual",
+        "## 中文版",
+        "## English Version",
+    ),
+    ".aidlc-overrides/README.md": (
+        "Cloud-360 AIDLC Overrides",
+        "## 中文版",
+        "## English Version",
+    ),
+    ".aidlc-overrides/branch-naming.md": (
+        "Branch Naming Convention",
+        "<uploader>/<type>/<slug>",
+        "feat",
+        "fix",
+        "docs",
+        "chore",
+        "refactor",
+        "test",
+        "danniel",
         "## 中文版",
         "## English Version",
     ),
