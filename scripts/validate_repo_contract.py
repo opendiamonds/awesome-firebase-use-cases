@@ -34,6 +34,8 @@ REQUIRED_FILES = (
     "aidlc-docs/audit.md",
     ".aidlc-overrides/README.md",
     ".aidlc-overrides/branch-naming.md",
+    ".aidlc-overrides/ai-logging.md",
+    ".ailog/README.md",
 )
 
 REQUIRED_TEXT = {
@@ -147,6 +149,22 @@ REQUIRED_TEXT = {
         "refactor",
         "test",
         "danniel",
+        "## 中文版",
+        "## English Version",
+    ),
+    ".aidlc-overrides/ai-logging.md": (
+        "AI Activity Logging Rule",
+        ".ailog/",
+        "<YYYY-MM-DD>.md",
+        "append-only",
+        "No secrets",
+        "## 中文版",
+        "## English Version",
+    ),
+    ".ailog/README.md": (
+        "AI Activity Log",
+        "append-only",
+        ".aidlc-overrides/ai-logging.md",
         "## 中文版",
         "## English Version",
     ),

@@ -60,6 +60,21 @@
 **Outcome**: PR3 待合併（branch `danniel/feat/branch-naming-rule`，stacked on PR2）。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-09 — 新增 `.ailog/` 與 ai-logging override（PR4）
+
+**User request (raw)**: 「幫我在git增加一個folder叫做.ailog，另外加入一個規則檔，每次AI生成的檔案跟回答都會記錄在.ailog，這個內容就幫我增加在裡面」
+**Stage**: Inception → Process governance（新增 AI 活動底層 log 機制）
+**Decisions**:
+- 新增 `.ailog/` 目錄作為**逐 turn AI 活動底層 log**，與 `aidlc-docs/audit.md`（粗粒度 AIDLC 階段稽核）形成上下兩層。
+- 新規則寫在 `.aidlc-overrides/ai-logging.md`（不動 upstream），格式為 `.ailog/<YYYY-MM-DD>.md`，每天一檔、append-only。
+- Turn entry 結構：User request、Branch、Files（A/M/D/R）、Tool calls、Summary、Commits、PRs。
+- 不溯及：本機制建立前的 turn 不必補登；PR1–PR3 的關鍵事件已記錄於本檔。
+- CLAUDE.md 工作模式新增第 7 條：mutating turn 在回 user 前必須先寫 `.ailog/` entry。
+- `validate_repo_contract.py` 新增 `.aidlc-overrides/ai-logging.md`、`.ailog/README.md` 為 REQUIRED_FILES，並驗 REQUIRED_TEXT 雙語與關鍵字。
+- 自我示範：本 PR 自身的 turn 已寫入 `.ailog/2026-05-09.md`。
+**Outcome**: PR4 待合併（branch `danniel/feat/ai-activity-logging`，stacked on PR3）。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -117,4 +132,19 @@ Each entry uses the following structure:
 - `validate_repo_contract.py` now requires both override files in `REQUIRED_FILES` and `REQUIRED_TEXT`, including the bilingual sentinels and the allowed type list.
 - Self-applied: this PR itself uses the new format — branch `danniel/feat/branch-naming-rule`.
 **Outcome**: PR3 pending merge (branch `danniel/feat/branch-naming-rule`, stacked on PR2).
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-09 — Add `.ailog/` and ai-logging override (PR4)
+
+**User request (raw)**: "幫我在git增加一個folder叫做.ailog，另外加入一個規則檔，每次AI生成的檔案跟回答都會記錄在.ailog，這個內容就幫我增加在裡面"
+**Stage**: Inception → Process governance (introduce a per-turn AI activity log)
+**Decisions**:
+- Create `.ailog/` as the **per-turn AI activity log**, layered below `aidlc-docs/audit.md` (which remains the coarse AIDLC stage audit).
+- The new rule lives in `.aidlc-overrides/ai-logging.md` (upstream untouched). Format: `.ailog/<YYYY-MM-DD>.md`, one file per day, append-only.
+- Turn entry structure: User request / Branch / Files (A/M/D/R) / Tool calls / Summary / Commits / PRs.
+- Not retroactive: turns before this rule are not back-filled; PR1–PR3 key events already exist in this file.
+- CLAUDE.md "Working Mode" gains item 7: mutating turns must append a `.ailog/` entry before sending the final response.
+- `validate_repo_contract.py` adds `.aidlc-overrides/ai-logging.md` and `.ailog/README.md` to `REQUIRED_FILES`, with bilingual sentinels and key terms in `REQUIRED_TEXT`.
+- Self-applied: this PR's own turn was logged to `.ailog/2026-05-09.md`.
+**Outcome**: PR4 pending merge (branch `danniel/feat/ai-activity-logging`, stacked on PR3).
 **Approver**: dannielchung@gmail.com
