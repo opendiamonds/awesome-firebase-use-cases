@@ -133,6 +133,47 @@
 **Outcome**: PR #17 待合併到 main。
 **Approver**: dannielchung@gmail.com
 
+#### 2026-05-10 — 新增 wave-based 開發計劃 HTML（PR #18）
+
+**User request (raw)**: 「幫我把SRS 裡 9 個 pillar、26 條 user stories 整理成一個開發計劃，輸出成一個HTML給我」
+**Stage**: Inception → Workflow Planning（pillar 級 wave 規劃）
+**Decisions**:
+- 新增 `aidlc-docs/inception/plans/development-plan.html`：依 SRS pillars 與 user-stories 整理，分 4 個 wave（W0 Foundation、W1 Core Differentiators、W2 FinOps/Ops/Mobile、W3 Extensions），含相依圖（Mermaid）、story table、pillar 細節、NFR、已知風險、下一步建議。
+- 採單檔 HTML（inline CSS、Mermaid via CDN），可直接 `open` 瀏覽，亦可離線閱讀（Mermaid 不可用時純文字仍可看）。
+- 新增 `aidlc-docs/inception/plans/README.md`（雙語），說明 plans/ 目錄角色與其他 inception 子目錄的關係。
+- 不對 SRS / user-stories 原檔做改動；本計劃為衍生 artifact。
+- 此計劃尚未對 SRS scope 加 / 減 pillar，所以不需要新 ADR；後續 wave 拆細時若改變 scope 再開 ADR。
+**Outcome**: PR #18 待合併到 main。
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — PR #18 補強：HTML 改 kanban + 開 GitHub Project
+
+**User request (raw)**: 「剛剛的PR請調整HTML，輸出的HTML以看板模式呈現，或者輸出到Project看板功能裡」（決議：兩個都做、欄位依 Wave）
+**Stage**: Inception → Workflow Planning（視覺化 + 線上 live 看板）
+**Decisions**:
+- 在 PR #18 同一 branch 補 commit：HTML 把 §2 從堆疊式 wave cards 改為 4 欄 kanban board（W0/W1/W2/W3），每個 user story 為卡片，含 ID、title、pillar tag、deps；保留相依圖、story table、pillar 細節等其他段落。
+- 新增 GitHub Project: **Cloud-360 Development Plan**（owner=Dannielchung，public，URL: <https://github.com/users/Dannielchung/projects/1>）。Org-level project 因 `opendiamonds` 是 user account 而非 org，無法在該 owner 下建 Project，故掛 Dannielchung 個人；可連結 opendiamonds/cloud-360 的 issues / PRs。
+- Project 自訂 3 個欄位：Wave（W0–W3 single-select）、Pillar（A–I single-select）、Story ID（text）。內建 Status 欄位保留。
+- 寫入 26 個 draft items（每條 user story 一個），自動填上 Wave / Pillar / Story ID。
+- HTML header 加入 "View on GitHub Project" 按鈕；plans/README.md 表格新增 live project 列。
+- Auth：因 `gh` token 缺 `project` scope，請 user 手動跑 `gh auth refresh -h github.com -s project` 後才得以建 Project。
+**Outcome**: PR #18 取得新 commit；Project 公開可看。
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — PR #18 修正：改用 opendiamonds/projects/16 + 計劃內容繁中化
+
+**User request (raw)**: 「https://github.com/users/opendiamonds/projects/16 這才是Github Project的位置，不要額外另開一個，另外計劃內容要用繁體中文！」
+**Stage**: Inception → Workflow Planning（修正 Project 位置 + 完整翻 Traditional Chinese）
+**Decisions**:
+- 把 26 個 items 加到既有 `opendiamonds/projects/16`（標題前綴 `[Cloud-360]` 區分另外 4 個現有 items），並在該 project 上補建 3 個自訂欄位 Wave / Pillar / Story ID（皆繁中選項）；Status 沿用內建欄位，預設值設為 Backlog。
+- 刪除上一輪誤建的 Dannielchung project 1（`gh project delete 1`），避免有兩個來源的混淆。
+- HTML 內容繁中化：story titles、kanban 卡片、story table 標頭與內容、9 個 pillar block 標題、stat 卡片 label、相依圖節點、NFR/Risks/Next Steps 段落標題、footer。技術名詞（Mermaid、draw.io、IaC、MCP、OPA、Sentinel、Terraform、Spot/Preemptible 等）保留英文。
+- HTML header CTA 與 footer 連結指向 `https://github.com/users/opendiamonds/projects/16`。
+- README 更新為新位置、文字繁中化（指出 26 items 標題前綴 `[Cloud-360]`、自訂欄位、Status 流程）。
+- 不動 SRS / user stories 原檔（仍英中混合）；只改開發計劃 artifact。
+**Outcome**: PR #18 第 3 個 commit；live kanban 在 opendiamonds/projects/16；HTML 完全繁中。
+**Approver**: dannielchung@gmail.com
+
 ---
 
 ## English Version
@@ -263,4 +304,45 @@ Each entry uses the following structure:
 - `scripts/validate_repo_contract.py`: `REQUIRED_FILES` drops `.ailog/README.md` and `.aidlc-overrides/ai-logging.md`, adds `.aidlc-overrides/decisions-log.md` and `aidlc-docs/decisions-log.md`; `REQUIRED_TEXT` keys swapped accordingly.
 - Self-applied: the decision itself ("remove ai-logging, adopt on-demand decisions-log") is the first entry in `aidlc-docs/decisions-log.md`.
 **Outcome**: PR #17 pending merge to main.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — Add wave-based development plan HTML (PR #18)
+
+**User request (raw)**: "幫我把SRS 裡 9 個 pillar、26 條 user stories 整理成一個開發計劃，輸出成一個HTML給我"
+**Stage**: Inception → Workflow Planning (pillar-level wave plan)
+**Decisions**:
+- Added `aidlc-docs/inception/plans/development-plan.html`: SRS pillars and user stories organized into four waves (W0 Foundation, W1 Core Differentiators, W2 FinOps/Ops/Mobile, W3 Extensions). Contains a dependency graph (Mermaid), full story table, pillar details, NFRs, known risks, and recommended next steps.
+- Single-file HTML (inline CSS, Mermaid via CDN) — can be opened directly in a browser and remains readable offline (text-only fallback if Mermaid is unavailable).
+- Added `aidlc-docs/inception/plans/README.md` (bilingual) describing the role of `plans/` and its relationship to other inception subdirectories.
+- No changes to SRS or user-stories source files; this plan is a derived artifact.
+- Plan does not add or remove SRS pillars, so no new ADR is required; if future wave breakdowns change scope, a new ADR will be opened.
+**Outcome**: PR #18 pending merge to main.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — PR #18 follow-up: HTML kanban + GitHub Project
+
+**User request (raw)**: "剛剛的PR請調整HTML，輸出的HTML以看板模式呈現，或者輸出到Project看板功能裡" (decision: both, columns by Wave)
+**Stage**: Inception → Workflow Planning (visualization + live online board)
+**Decisions**:
+- Added a follow-up commit to the same PR #18 branch: HTML §2 switched from stacked wave cards to a 4-column kanban board (W0/W1/W2/W3); every user story is a card showing ID, title, pillar tag, and dependencies. Other sections (dependency graph, story table, pillar details) preserved.
+- Created GitHub Project **Cloud-360 Development Plan** (owner=Dannielchung, public, URL: <https://github.com/users/Dannielchung/projects/1>). Project lives under Dannielchung because `opendiamonds` is a user account (not an organization), so we cannot create projects under that owner; the project still links to issues / PRs in opendiamonds/cloud-360.
+- Project has three custom fields: Wave (single-select W0–W3), Pillar (single-select A–I), Story ID (text). Built-in Status field retained.
+- Seeded with 26 draft items (one per user story) with Wave / Pillar / Story ID populated.
+- HTML header gains a "View on GitHub Project" button; `plans/README.md` table lists the live project row.
+- Auth note: the `gh` CLI was missing the `project` scope, so the user manually ran `gh auth refresh -h github.com -s project` before project creation could proceed.
+**Outcome**: PR #18 receives a new commit; the GitHub Project is public.
+**Approver**: dannielchung@gmail.com
+
+#### 2026-05-10 — PR #18 fix-up: use opendiamonds/projects/16 + Traditional Chinese plan content
+
+**User request (raw)**: "https://github.com/users/opendiamonds/projects/16 這才是Github Project的位置，不要額外另開一個，另外計劃內容要用繁體中文！"
+**Stage**: Inception → Workflow Planning (correct project location + full Traditional Chinese rendering)
+**Decisions**:
+- Added the 26 items into the **existing** `opendiamonds/projects/16` (titles prefixed `[Cloud-360]` to distinguish from the 4 unrelated items already there) and created three custom fields on that project: Wave / Pillar / Story ID (Traditional Chinese option labels). Status reuses the built-in field, defaulting to Backlog for new items.
+- Deleted the misplaced Dannielchung project 1 created earlier (`gh project delete 1`) to avoid two sources of truth.
+- Localized the HTML to Traditional Chinese: story titles, kanban cards, story-table headers and rows, 9 pillar block titles, stat-card labels, dependency-graph node text, section headers for NFR/Risks/Next Steps, and the footer. Technical proper nouns (Mermaid, draw.io, IaC, MCP, OPA, Sentinel, Terraform, Spot/Preemptible, etc.) remain in English.
+- HTML header CTA and footer link now point to `https://github.com/users/opendiamonds/projects/16`.
+- README updated to the new project location and rephrased in Traditional Chinese (noting the `[Cloud-360]` prefix, custom fields, and Status flow).
+- Source SRS / user-stories files are not modified (still mixed English/Chinese); only the planning artifact is localized.
+**Outcome**: PR #18 third commit; live kanban now lives at opendiamonds/projects/16; HTML fully in Traditional Chinese.
 **Approver**: dannielchung@gmail.com
