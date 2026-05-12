@@ -1,0 +1,19 @@
+name: AI-DLC Construction Stage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  construction:
+    runs-on: self-hosted-20.9
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Construction Stage
+        run: |
+          echo "=== AI-DLC Construction Stage ==="
+          echo "Building..."
+          echo "Phase: construction"
+          echo "Branch: ${{ github.ref }}"
