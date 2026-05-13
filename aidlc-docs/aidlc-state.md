@@ -1,46 +1,107 @@
-# AI-DLC Project State
+# AI-DLC State Tracking
 
-## Project Info
+> Cloud-360 AIDLC workflow state. Updated automatically by AIDLC stages and manually by maintainers.
+
+## 中文版
+
+### 專案資訊
+
 - **Project Name**: Cloud-360
-- **Status**: Active
-- **Current Phase**: 🔵 INCEPTION
+- **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
+- **AIDLC Version**: 0.1.8（見 `.aidlc-rule-details/VERSION`）
+- **AIDLC 啟用 PRs**: `Doreen`（目錄重組：.agents/ → AIDLC 三層架構 + docs/ → aidlc-docs/inception/ 完成）
+- **Current Stage**: INCEPTION — 已完成 framework adoption + artifact migration，可進入正式 AIDLC stage
 
-## Workflow Progress
+### Workspace State
 
-### 🔵 INCEPTION PHASE
-- [x] Workspace Detection
-- [ ] Reverse Engineering (CONDITIONAL)
-- [x] Requirements Analysis (ALWAYS)
-- [x] User Stories (CONDITIONAL)
-- [ ] Workflow Planning (ALWAYS)
-- [ ] Application Design (CONDITIONAL)
-- [ ] Units Generation (CONDITIONAL)
+- **Existing Code**: Yes（`firebase_templates/`、`scripts/`、`tools/`、`workflows/`，但主要為 spec / template / validator）
+- **Programming Languages**: Python（validate script），Markdown / Mermaid / draw.io（specs）
+- **Build System**: 尚無 application build；CI 僅跑 validation。
+- **Project Structure**: Spec-Driven repo（尚未產製 application code）
+- **Workspace Root**: `/Users/houguanyu/Desktop/Work/Cathaybk/Opendiamonds/cloud-360`
 
-### 🟢 CONSTRUCTION PHASE
-- [ ] Functional Design (CONDITIONAL)
-- [ ] NFR Requirements Assess (CONDITIONAL)
-- [ ] NFR Design (CONDITIONAL)
-- [ ] Infrastructure Design (CONDITIONAL)
-- [ ] Code Generation (ALWAYS)
-- [ ] Build and Test (ALWAYS)
+### Extension Configuration
 
-### 🟡 OPERATIONS PHASE
-- [ ] Operations (PLACEHOLDER)
+| Extension | Enabled | Decided By | Note |
+|---|---|---|---|
+| `extensions/security/baseline/` | ✅ | ADR-0006 + user choice | Hard constraint，IAM/encryption/network/audit |
+| `extensions/testing/property-based/` | ✅ | ADR-0006 + user choice | Hard constraint，IaC、cost calc、agent routing |
+| `extensions/bilingual-docs/` | ✅ | ADR-0005 + ADR-0006 | 永遠強制（無 opt-in） |
+
+> `core-workflow.md` requirements analysis 階段不需再次詢問三項 extensions 是否啟用，預設皆為 enabled。
+
+### 已存在 Inception Artifacts
+
+| Artifact | 位置 | History 來源 |
+|---|---|---|
+| SRS | `aidlc-docs/inception/requirements/cloud-360-srs.md` | git mv from `docs/srs/cloud-360-srs.md`（含 Doreen 強化版 A1/A2, B1/B2, C1/C2） |
+| User Stories | `aidlc-docs/inception/user-stories/core-pillars.md` | git mv from `docs/user-stories/core-pillars.md`（含繁體中文版 A, B, C） |
+| Application Design | `aidlc-docs/inception/application-design/system-architecture.md` | git mv from `docs/architecture/system-architecture.md` |
+| ADR-0001 ~ ADR-0006 | `aidlc-docs/inception/decisions/` | git mv from `docs/adr/` + checkout from main |
+| Detailed Specs (A/B/C) | `docs/srs/detailed/` | Doreen 新增，細部規格書（架構設計、選型邏輯、FinOps 規則） |
+
+### Phase Tracking
+
+- 🔵 Inception
+  - Workspace Detection: ✅
+  - Reverse Engineering: ⏳
+  - Requirements Analysis: ✅（A, B, C 三模組已完成）
+  - User Stories: ✅（A, B, C 三模組繁中版已完成）
+  - Workflow Planning: ⏳
+  - Application Design: 🔄（已有 baseline）
+  - Units Generation: ⏳
+- 🟢 Construction: ⏳
+- 🟡 Operations: ⏳
 
 ---
 
-## Workspace Analysis (2026-05-09)
-- **Type**: Brownfield
-- **Architecture**: Multi-agent Cloud Management Platform
-- **Frontend**: Web-first (Desktop/Mobile)
-- **Backend**: Python/Java (Architectural target)
-- **Infrastructure**: AWS/GCP/Azure (Terraform/IaC)
-- **Current Modules**:
-  - `docs/`: System documentation (Architecture, ADR, SRS)
-  - `scripts/`: Automation and utility scripts
-  - `tools/`: Potential MCP/Skill implementations
-  - `firebase_templates/`: Deployment configurations
-- **Structure**:
-  - Frontend: React/Next.js/Vite (Assumed based on "Web-first" and modern web development standards)
-  - Backend: Agent-based routing layer
-  - Workflows: Multi-agent interaction flows
+## English Version
+
+### Project Information
+
+- **Project Name**: Cloud-360
+- **Project Type**: Brownfield (existing SRS / architecture / user stories / ADR baseline)
+- **AIDLC Version**: 0.1.8 (see `.aidlc-rule-details/VERSION`)
+- **AIDLC Adoption Branch**: `Doreen` (restructuring: .agents/ → AIDLC three-layer architecture + docs/ → aidlc-docs/inception/ migration completed)
+- **Current Stage**: INCEPTION — Framework adoption and artifact migration complete; ready to enter formal AIDLC stages
+
+### Workspace State
+
+- **Existing Code**: Yes (`firebase_templates/`, `scripts/`, `tools/`, `workflows/` — mostly specs / templates / validators)
+- **Programming Languages**: Python (validate script), Markdown / Mermaid / draw.io (specs)
+- **Build System**: No application build yet; CI only runs validation.
+- **Project Structure**: Spec-Driven repo (no application code yet)
+- **Workspace Root**: `/Users/houguanyu/Desktop/Work/Cathaybk/Opendiamonds/cloud-360`
+
+### Extension Configuration
+
+| Extension | Enabled | Decided By | Note |
+|---|---|---|---|
+| `extensions/security/baseline/` | ✅ | ADR-0006 + user choice | Hard constraint: IAM/encryption/network/audit |
+| `extensions/testing/property-based/` | ✅ | ADR-0006 + user choice | Hard constraint: IaC, cost calc, agent routing |
+| `extensions/bilingual-docs/` | ✅ | ADR-0005 + ADR-0006 | Always enforced (no opt-in) |
+
+> At the requirements analysis stage, `core-workflow.md` need not re-ask about these three extensions; they are enabled by default.
+
+### Existing Inception Artifacts
+
+| Artifact | Location | History |
+|---|---|---|
+| SRS | `aidlc-docs/inception/requirements/cloud-360-srs.md` | git mv from `docs/srs/cloud-360-srs.md` (includes Doreen enhanced A1/A2, B1/B2, C1/C2 structure) |
+| User Stories | `aidlc-docs/inception/user-stories/core-pillars.md` | git mv from `docs/user-stories/core-pillars.md` (includes Traditional Chinese A, B, C sections) |
+| Application Design | `aidlc-docs/inception/application-design/system-architecture.md` | git mv from `docs/architecture/system-architecture.md` |
+| ADR-0001 ~ ADR-0006 | `aidlc-docs/inception/decisions/` | git mv from `docs/adr/` + checkout from main |
+| Detailed Specs (A/B/C) | `docs/srs/detailed/` | New in Doreen branch: detailed spec files for Architecture Design, Component Selection, FinOps |
+
+### Phase Tracking
+
+- 🔵 Inception
+  - Workspace Detection: ✅
+  - Reverse Engineering: ⏳
+  - Requirements Analysis: ✅ (Modules A, B, C completed)
+  - User Stories: ✅ (Traditional Chinese A, B, C completed)
+  - Workflow Planning: ⏳
+  - Application Design: 🔄 (baseline exists)
+  - Units Generation: ⏳
+- 🟢 Construction: ⏳
+- 🟡 Operations: ⏳

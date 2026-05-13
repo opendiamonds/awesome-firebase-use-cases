@@ -137,18 +137,22 @@ Cloud-360 內建 MCP 與 Skill 管理功能，用來治理平台可呼叫的工�
 
 ## Documentation
 
-Cloud-360 的 `docs/` 文件必須同時包含中文版與英文版。
-All Cloud-360 documents under `docs/` must include both Chinese and English versions.
+Cloud-360 的文件統一存放於 `aidlc-docs/` 目錄，由 AIDLC 各階段自動產生與維護。
+All Cloud-360 documents are maintained under `aidlc-docs/`, generated and updated by AIDLC workflow stages.
 
-- [Documentation Index](docs/README.md)
-- [System Requirement Specification](docs/srs/cloud-360-srs.md)
-- [System Architecture](docs/architecture/system-architecture.md)
-- [Core Pillars User Stories](docs/user-stories/core-pillars.md)
-- [ADR 0001: Repository Scope](docs/adr/0001-repo-scope.md)
-- [ADR 0002: Agent Routing Layer](docs/adr/0002-agent-routing-layer.md)
-- [ADR 0003: Web-Based Desktop and Mobile Experience](docs/adr/0003-web-based-experience.md)
-- [ADR 0004: MCP and Skill Management](docs/adr/0004-mcp-skill-management.md)
-- [ADR 0005: Bilingual Documentation](docs/adr/0005-bilingual-documentation.md)
+- [AIDLC Docs Index](aidlc-docs/README.md)
+- [System Requirement Specification](aidlc-docs/inception/requirements/cloud-360-srs.md)
+- [System Architecture](aidlc-docs/inception/application-design/system-architecture.md)
+- [Core Pillars User Stories](aidlc-docs/inception/user-stories/core-pillars.md)
+- [ADR 0001: Repository Scope](aidlc-docs/inception/decisions/0001-repo-scope.md)
+- [ADR 0002: Agent Routing Layer](aidlc-docs/inception/decisions/0002-agent-routing-layer.md)
+- [ADR 0003: Web-Based Desktop and Mobile Experience](aidlc-docs/inception/decisions/0003-web-based-experience.md)
+- [ADR 0004: MCP and Skill Management](aidlc-docs/inception/decisions/0004-mcp-skill-management.md)
+- [ADR 0005: Bilingual Documentation](aidlc-docs/inception/decisions/0005-bilingual-documentation.md)
+- [ADR 0006: Adopt AIDLC Framework](aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md)
+- [Detailed Spec - Architecture Design](docs/srs/detailed/A-architecture-design-spec.md)
+- [Detailed Spec - Component Selection](docs/srs/detailed/B-component-selection-logic.md)
+- [Detailed Spec - FinOps Rules](docs/srs/detailed/C-finops-estimation-rules.md)
 
 ## Repository Contract
 

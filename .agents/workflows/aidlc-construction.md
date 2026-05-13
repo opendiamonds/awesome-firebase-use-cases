@@ -6,7 +6,7 @@ description: AI-DLC Construction workflow for implementation and code generation
 
 請調用：
 
-.agents/knowledge/aidlc-specs/construction/
+`.aidlc-rule-details/construction/`
 
 下的所有規範。
 

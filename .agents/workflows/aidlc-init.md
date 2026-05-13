@@ -6,39 +6,48 @@ description: 初始化 AIDLC 生命週期
 
 初始化 AIDLC 生命週期。
 
-請執行以下流程：
+請依照下列順序執行：
 
-1. 根據：
-.agents/system-instructions/core-workflow.md
+## 規則載入
 
-執行 Workspace Detection。
+### 步驟 1：載入 AIDLC 入口
+載入：
+`.aidlc-rules/aws-aidlc-rules/core-workflow.md`
 
-2. 載入：
-.agents/system-instructions/cloud360-rules.md
+### 步驟 2：載入 upstream 規則細節
+依序載入 `.aidlc-rule-details/` 下的規範：
+- `.aidlc-rule-details/common/process-overview.md`
+- `.aidlc-rule-details/common/session-continuity.md`
+- `.aidlc-rule-details/common/content-validation.md`
+- `.aidlc-rule-details/common/question-format-guide.md`
+- 掃描 `.aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`
+- 無 opt-in 檔的 extension（如 `bilingual-docs/`）直接載入完整規則
 
-作為專案規範。
+### 步驟 3：載入 Cloud-360 專屬 override（最後載入，優先權最高）
+依序載入以下 `.aidlc-overrides/` 檔案：
+- `.aidlc-overrides/branch-naming.md`（Cloud-360 分支命名規則）
+- `.aidlc-overrides/decisions-log.md`（決議記錄規則：僅在使用者明確要求時觸發）
 
-3. 載入：
-.agents/knowledge/aidlc-specs/
+當 override 與 upstream 規則衝突時，**override 永遠勝出**。
 
-下所有 AI-DLC 規範。
+### 步驟 4：顯示歡迎訊息
+顯示：
+`.aidlc-rule-details/common/welcome-message.md`
 
-4. 顯示：
-common/welcome-message.md
+---
+
+## 初始化流程
 
 5. 檢查：
-aidlc-docs/audit.md
+`aidlc-docs/audit.md`
 與
-aidlc-docs/aidlc-state.md
+`aidlc-docs/aidlc-state.md`
 
 是否存在。
 
 6. 若不存在則建立。
 
-7. 在：
-aidlc-docs/audit.md
-
-新增初始化紀錄。
+7. 在 `aidlc-docs/audit.md` 新增初始化紀錄。
 
 8. 分析目前 workspace：
 - 是否為 brownfield
