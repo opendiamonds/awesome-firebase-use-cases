@@ -106,3 +106,36 @@ Each entry uses the following format:
 **Approver**: houguanyu
 
 ---
+
+#### 2026-05-14 16:05 +08:00 — User Stories Restructuring (Part 2 Generation & Validation)
+
+**Action**: Generated `personas.md` and `stories.md`; removed `core-pillars.md`. Updated `README.md`, `aidlc-state.md`, and `validate_repo_contract.py`.
+**Stage**: Inception → User Stories (Part 2 Generation)
+**Outcome**: 26 stories migrated and mapped to 11 rich personas. All files are bilingual. Repository contract validation PASSED.
+---
+
+#### 2026-05-14 16:20 +08:00 — User Stories Revision (B/C requirements & D-H expansion)
+
+**User request (raw)**: "user stories 要改一下 C 要從專案角度去審視成本 B 跨雲改成 讓ai 自己去判斷哪一個雲最適合 不是一個專案同時有兩種雲以上 D-H 再幫我完整重新生成一次 MCP & Skill Management 這項先不用寫"
+**Stage**: Inception → User Stories (Part 2 Generation - Revision)
+**Outcome**: 
+1. Pillar B 改為單一雲端評選建議。
+2. Pillar C 改為專案層級成本治理。
+3. 重新生成並擴充 D-H 的驗收標準。
+4. 移除 Pillar I (MCP & Skill Management)。
+5. 更新 `validate_repo_contract.py` 移除 MCP 關鍵字檢查。
+**Approver**: doreen
+
+---
+
+#### 2026-05-14 16:32 +08:00 — User Stories Expansion (Pillar B & Ecosystem)
+
+**User request (raw)**: "B 可以再幫我多想一點嗎 還有其他想補充的也可以參考 README.md 裡面的 Core Modules"
+**Stage**: Inception → User Stories (Part 2 Generation - Expansion)
+**Outcome**: 
+1. 擴充 Pillar B：新增技術生態相容性 (B2)、地緣區域合規與延遲優化 (B3)、退場策略評估 (B4)。
+2. 補充其他支柱：新增 HA/DR 模擬 (A4)、自動化維運劇本 (E3)、AI 自動威脅建模 (G4)。
+3. 所有故事對齊 README.md 中的 Core Modules 發展方向。
+**Approver**: doreen
+
+---

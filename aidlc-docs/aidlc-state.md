@@ -35,10 +35,10 @@
 | Artifact | 位置 | History 來源 |
 |---|---|---|
 | SRS | `aidlc-docs/inception/requirements/cloud-360-srs.md` | git mv from `docs/srs/cloud-360-srs.md`（含 Doreen 強化版 A1/A2, B1/B2, C1/C2） |
-| User Stories | `aidlc-docs/inception/user-stories/core-pillars.md` | git mv from `docs/user-stories/core-pillars.md`（含繁體中文版 A, B, C） |
+| User Stories | `aidlc-docs/inception/user-stories/stories.md` | 由 `core-pillars.md` 拆分產出（含 26 個 stories） |
+| User Personas | `aidlc-docs/inception/user-stories/personas.md` | 由 `core-pillars.md` 拆分產出（含 11 個 rich personas） |
 | Application Design | `aidlc-docs/inception/application-design/system-architecture.md` | git mv from `docs/architecture/system-architecture.md` |
 | ADR-0001 ~ ADR-0006 | `aidlc-docs/inception/decisions/` | git mv from `docs/adr/` + checkout from main |
-| Detailed Specs (A/B/C) | `docs/srs/detailed/` | Doreen 新增，細部規格書（架構設計、選型邏輯、FinOps 規則） |
 
 ### Phase Tracking
 
@@ -88,10 +88,10 @@
 | Artifact | Location | History |
 |---|---|---|
 | SRS | `aidlc-docs/inception/requirements/cloud-360-srs.md` | git mv from `docs/srs/cloud-360-srs.md` (includes Doreen enhanced A1/A2, B1/B2, C1/C2 structure) |
-| User Stories | `aidlc-docs/inception/user-stories/core-pillars.md` | git mv from `docs/user-stories/core-pillars.md` (includes Traditional Chinese A, B, C sections) |
+| User Stories | `aidlc-docs/inception/user-stories/stories.md` | Split from `core-pillars.md` (26 stories) |
+| User Personas | `aidlc-docs/inception/user-stories/personas.md` | Split from `core-pillars.md` (11 rich personas) |
 | Application Design | `aidlc-docs/inception/application-design/system-architecture.md` | git mv from `docs/architecture/system-architecture.md` |
 | ADR-0001 ~ ADR-0006 | `aidlc-docs/inception/decisions/` | git mv from `docs/adr/` + checkout from main |
-| Detailed Specs (A/B/C) | `docs/srs/detailed/` | New in Doreen branch: detailed spec files for Architecture Design, Component Selection, FinOps |
 
 ### Phase Tracking
 

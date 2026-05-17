@@ -15,7 +15,8 @@ REQUIRED_FILES = (
     ".github/workflows/ci.yml",
     "aidlc-docs/inception/requirements/cloud-360-srs.md",
     "aidlc-docs/inception/application-design/system-architecture.md",
-    "aidlc-docs/inception/user-stories/core-pillars.md",
+    "aidlc-docs/inception/user-stories/stories.md",
+    "aidlc-docs/inception/user-stories/personas.md",
     "aidlc-docs/inception/decisions/0001-repo-scope.md",
     "aidlc-docs/inception/decisions/0002-agent-routing-layer.md",
     "aidlc-docs/inception/decisions/0003-web-based-experience.md",
@@ -65,12 +66,17 @@ REQUIRED_TEXT = {
         "Security Policy Advisor Agent",
         "MCP / Skill Registry",
     ),
-    "aidlc-docs/inception/user-stories/core-pillars.md": (
+    "aidlc-docs/inception/user-stories/stories.md": (
         "Architecture Design",
-        "Cost Estimation & FinOps",
-        "Cloud Security Posture",
-        "Mobile Web",
-        "MCP & Skill Management",
+        "Cost Governance",
+        "Security Compliance",
+        "Mobile",
+    ),
+    "aidlc-docs/inception/user-stories/personas.md": (
+        "Cloud Architect",
+        "SRE",
+        "Platform Engineer",
+        "Security Reviewer",
     ),
     "aidlc-docs/inception/decisions/0001-repo-scope.md": (
         "Spec-Driven Development",
