@@ -1,353 +1,312 @@
 # User Stories - Cloud-360
 
-> This document lists the user stories for Cloud-360, organized by pillar and mapped to personas.
-> 本文件列出 Cloud-360 的使用者故事，按支柱（Pillar）分類並對應使用者畫像。
+> 本文件列出 Cloud-360 的使用者故事，按架構支柱（Pillars A-H）分類，深度結合 Persona 操作場景，並包含 BDD（行為驅動開發）劇本以及 AI 重置與人工調整機制。
+> This document lists the user stories for Cloud-360, organized by architecture pillars (A-H), deeply integrated with Persona scenarios, and includes BDD scenarios alongside AI reset and manual adjustment mechanisms.
 
 ## 中文版
 
-## A. 架構設計 (Architecture Design)
+### A. 架構設計 (AI-Driven Architecture Design)
+- **Story**: 透過自然語言快速產出並驗證多雲架構藍圖
+- **Persona**: Alex (雲端架構師)
+- **權限控管機制 (RBAC)**：
+  - 需要 `Project_Architect` 或 `Project_Editor` 權限才能發起架構生成與修改。
+  - `Viewer` 權限登入後僅能檢視架構圖。
+- **登入與操作流程**：
+  1. Alex 從首頁登入 Cloud-360 桌面版，進入「專案工作區」。
+  2. 點擊「新增架構」，在 AI Chat 輸入需求：「需要 AWS 電商架構，支援 Multi-AZ，Aurora 資料庫與 WAF」。
+  3. AI 分析後在 draw.io 畫布上生成完整架構草圖。
+  4. **AI 重置與人工調整機制**：若 Alex 對整體架構方向不滿意，可點擊「全部重置 (Full Reset)」請 AI 重新評估；若僅對網路層不滿意，可框選網路區塊點選「局部重置 (Partial Reset)」。所有 AI 產出後，Alex 皆可隨時「人工介入」拖拉節點與連線。
+  5. 畫布定案後，系統背景自動執行 Well-Architected 驗證。
+- **系統回饋**：
+  - **成功**：彈出綠色提示「架構生成完畢，通過檢測」，並存入版本紀錄。
+  - **失敗**：若局部重置引發架構衝突，AI 標示錯誤節點並給出紅色警告。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: AI 局部重置與人工微調**
+    - **Given** Alex 已登入且位於架構畫布，畫面上已有 AI 生成的初始架構。
+    - **When** Alex 發現資料庫層設計不佳，框選該區並點擊「局部重置」，輸入「改用 DynamoDB」，隨後人工將新產生的節點連線至 API Gateway。
+    - **Then** 系統保留其餘架構不變，僅抽換資料庫區塊，並重新進行合規檢測。
 
-### A1. 自然語言轉架構 (Natural Language to Architecture)
-- **Persona**: 雲端架構師 (Cloud Architect)
-- **描述**：我希望能夠以自然語言描述業務需求與技術約束，以便 Cloud-360 生成高度準確且具備可實施性的雲端架構藍圖。
-- **驗收標準**：
-  - 精確提取工作負載類型、高可用性 (HA) 等級、災難復原 (DR) RPO/RTO、擴展性要求、合規性區域與安全性邊界。
-  - 產出包含多層次視圖的 Mermaid、PlantUML 或 draw.io 格式輸出（如網路拓撲、邏輯組件、資料流）。
-  - 自動生成包含假設條件、關鍵決策點與架構權衡 (trade-offs) 的說明文件。
+### B. 跨雲選型 (Cross-Cloud Component Selection)
+- **Story**: 產出客觀透明的跨雲服務比較決策矩陣
+- **Persona**: Catherine (技術決策者)
+- **權限控管機制 (RBAC)**：
+  - 僅 `Project_Admin` 與 `Technical_Lead` 權限可調整選型權重。
+- **登入與操作流程**：
+  1. Catherine 登入後導覽至「跨雲選型」模組。
+  2. 輸入「高併發 NoSQL 資料庫」場景與偏好權重。
+  3. AI 即時生成包含 AWS、GCP、Azure 的決策矩陣報告。
+  4. **AI 重置與人工調整機制**：Catherine 檢視矩陣後，若發現缺少特定的衡量指標，可點擊「局部重置」要求 AI「加入 Data Egress 比較」。她也能人工勾選或隱藏特定雲端廠商，進行「人工調整」來客製化報告。
+- **系統回饋**：
+  - **成功**：生成動態對比圖表與可下載的 PDF 報告。
+  - **失敗**：API 數據過期時顯示黃色警告，提示手動同步。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: 決策矩陣的人工介入與重置**
+    - **Given** Catherine 正在查閱剛生成的 NoSQL 決策矩陣。
+    - **When** 她對 GCP Firestore 的評價不認同，點選該欄位執行「局部重置」要求「更新至 2026 年最新 SLA」，並人工加上一條內部團隊的註解。
+    - **Then** 系統僅重新生成 Firestore 的評估數據，並保留她的人工註解，最後匯出報告。
 
-### A2. 雲端架構完善性自動評核 (Automated Well-Architected Review)
-- **Persona**: SRE, 工程主管 (Engineering Manager)
-- **描述**：我希望 Cloud-360 能夠對現有或預計的架構進行深度掃描，確保其符合 AWS/GCP/Azure 的最佳實踐框架。
-- **驗收標準**：
-  - 完整覆蓋可靠性、安全性、成本優化、卓越營運與效能效率五大支柱。
-  - 產出包含嚴重性等級、具體影響分析、違規證據以及一鍵式或引導式的修復建議。
-  - 提供專案等級的健康度評分。
+### C. 成本估算與 FinOps (Cost Estimation & FinOps)
+- **Story**: 專案層級的 TCO 精算與 Data Egress 追蹤
+- **Persona**: David (FinOps 分析師)
+- **權限控管機制 (RBAC)**：
+  - 需 `FinOps_Analyst` 才能檢視詳細定價協議與成本，預設對開發者遮蔽。
+- **登入與操作流程**：
+  1. David 登入進入「FinOps 儀表板」，匯入 Alex 畫好的架構。
+  2. 系統 AI 精算 TCO 並模擬 Data Egress 流量成本。
+  3. **AI 重置與人工調整機制**：若 AI 推測的每月流量模型不符預期，David 可點擊「全部重置」讓 AI 改以「影音串流高頻寬模型」重新推算。同時，他可以「人工修改」EC2 的預設開機時數（例如調整為一天只開 8 小時）。
+- **系統回饋**：
+  - **成功**：圓餅圖即時刷新，顯示採用新模型與人工調整後的節省比例。
+  - **失敗**：若無法取得定價，標記為「價格未知」。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: 成本模型的重置與微調**
+    - **Given** David 獲得了一份預估為每月 $5000 的基礎成本報告。
+    - **When** 他點選「局部重置」要求 AI 重新評估資料庫層的流量成本，並人工將網路傳輸量從 5TB 修改為 10TB。
+    - **Then** 系統即時重新計算，總金額更新，並將人工修改過的參數標註為「Manual Override」。
 
-### A3. AI + draw.io 雲端畫布協同編輯 (AI + draw.io Cloud Canvas Co-editing)
-- **Persona**: 雲端架構師 (Cloud Architect)
-- **描述**：我希望能夠透過 AI Chat 直接操作線上 draw.io 畫布，達成「對話即編輯」的架構設計體驗。
-- **驗收標準**：
-  - 支援讀取並解析 `.drawio` / XML 格式，並將圖表內容轉化為 AI 可理解的語境。
-  - AI 能夠根據指示增加組件、重新排列佈局、更新資源屬性並建立邏輯連線。
-  - 每次編輯動作皆提供變更摘要，並支援多版本對比與回滾。
+### D. IaC 產出與安全掃描 (IaC - Terraform / OpenTofu)
+- **Story**: 將畫布架構無縫轉化為安全的 IaC 模組
+- **Persona**: Elena (平台工程師), Fiona (安全性審查員)
+- **權限控管機制 (RBAC)**：
+  - `Platform_Engineer` 可產出代碼，部署需經 `Security_Reviewer` 審核與掃描。
+- **登入與操作流程**：
+  1. Elena 登入「IaC 工作區」，點選「轉換為 Terraform 模組」。
+  2. AI 生成結構化的 `main.tf`、`variables.tf` 等代碼。
+  3. **AI 重置與人工調整機制**：若 Elena 發現 AI 生成的 Naming Convention 不符公司規定，可選取 `variables.tf` 點擊「局部重置」，指示 AI「依照公司標準加上 pre-fix」。她也可以在內建 IDE 中進行「人工編寫」來修改特定參數。
+  4. 儲存後觸發 tfsec 背景安全掃描。
+- **系統回饋**：
+  - **成功**：掃描通過，允許下載或 Push 至 Git。
+  - **失敗**：掃描到高危漏洞，紅色阻擋導出並給出 AI 修復建議。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: IaC 代碼生成與局部覆寫**
+    - **Given** Elena 在 IaC 工作區看到 AI 初步生成的 Terraform 代碼。
+    - **When** 她不滿意 S3 Bucket 的模組引用方式，框選該段代碼點選「局部重置」要求改用「內部公用 Module」，隨後人工補上 `tags` 參數。
+    - **Then** 系統重新生成 S3 區塊代碼，保留她手打的 `tags`，並順利通過後續的靜態安全掃描。
 
-### A4. 高可用性與災難復原模擬 (HA/DR Strategy Simulation)
-- **Persona**: SRE, 運維負責人 (Operations Lead)
-- **描述**：我希望 AI 能針對設計好的架構進行故障模擬，驗證其 HA/DR 策略是否能達到預期的 RPO/RTO。
-- **驗收標準**：
-  - 模擬可用區域 (AZ) 故障、資料庫中斷或網絡阻塞情境。
-  - 產出模擬報告，標記潛在的單點故障 (SPOF) 與恢復流程中的瓶頸。
+### E. 維運優化審查 (Operations Optimization Review)
+- **Story**: 基於背景 Agent 分析的架構 Right-sizing
+- **Persona**: George (運維負責人)
+- **權限控管機制 (RBAC)**：
+  - `Ops_Lead` 可查看全局效能並套用優化，變更會通知 `Project_Owner`。
+- **登入與操作流程**：
+  1. George 登入「Operations Dashboard」，查看 AI Agent 的降級 (Down-size) 建議。
+  2. **AI 重置與人工調整機制**：如果 AI 的建議太過激進，George 可對特定建議點擊「局部重置」，輸入「我們即將有行銷活動，請保留至少 50% 餘裕」讓 AI 重新建議實例型號。他也能「人工調整」目標實例等級（例如手動選定 `t3.medium`）。
+  3. 勾選最終建議並產生優化變更單。
+- **系統回饋**：
+  - **成功**：建立變更單，狀態改為「Pending Scheduled Execution」。
+  - **失敗**：若資源被鎖定 (Termination Protection)，彈出保護警告。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: 維運建議的人工校正**
+    - **Given** George 收到一份將 5 台機器降級的 AI 建議。
+    - **When** 他認為其中 2 台是核心服務不能動，於是對那兩台進行「人工剔除」，並要求 AI 對剩下 3 台「局部重置」降級策略。
+    - **Then** 系統產生新的變更單，僅包含 3 台機器的安全降級計畫。
 
----
+### F. AI 多雲維運與審批 (AI Multi-Cloud Operations)
+- **Story**: 高風險操作的 Human Approval Gate 機制
+- **Persona**: Ben (SRE), Karen (平台擁有者)
+- **權限控管機制 (RBAC)**：
+  - 涉及高風險指令強制進入 Human Approval Gate，僅 `Platform_Owner` 可核准。
+- **登入與操作流程**：
+  1. Ben 在 AI Chat 輸入：「幫我把 Prod Web ASG 實例數改為 10」。
+  2. AI 產出變更計畫 (Plan) 與回滾策略 (Rollback) 的執行腳本。
+  3. **AI 重置與人工調整機制**：送出審批前，Ben 若發現回滾腳本寫得不夠安全，可點擊「局部重置」要求 AI「加入資料庫快照步驟」，或切換到「人工編輯模式」親自修改腳本。
+  4. 確認無誤後送出，Karen 在手機端審核並透過 FaceID 批准。
+- **系統回饋**：
+  - **成功**：手機端顯示授權成功，自動執行並寫入 Audit Log。
+  - **失敗**：Karen 拒絕或超時，自動取消變更。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: 變更腳本的局部重置與高層審批**
+    - **Given** Ben 透過 AI 產生了一份包含擴容與回滾的自動化腳本。
+    - **When** Ben 覺得回滾的 Timeout 設得太短，人工將它從 30s 改為 120s，並送出給 Karen 審批。Karen 登入後按下同意。
+    - **Then** 系統依照 Ben 人工調整過的安全時間執行擴容腳本，並留下不可篡改的紀錄。
 
-## B. 專案最適雲端供應商決策 (Optimal Cloud Provider Decision)
+### G. 雲端安全態勢 (Cloud Security Posture)
+- **Story**: 全局 IAM 最小權限原則掃描與策略代碼化
+- **Persona**: Fiona (安全性審查員)
+- **權限控管機制 (RBAC)**：
+  - 僅 `Security_Admin` 或合規稽核員可發起全局安全掃描。
+- **登入與操作流程**：
+  1. Fiona 登入「Security Dashboard」，執行 IAM Least Privilege 分析。
+  2. 系統列出未使用的 Role，Fiona 要求 AI 產出對應的 OPA (Rego) 策略代碼。
+  3. **AI 重置與人工調整機制**：若 AI 生成的 Rego 代碼過於嚴格，Fiona 可點擊「局部重置」要求 AI「排除開發環境的 Role」，或者直接進入編輯器「人工修改」正則表達式。
+- **系統回饋**：
+  - **成功**：產出精確的 Rego 代碼並提供測試驗證通過。
+  - **失敗**：若缺 MCP 授權，彈出紅字錯誤要求更新憑證。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: 安全策略的生成與客製化**
+    - **Given** Fiona 在畫面上看到 AI 初步生成的 20 行 Rego 策略代碼。
+    - **When** 她發現某個允許條件寫反了，便框選該段點擊「局部重置」並給予提示，接著人工加入了公司特定的標籤檢查邏輯。
+    - **Then** OPA 策略測試器成功運行通過，確保既攔截危險權限又允許正常開發。
 
-### B1. AI 驅動的單一雲端評選建議 (AI-Driven Single Cloud Selection)
-- **Persona**: 技術決策者 (Technical Decision Maker), 雲端架構師 (Cloud Architect)
-- **描述**：我希望 Cloud-360 能夠根據專案需求，自動判斷並推薦「最適合該專案」的單一雲端供應商（AWS vs GCP vs Azure），而不是進行複雜的跨雲混合部署。
-- **驗收標準**：
-  - 綜合分析專案所需的特定服務（如 AI 模型、專有資料庫）、SLA 要求、區域覆蓋率與合規性需求。
-  - 提供詳細的推薦理由，包含與競爭對手的優劣勢對比、長期維運成本預估與技術成熟度評估。
-  - 生成「供應商選擇報告」，供管理層進行決策參考。
-
-### B2. 技術生態與相容性深度掃描 (Ecosystem Compatibility & Integration Scan)
-- **Persona**: 平台工程師 (Platform Engineer), 雲端架構師 (Cloud Architect)
-- **描述**：我希望 AI 能分析專案現有的技術堆疊（如特定資料庫版本、CI/CD 工具），並判斷在哪一個雲端生態系下整合度最高、技術債最少。
-- **驗收標準**：
-  - 評估現有技術與雲端原生服務（Managed Services）的相容性。
-  - 標記出遷移至特定雲端後，需要進行代碼修改或架構調整的預估工作量。
-
-### B3. 地緣區域合規與延遲優化 (Geo-Regional Compliance & Latency Optimization)
-- **Persona**: 雲端架構師 (Cloud Architect), 安全性審查員 (Security Reviewer)
-- **描述**：我希望 AI 根據專案的目標使用者分佈與法規限制，判斷哪一個供應商能提供最佳的存取速度與合規保證。
-- **驗收標準**：
-  - 檢查供應商在特定國家/地區的機房分佈與資料落地（Data Residency）規範。
-  - 模擬全球使用者的存取延遲，並推薦最佳的 Region 分佈方案。
-
-### B4. 雲端可攜性與退場策略評估 (Portability & Exit Strategy Evaluation)
-- **Persona**: 技術決策者 (Technical Decision Maker), 安全性審查員 (Security Reviewer)
-- **描述**：在選擇供應商時，我也希望 AI 評估對該供應商的依賴程度（Lock-in Risk），並提出未來可能的退場方案。
-- **驗收標準**：
-  - 針對所選服務提供「可攜性評分」（例如：使用 K8s 較具可攜性，使用特定專有資料庫則 Lock-in 風險較高）。
-  - 提供替代服務對應表，說明若未來要切換至其他雲端，對應的等效服務為何。
-
----
-
-## C. 專案層級成本治理 (Project-Level Cost Governance)
-
-### C1. 專案總持有成本 (Project TCO) 與預算預測
-- **Persona**: FinOps 分析師 (FinOps Analyst), 工程主管 (Engineering Manager)
-- **描述**：我希望能夠從「專案」的維度審視整體雲端支出，並預測未來的成本走勢。
-- **驗收標準**：
-  - 估算專案涉及的所有資源（運算、資料庫、網路、儲存）的每月固定與變動成本。
-  - 支援基於流量模型或業務指標（如預期使用者數量）的動態預算預測。
-  - 產出專案層級的成本分攤報告，標記出預期的成本高峰。
-
-### C2. 專案資源優化策略 (Project Resource Optimization Strategy)
-- **Persona**: FinOps 分析師 (FinOps Analyst), SRE
-- **描述**：我希望 Cloud-360 針對整個專案提供成本優化建議，包含實例選型與定價模型建議。
-- **驗收標準**：
-  - 分析工作負載，推薦最合適的 On-demand、Spot 或預留方案（RI/Savings Plans）。
-  - 檢測專案內的閒置資源與無效支出。
-  - 估算實施優化建議後，對專案整體預算的節省百分比。
-
----
-
-## D. 標準化 IaC 生成與安全交付 (Standardized IaC & Secure Delivery)
-
-### D1. 專案模板化 IaC 生成 (Project-Template IaC Generation)
-- **Persona**: 平台工程師 (Platform Engineer)
-- **描述**：我希望 Cloud-360 能根據專案架構生成高品質、模組化的 Terraform 或 OpenTofu 代碼，並符合企業內部的標準化模板。
-- **驗收標準**：
-  - 生成結構清晰的代碼目錄，包含 `providers`、`main`、`variables`、`outputs` 及自定義 `modules`。
-  - 支援產出符合業界標準的 README 與資源關聯圖。
-  - 自動處理環境變數與 State 管理配置。
-
-### D2. IaC 安全與合規性自動掃描 (Automated IaC Security & Compliance Scan)
-- **Persona**: 安全性審查員 (Security Reviewer), 平台工程師 (Platform Engineer)
-- **描述**：我希望在部署 IaC 前，AI 能自動執行深度安全掃描，確保代碼中不包含弱點。
-- **驗收標準**：
-  - 檢測包含明文金鑰、不當的防火牆規則（如 0.0.0.0 入站）、未加密的存儲與不符合 Least Privilege 的 IAM 設定。
-  - 整合 tfsec、Trivy 或 Checkov 掃描結果，並產出易讀的安全審核報告。
-  - 提供代碼修復片段 (Patch suggestions)。
-
----
-
-## E. 主動式營運優化評估 (Proactive Operations Optimization)
-
-### E1. 基於行為的自動規模調整建議 (Behavior-Based Right-sizing)
-- **Persona**: SRE, 工程主管 (Engineering Manager)
-- **描述**：我希望透過 AI 分析專案的實際運行行為，獲得精確的資源規模調整建議。
-- **驗收標準**：
-  - 長期監控 CPU、記憶體、I/O 與網絡吞吐量。
-  - 產出針對個別資源的「縮減」或「擴張」建議，並附帶具體的成本與性能影響預測。
-
-### E2. 架構演進與現代化引導 (Architecture Evolution & Modernization)
-- **Persona**: 雲端架構師 (Cloud Architect), 技術決策者 (Technical Decision Maker)
-- **描述**：我希望 Cloud-360 能定期評估專案架構，並建議如何利用最新的雲端服務來提升效率。
-- **驗收標準**：
-  - 識別即時性（Legacy）或過時的雲端產品，並建議更具競爭力的 Serverless 或託管服務替代方案。
-  - 評估現代化路徑的技術難度、預期回報 (ROI) 與潛在風險。
-
-### E3. 自動化運維劇本生成 (Automated Incident Playbook Generation)
-- **Persona**: SRE, 運維負責人 (Operations Lead)
-- **描述**：我希望 AI 根據架構設計，自動產出對應的事故應對劇本（Runbooks/Playbooks），加速故障恢復。
-- **驗收標準**：
-  - 針對常見故障（如連線超時、磁碟空間不足）產出具體的排查步驟與修復指令。
-
----
-
-## F. AI 驅動的專案運維 (AI-Driven Project Ops)
-
-### F1. 全域專案狀態 AI 查詢與視覺化 (Global Project Status Query)
-- **Persona**: SRE, 一般使用者 (End User)
-- **描述**：我希望透過自然語言隨時查詢專案在雲端的健康狀態、資源分佈與性能指標。
-- **驗收標準**：
-  - 支援帳號下的資源檢索與狀態匯總。
-  - AI 能直接將查詢結果轉化為圖表或儀表板視圖。
-
-### F2. 引導式專案變更操作 (Guided Project Change Operations)
-- **Persona**: 平台工程師 (Platform Engineer), 平台管理員 (Platform Admin)
-- **描述**：我希望在執行複雜的雲端操作時，由 AI 提供引導、影響分析與安全性校驗。
-- **驗收標準**：
-  - 執行前自動產出「變更計畫 (Plan)」，標註受影響的資源數量與風險。
-  - 對於高風險操作強制要求人工批准門檻。
-
-### F3. 自主式 AI 異常偵測與預警 (Agentic Anomaly Detection)
-- **Persona**: 運維負責人 (Operations Lead), SRE
-- **描述**：我希望背景運行的 AI Agent 能主動偵測專案的異常行為並發出預警。
-- **驗收標準**：
-  - 自動識別非預期的成本激增、未經授權的訪問嘗試與服務延遲波動。
-  - 產出初步的事故分析報告 (RCA) 與應對建議方案。
-
----
-
-## G. 雲端安全合規與策略執行 (Security Compliance & Policy Enforcement)
-
-### G1. 專案安全性合規持續掃描 (Continuous Compliance Scan)
-- **Persona**: 安全性審查員 (Security Reviewer)
-- **描述**：我希望 Cloud-360 針對專案環境進行持續性的安全合規檢查，確保始終符合企業標準。
-- **驗收標準**：
-  - 定期檢查資源配置是否符合指定標準（如 CIS Benchmark、SOC2）。
-
-### G2. 專案身分與存取權限治理 (Identity & Access Governance)
-- **Persona**: 平台管理員 (Platform Admin), 安全性審查員 (Security Reviewer)
-- **描述**：我希望 AI 協助管理專案內複雜的權限關係，貫徹「最小權限原則」。
-- **驗收標準**：
-  - 檢測並標註未使用的 IAM 角色、過期的憑證與具有過大權限的 Service Accounts。
-
-### G3. 自動化策略執行建議 (Policy-as-Code Implementation)
-- **Persona**: 平台工程師 (Platform Engineer)
-- **描述**：我希望將安全策略轉化為可執行的策略代碼，以自動化方式保護專案。
-- **驗收標準**：
-  - 根據安全需求推薦 OPA (Rego)、Azure Policy 或 AWS Config 規則。
-
-### G4. AI 驅動的自動化威脅建模 (Automated AI Threat Modeling)
-- **Persona**: 安全性審查員 (Security Reviewer), 雲端架構師 (Cloud Architect)
-- **描述**：我希望 AI 能分析架構設計，自動識別潛在的攻擊向量並建議防禦措施。
-- **驗收標準**：
-  - 基於 STRIDE 或類似框架識別安全威脅。
-  - 產出威脅分析報告與緩解建議。
-
----
-
-## H. 全方位專案管理體驗 (Full Project Management Experience)
-
-### H1. 桌面端深度作業空間 (Desktop Deep Workspace)
-- **Persona**: 雲端架構師 (Cloud Architect), 工程主管 (Engineering Manager)
-- **描述**：我希望在桌面瀏覽器中擁有一個完整的中心化視圖來管理專案的所有面向。
-- **驗收標準**：
-  - 整合架構編輯器、成本儀表板、安全性概覽與 AI 對話視窗。
-
-### H2. 行動端敏捷維運助理 (Mobile Agile Ops Assistant)
-- **Persona**: SRE, 運維負責人 (Operations Lead)
-- **描述**：我希望在行動端能隨時掌握專案突發事件並進行簡單處置。
-- **驗收標準**：
-  - 提供行動端優化的告警通知與健康摘要。
-
-### H3. 行動端安全批准閘道 (Mobile Secure Approval Gate)
-- **Persona**: 平台擁有者 (Platform Owner), 工程主管 (Engineering Manager)
-- **描述**：我希望能在手機上安全地對高風險專案操作進行最後的審核批准。
-- **驗收標準**：
-  - 顯示變更的詳細影響報告、風險等級與回滾可行性。
-  - 整合 MFA 或生物識別 (FaceID/Fingerprint) 進行授權確認。
+### H. MCP 與 Skill 管理 (MCP & Skill Management)
+- **Story**: 註冊並管控內部自定義工具的存取邊界
+- **Persona**: Elena (平台工程師), Jack (平台管理員)
+- **權限控管機制 (RBAC)**：
+  - `Platform_Engineer` 可申請註冊，`Platform_Admin` 審核與標記風險等級。
+- **登入與操作流程**：
+  1. Elena 登入「MCP & Skill 目錄」，填寫內部 CMDB API 端點。
+  2. AI 自動解析 API Schema 並生成工具的系統提示詞 (System Prompt) 描述。
+  3. **AI 重置與人工調整機制**：若 AI 生成的 Prompt 描述不夠精確，Elena 可點擊「全部重置」讓 AI 重新解析，或「人工編輯」Prompt 來明確告訴未來的 Agent 該如何正確傳入參數。
+  4. Jack 登入後台審查並標記為 `Read-only`。
+- **系統回饋**：
+  - **成功**：工具狀態轉為 `Active`，SRE 可在 AI Chat 呼叫。
+  - **失敗**：Health Check 逾時或 Schema 錯誤，拒絕上架。
+- **行為驅動開發 (BDD Scenarios)**：
+  - **Scenario 1: AI 工具描述的優化與上架**
+    - **Given** Elena 剛輸入 API URL，AI 為其生成了很長的參數說明。
+    - **When** Elena 覺得過於冗長，點擊「全部重置」要求「精簡至 50 字以內」，並人工微調了必填參數的備註。提交後 Jack 進行了審批。
+    - **Then** 該 MCP 工具成功上架，且後續的 AI Agent 在呼叫時能根據精簡的描述，達到 100% 的參數傳遞正確率。
 
 ---
 
 ## English Version
 
-## A. Architecture Design
+### A. Architecture Design (AI-Driven Architecture Design)
+- **Story**: Rapidly generate and validate multi-cloud blueprints via natural language.
+- **Persona**: Alex (Cloud Architect)
+- **RBAC**: 
+  - `Project_Architect` or `Project_Editor` is required to trigger generation and edits.
+  - `Viewer` can only view the diagrams.
+- **Operational Flow**:
+  1. Alex logs into the desktop workspace.
+  2. Clicks "New Architecture" and prompts the AI: "Need an AWS e-commerce architecture, Multi-AZ, Aurora, and WAF."
+  3. The AI generates a complete draft on the draw.io canvas.
+  4. **AI Reset & Manual Adjustment**: If unsatisfied with the overall direction, Alex can click **"Full Reset"** for a complete regeneration. If only the network tier is flawed, he can select the network block and click **"Partial Reset"**. Post-generation, Alex retains the ability to make **manual adjustments** (drag and drop nodes/connections).
+  5. The background Agent triggers a Well-Architected validation.
+- **System Feedback**:
+  - **Success**: A green toast reads "Architecture generated and validated," saving to version control.
+  - **Failure**: Conflicting constraints during partial resets trigger red highlights on conflicting nodes.
+- **BDD Scenarios**:
+  - **Scenario 1: Partial Reset and Manual Tweaking**
+    - **Given** Alex is logged in with an AI-generated architecture on the canvas.
+    - **When** He dislikes the database design, selects it, clicks "Partial Reset" saying "Use DynamoDB", and manually connects the new node to the API Gateway.
+    - **Then** The system keeps the rest of the architecture intact, swaps the DB tier, and successfully re-runs compliance checks.
 
-### A1. Natural Language to Architecture
-- **Persona**: Cloud Architect
-- **Description**: Describe business requirements and technical constraints in natural language to generate accurate cloud architecture blueprints.
-- **Acceptance Criteria**:
-  - Extracts workload, HA, DR, scalability, compliance, and security boundaries.
-  - Outputs Mermaid, PlantUML, or draw.io formats.
+### B. Cross-Cloud Component Selection
+- **Story**: Generate objective and transparent cross-cloud decision matrices.
+- **Persona**: Catherine (Technical Decision Maker)
+- **RBAC**: 
+  - Only `Project_Admin` and `Technical_Lead` can adjust selection weights.
+- **Operational Flow**:
+  1. Catherine logs into the "Component Selection" module.
+  2. Inputs a "High-concurrency NoSQL Database" scenario with SLA-first weights.
+  3. AI instantly generates a comparison matrix for AWS, GCP, and Azure.
+  4. **AI Reset & Manual Adjustment**: If a metric is missing, she clicks **"Partial Reset"** to "Add Data Egress comparison." She can also **manually toggle** specific cloud providers on or off to customize the report.
+- **System Feedback**:
+  - **Success**: Interactive charts and a PDF report are generated.
+  - **Failure**: Stale API data shows a yellow warning for manual sync.
+- **BDD Scenarios**:
+  - **Scenario 1: Matrix Manual Override and Reset**
+    - **Given** Catherine is reviewing the generated NoSQL matrix.
+    - **When** She disagrees with the Firestore data, triggers a "Partial Reset" for that column stating "Update to 2026 SLAs", and manually adds a team-specific annotation.
+    - **Then** The system regenerates only the Firestore data, retains her manual note, and exports the final report.
 
-### A2. Automated Well-Architected Review
-- **Persona**: SRE, Engineering Manager
-- **Description**: Deep scan architectures to ensure alignment with AWS/GCP/Azure Well-Architected Frameworks.
+### C. Cost Estimation & FinOps
+- **Story**: Calculate precise project-level TCO and track Data Egress.
+- **Persona**: David (FinOps Analyst)
+- **RBAC**: 
+  - Requires `FinOps_Analyst` to view detailed budgets.
+- **Operational Flow**:
+  1. David imports an architecture into the "FinOps Dashboard."
+  2. The AI calculates TCO and simulates Data Egress.
+  3. **AI Reset & Manual Adjustment**: If the traffic model is inaccurate, David hits **"Full Reset"** and tells the AI to use a "High-bandwidth streaming model." He also makes a **manual adjustment** to EC2 uptime (e.g., setting it to 8 hours/day).
+- **System Feedback**:
+  - **Success**: Pie charts refresh dynamically reflecting the savings.
+  - **Failure**: Missing pricing APIs are flagged as "Price Unknown."
+- **BDD Scenarios**:
+  - **Scenario 1: Cost Model Reset and Refinement**
+    - **Given** David receives a $5000/month baseline estimate.
+    - **When** He uses "Partial Reset" on the database tier's traffic logic and manually overrides network egress from 5TB to 10TB.
+    - **Then** The system instantly recalculates the total, tagging his changes as "Manual Override."
 
-### A3. AI + draw.io Cloud Canvas Co-editing
-- **Persona**: Cloud Architect
-- **Description**: Operate online draw.io canvases via AI Chat for dialog-driven editing.
+### D. IaC Generation & Security Scan (Terraform / OpenTofu)
+- **Story**: Seamlessly convert canvas architectures into secure IaC modules.
+- **Persona**: Elena (Platform Engineer), Fiona (Security Reviewer)
+- **RBAC**: 
+  - `Platform_Engineer` generates code; deployment blocked by `Security_Reviewer` checks.
+- **Operational Flow**:
+  1. Elena clicks "Convert to Terraform Module" in the IaC workspace.
+  2. AI generates structured `.tf` files.
+  3. **AI Reset & Manual Adjustment**: Unhappy with the naming convention, she selects `variables.tf`, clicks **"Partial Reset"**, and requests "Add corporate prefixes." She then performs **manual code edits** within the IDE.
+  4. Saving triggers a background tfsec scan.
+- **System Feedback**:
+  - **Success**: Scan passes, allowing ZIP download/Git push.
+  - **Failure**: High-severity vulnerabilities block export and highlight the code.
+- **BDD Scenarios**:
+  - **Scenario 1: IaC Code Partial Reset**
+    - **Given** Elena reviews the AI-generated Terraform code.
+    - **When** She dislikes the S3 module reference, highlights it, clicks "Partial Reset" to "Use internal public module," and manually types in the `tags`.
+    - **Then** The system regenerates the S3 block, preserves her tags, and passes the static security scan.
 
-### A4. HA/DR Strategy Simulation
-- **Persona**: SRE, Operations Lead
-- **Description**: Simulate failures (AZ outage, DB down) to verify if HA/DR strategies meet RPO/RTO.
+### E. Operations Optimization Review
+- **Story**: Apply architecture right-sizing based on background Agent analysis.
+- **Persona**: George (Operations Lead)
+- **RBAC**: 
+  - `Ops_Lead` views and applies optimizations.
+- **Operational Flow**:
+  1. George reviews Agentic AI right-sizing suggestions in the Dashboard.
+  2. **AI Reset & Manual Adjustment**: Finding a suggestion too aggressive, he clicks **"Partial Reset"** instructing the AI to "Leave a 50% buffer for an upcoming campaign." He can also **manually select** the target instance type (e.g., `t3.medium`).
+  3. Approves final suggestions to create a Change Request.
+- **System Feedback**:
+  - **Success**: Change request enters "Pending Scheduled Execution."
+  - **Failure**: Termination Protected resources block automated plans.
+- **BDD Scenarios**:
+  - **Scenario 1: Correcting Ops Recommendations**
+    - **Given** George sees an AI recommendation to downsize 5 machines.
+    - **When** He manually excludes 2 core-service machines, and requests a "Partial Reset" of the strategy for the remaining 3.
+    - **Then** A new change request is generated containing a safe downgrade plan for only the 3 selected machines.
 
----
+### F. AI Multi-Cloud Operations & Approvals
+- **Story**: Manage the Human Approval Gate for high-risk operations.
+- **Persona**: Ben (SRE), Karen (Platform Owner)
+- **RBAC**: 
+  - High-risk actions from `SRE` require `Platform_Owner` approval.
+- **Operational Flow**:
+  1. Ben uses AI Chat: "Change Prod Web ASG instances to 10."
+  2. AI generates the execution Plan and Rollback script.
+  3. **AI Reset & Manual Adjustment**: Before submitting, Ben notices the rollback script lacks safety checks. He clicks **"Partial Reset"** to "Add a DB snapshot step," and switches to **manual edit mode** to refine the timeout logic.
+  4. Karen reviews and approves via FaceID on her phone.
+- **System Feedback**:
+  - **Success**: Executed successfully; Audit Logs written.
+  - **Failure**: Karen rejects or times out, canceling the operation.
+- **BDD Scenarios**:
+  - **Scenario 1: High-Risk Script Reset and Approval**
+    - **Given** Ben has an AI-generated scaling and rollback script.
+    - **When** He manually increases the timeout from 30s to 120s, then submits it. Karen logs in and approves.
+    - **Then** The system executes the script using Ben's manually adjusted safety timeout, leaving an immutable audit trail.
 
-## B. Optimal Cloud Provider Decision
+### G. Cloud Security Posture
+- **Story**: Scan for Least Privilege IAM violations and generate Policy-as-Code.
+- **Persona**: Fiona (Security Reviewer)
+- **RBAC**: 
+  - Only `Security_Admin` initiates global scans.
+- **Operational Flow**:
+  1. Fiona runs an IAM Least Privilege Analysis.
+  2. System lists unused Roles; Fiona asks AI to generate OPA (Rego) policy code.
+  3. **AI Reset & Manual Adjustment**: If the policy is too strict, she hits **"Partial Reset"** to "Exclude the Dev environment," or **manually edits** the regex in the code editor.
+- **System Feedback**:
+  - **Success**: Rego code passes test-validation.
+  - **Failure**: Missing MCP auth prompts a red credential error.
+- **BDD Scenarios**:
+  - **Scenario 1: Policy Code Customization**
+    - **Given** Fiona sees 20 lines of AI-generated Rego policy.
+    - **When** She notices a flawed condition, highlights it for a "Partial Reset" with specific hints, and manually adds a corporate tag-checking logic.
+    - **Then** The OPA tester runs successfully, ensuring both security and developer flexibility.
 
-### B1. AI-Driven Single Cloud Selection
-- **Persona**: Technical Decision Maker, Cloud Architect
-- **Description**: Automatically recommend the best-fit single cloud provider for a project based on needs.
-- **Acceptance Criteria**:
-  - Analyzes services, SLA, coverage, and compliance.
-  - Generates a "Provider Selection Report".
-
-### B2. Ecosystem Compatibility & Integration Scan
-- **Persona**: Platform Engineer, Cloud Architect
-- **Description**: Analyze existing tech stack compatibility with cloud ecosystems to minimize technical debt.
-
-### B3. Geo-Regional Compliance & Latency Optimization
-- **Persona**: Cloud Architect, Security Reviewer
-- **Description**: Determine the best provider for access speed and data residency compliance.
-
-### B4. Portability & Exit Strategy Evaluation
-- **Persona**: Technical Decision Maker, Security Reviewer
-- **Description**: Assess lock-in risk and provide portability scores with clear exit strategies.
-
----
-
-## C. Project-Level Cost Governance
-
-### C1. Project TCO & Budget Forecasting
-- **Persona**: FinOps Analyst, Engineering Manager
-- **Description**: Review total cloud spending from a "Project" perspective and forecast trends.
-
-### C2. Project Resource Optimization Strategy
-- **Persona**: FinOps Analyst, SRE
-- **Description**: Detect idle resources and recommend pricing models (Spot/Savings Plans) for the project.
-
----
-
-## D. Standardized IaC & Secure Delivery
-
-### D1. Project-Template IaC Generation
-- **Persona**: Platform Engineer
-- **Description**: Generate modular Terraform/OpenTofu code following corporate templates.
-
-### D2. Automated IaC Security & Compliance Scan
-- **Persona**: Security Reviewer, Platform Engineer
-- **Description**: AI-driven security scan for IaC (plaintext keys, firewall rules) before deployment.
-
----
-
-## E. Proactive Operations Optimization
-
-### E1. Behavior-Based Right-sizing
-- **Persona**: SRE, Engineering Manager
-- **Description**: Resource sizing recommendations based on actual runtime behavior.
-
-### E2. Architecture Evolution & Modernization Guidance
-- **Persona**: Cloud Architect, Technical Decision Maker
-- **Description**: Suggest efficiency improvements using new managed/serverless cloud services.
-
-### E3. Automated Incident Playbook Generation
-- **Persona**: SRE, Operations Lead
-- **Description**: Automatically generate Runbooks/Playbooks based on project architecture.
-
----
-
-## F. AI-Driven Project Ops
-
-### F1. Global Project Status Query & Visualization
-- **Persona**: SRE, End User
-- **Description**: Query project health and metrics using natural language.
-
-### F2. Guided Project Change Operations
-- **Persona**: Platform Engineer, Platform Admin
-- **Description**: AI-guided impact analysis and safety validation for complex operations.
-
-### F3. Agentic Anomaly Detection
-- **Persona**: Operations Lead, SRE
-- **Description**: Proactively detect cost spikes, unauthorized access, and latency fluctuations.
-
----
-
-## G. Security Compliance & Policy Enforcement
-
-### G1. Continuous Compliance Scan
-- **Persona**: Security Reviewer
-- **Description**: Continuous checks against corporate standards (CIS, SOC2).
-
-### G2. Identity & Access Governance
-- **Persona**: Platform Admin, Security Reviewer
-- **Description**: Manage project permissions following the Least Privilege Principle.
-
-### G3. Policy-as-Code Implementation
-- **Persona**: Platform Engineer
-- **Description**: Recommends OPA, Azure Policy, or AWS Config rules.
-
-### G4. Automated AI Threat Modeling
-- **Persona**: Security Reviewer, Cloud Architect
-- **Description**: AI-driven attack vector identification based on STRIDE.
-
----
-
-## H. Full Project Management Experience
-
-### H1. Desktop Deep Workspace
-- **Persona**: Cloud Architect, Engineering Manager
-- **Description**: Centralized browser view for architecture, cost, and security.
-
-### H2. Mobile Agile Ops Assistant
-- **Persona**: SRE, Operations Lead
-- **Description**: Mobile-optimized alerts and health digest.
-
-### H3. Mobile Secure Approval Gate
-- **Persona**: Platform Owner, Engineering Manager
-- **Description**: Secure high-risk operation approvals via biometric authentication on mobile.
+### H. MCP & Skill Management
+- **Story**: Register and enforce access boundaries for internal custom tools.
+- **Persona**: Elena (Platform Engineer), Jack (Platform Admin)
+- **RBAC**: 
+  - `Platform_Engineer` submits requests; `Platform_Admin` audits and approves.
+- **Operational Flow**:
+  1. Elena registers an internal CMDB API.
+  2. AI parses the schema and generates a System Prompt description.
+  3. **AI Reset & Manual Adjustment**: If the prompt is inaccurate, Elena clicks **"Full Reset"** for a re-parse, or **manually edits** the text to explicitly instruct future Agents on parameter usage.
+  4. Jack reviews and marks it `Read-only`.
+- **System Feedback**:
+  - **Success**: Tool becomes `Active` for SRE use.
+  - **Failure**: Schema errors reject the registration.
+- **BDD Scenarios**:
+  - **Scenario 1: Refining AI Tool Prompts**
+    - **Given** Elena inputs an API URL and AI generates a verbose parameter description.
+    - **When** She clicks "Full Reset" asking to "Keep under 50 words," and manually tweaks the notes for required parameters. Jack approves it.
+    - **Then** The MCP tool goes live, and subsequent Agents achieve 100% parameter accuracy using the refined description.

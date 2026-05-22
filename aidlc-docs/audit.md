@@ -55,6 +55,18 @@
 
 ---
 
+#### 2026-05-22 19:38 +08:00 — Requirements & User Stories Revision (Bilingual & BDD)
+
+**User request (raw)**: "我想重寫requirements... 開始依照persona修改stories... 再幫我在a-h鍾 加入BDD..."
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. 重寫 `cloud-360-srs.md` 以符合 ADR-0005 雙語規範。
+2. 重寫 `personas.md`，加上具體人物名稱、情境描述與需求模組映射。
+3. 重寫 `stories.md`，加入 BDD 劇本、登入操作流程、RBAC 權限控管與 AI 產出重置機制（局部/全部重置與人工微調）。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -137,5 +149,17 @@ Each entry uses the following format:
 2. 補充其他支柱：新增 HA/DR 模擬 (A4)、自動化維運劇本 (E3)、AI 自動威脅建模 (G4)。
 3. 所有故事對齊 README.md 中的 Core Modules 發展方向。
 **Approver**: doreen
+
+---
+
+#### 2026-05-22 19:38 +08:00 — Requirements & User Stories Revision (Bilingual & BDD)
+
+**User request (raw)**: "我想重寫requirements... 開始依照persona修改stories... 再幫我在a-h鍾 加入BDD..."
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. Rewrote `cloud-360-srs.md` to comply fully with ADR-0005 bilingual rule.
+2. Rewrote `personas.md`, adding names, context, and requirement pillar mappings.
+3. Rewrote `stories.md`, adding BDD scenarios, login flows, RBAC controls, and AI reset mechanisms (partial/full reset and manual adjustments).
+**Approver**: luojingting
 
 ---
