@@ -81,6 +81,19 @@
 
 ---
 
+#### 2026-05-24 00:01 +08:00 — System Feedback & CTA Refinement
+
+**User request (raw)**: "在story裡面 每個項目使用這操作成功或失敗時，再詳細一點描述使用者會看到的畫面回饋，在操作成功公時引導使用者進行下個操作，失敗時也引導使用者如何操作成功或聯絡相關人員... 幫我上傳到git"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. 全面擴充 A-H 共 24 個 User Stories 的「系統回饋 (System Feedback)」。
+2. 為每個操作成功與失敗場景加入了「極為詳細的畫面 UI 回饋描述」。
+3. 在每個場景加入了明確的「後續操作引導 (Call-To-Action)」。
+4. 提交變更至 Git。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -188,6 +201,19 @@ Each entry uses the following format:
 3. Expanded "Acceptance Criteria" into 3 highly detailed bullet points for each story.
 4. Introduced "Multi-Role Collaboration" to replace single Personas, defining cross-functional interaction details.
 5. Committed changes to Git.
+**Approver**: luojingting
+
+---
+
+#### 2026-05-24 00:01 +08:00 — System Feedback & CTA Refinement
+
+**User request (raw)**: "在story裡面 每個項目使用這操作成功或失敗時，再詳細一點描述使用者會看到的畫面回饋，在操作成功公時引導使用者進行下個操作，失敗時也引導使用者如何操作成功或聯絡相關人員... 幫我上傳到git"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. Comprehensively expanded the "System Feedback" section for all 24 User Stories (A-H).
+2. Added highly detailed UI feedback descriptions for both success and failure scenarios.
+3. Introduced explicit Call-To-Action (CTA) next steps for every scenario to guide users or direct them to support.
+4. Committed changes to Git.
 **Approver**: luojingting
 
 ---

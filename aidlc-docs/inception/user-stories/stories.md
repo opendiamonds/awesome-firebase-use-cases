@@ -1,7 +1,7 @@
 # User Stories - Cloud-360
 
-> 本文件列出 Cloud-360 的使用者故事，嚴格依據 `cloud-360-srs.md` 與 `personas.md`，將架構支柱（Pillars A-H）細分為 3~4 個具體情境（共 24 個 User Stories）。每個故事皆包含使用者需求/目標、多角色協作細節 (Multi-Role Collaboration)、詳細列點的驗收標準、首頁登入操作流程、正負向系統回饋、AI 重置/人工微調機制，以及 BDD 劇本。
-> This document lists the user stories for Cloud-360, strictly based on `cloud-360-srs.md` and `personas.md`, breaking down architecture pillars (A-H) into 3-4 specific scenarios each (24 User Stories total). Each story includes user goals, multi-role collaboration details, detailed acceptance criteria, homepage login flows, positive/negative feedback, AI reset/manual adjustments, and BDD scenarios.
+> 本文件列出 Cloud-360 的使用者故事，嚴格依據 `cloud-360-srs.md` 與 `personas.md`，將架構支柱（Pillars A-H）細分為 3~4 個具體情境（共 24 個 User Stories）。每個故事皆包含使用者需求/目標、多角色協作細節、詳細列點的驗收標準、首頁登入操作流程、正負向系統畫面回饋與引導、AI 重置/人工微調機制，以及 BDD 劇本。
+> This document lists the user stories for Cloud-360, strictly based on `cloud-360-srs.md` and `personas.md`, breaking down architecture pillars (A-H) into 3-4 specific scenarios each (24 User Stories total). Each story includes user goals, multi-role collaboration details, detailed acceptance criteria, homepage login flows, highly detailed positive/negative UI feedback with Call-To-Actions, AI reset mechanisms, and BDD scenarios.
 
 ## 中文版 (Chinese Version)
 
@@ -17,7 +17,9 @@
   2. 產出的圖表必須為相容 `.drawio` 格式，並使用標準雲端服務圖示。
   3. 圖面必須包含清晰的邏輯連線、網路邊界 (VPC/AZ) 與資料流向。
 - **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求。 3. **AI重置/人工微調**: 對產出草圖不滿意可點「全部重置」，或手動在對話框人工修正參數。
-- **系統回饋**: 成功：綠燈並將畫布存檔；失敗：紅字提示資源衝突。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面中央浮現綠色 Toast 提示「✔ 架構草圖已生成」，並自動存檔。**後續引導**：彈出按鈕引導點擊「前往 IaC 工作區生成代碼」或「進行 Well-Architected 評估」。
+  - **失敗 (Failure)**: 畫面頂部跳出紅色警告框「資源衝突：所選區域不支援該服務」。**後續引導**：提示「請於對話框修改參數後重試」，或提供「聯絡平台架構師 (Alex) 尋求協助」的快捷按鈕。
 - **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求後點擊全部重置並人工加上 "需 WAF" `Then` 系統重新產出包含 WAF 的架構畫布。
 
 #### A2. AI + draw.io 畫布協同編輯
@@ -30,7 +32,9 @@
   2. AI 在替換或新增節點時，必須自動保留或重新接上原有的邏輯連線。
   3. 支援追蹤多人的修改歷史，允許一鍵還原 (Undo) 任何變更。
 - **操作流程**: 1. 從首頁進入架構畫布。 2. 框選特定區域請 AI 優化。 3. **AI重置/人工微調**: 點「局部重置」要求更換元件型號，隨後人工拖拉連線。
-- **系統回饋**: 成功：元件更新且關聯未斷；失敗：提示該元件無法建立連線。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 被修改的節點會以綠色邊框閃爍 2 秒，提示「修改已同步」。**後續引導**：出現懸浮按鈕引導「匯出架構圖」或「查看預估成本」。
+  - **失敗 (Failure)**: 節點出現紅底，連線斷裂並提示「該元件不支援此協定」。**後續引導**：提示「請使用人工拖拉重新連線」，或「點擊查閱雲端相容性官方文件」。
 - **BDD**: `Given` 畫布已有基礎架構 `When` 框選 DB 點擊局部重置為 Aurora 並人工接上 API Gateway `Then` 系統僅替換 DB 並保留人工連線。
 
 #### A3. 自動化 Well-Architected 評核與模擬
@@ -43,7 +47,9 @@
   2. 能模擬單點故障 (SPOF) 或 AZ 級別中斷，並估算 RPO/RTO 達標率。
   3. 產出可下載之詳細健康度評分與改善建議清單 PDF 報告。
 - **操作流程**: 1. 從首頁登入評估儀表板。 2. 點擊「執行架構評估」。 3. **AI重置/人工微調**: 若標準過高，可「局部重置」要求放寬 RTO 條件，或人工加上備援節點。
-- **系統回饋**: 成功：產出高分健康度報告；失敗：畫面閃爍紅燈警告 SPOF。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 彈出綠色滿分徽章與撒花特效，顯示「符合最佳實踐」。**後續引導**：引導點選「下載 PDF 報告」並「發送給主管審閱」。
+  - **失敗 (Failure)**: SPOF 節點標示為跳動的紅色驚嘆號，並顯示扣分項目。**後續引導**：提示「請點擊 AI 自動加入備援節點」，或點選「聯絡 SRE 團隊討論」。
 - **BDD**: `Given` 掃出資料庫單點故障 `When` Hannah 人工補上備援連線並點擊局部重置評分 `Then` 分數重新計算並達標。
 
 ---
@@ -60,7 +66,9 @@
   2. 比較矩陣表格必須具備至少三個維度：SLA、硬體限制、計費模式。
   3. 能夠一鍵將對比結果與決策矩陣匯出為 PDF 報告。
 - **操作流程**: 1. 從首頁進入選型模組。 2. 輸入專案業務特性。 3. **AI重置/人工微調**: 點擊「全部重置」切換權重，或人工點選隱藏 AWS 以專注看 GCP 與 Azure。
-- **系統回饋**: 成功：生成詳細決策矩陣表；失敗：API 逾時顯示黃色警告。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 產出帶有各雲端商 Logo 的動態對比圖表，最優選將高亮顯示。**後續引導**：引導點擊「套用此雲端商並開始架構設計」。
+  - **失敗 (Failure)**: 儀表板顯示黃色「API 逾時」警示條，數據呈現灰色。**後續引導**：提示「請點擊重新整理按鈕」，若持續失敗則引導「提交工單聯絡平台維護團隊」。
 - **BDD**: `Given` 跨雲對比表已生成 `When` 點擊局部重置要求更新 SLA，並人工隱藏 AWS `Then` 系統僅產出剩餘廠商的最新數據。
 
 #### B2. 技術生態與相容性掃描
@@ -73,7 +81,9 @@
   2. 為每一項技術遷移提供精確的相容性分數 (0-100%)。
   3. 提供初步預估的遷移與代碼重構工時 (以天或小時為單位)。
 - **操作流程**: 1. 從首頁進入相容性分析室。 2. 匯入現有技術棧。 3. **AI重置/人工微調**: 「局部重置」重新評估特定 DB，並人工標註「必定保留的 CI/CD 工具」。
-- **系統回饋**: 成功：列出相容性分數與遷移工時；失敗：提示查無對應託管服務。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 顯示環狀進度條 (如 85% 相容)，下方展開綠色的無縫轉移清單。**後續引導**：引導點擊「查看需要人工重構的代碼清單」。
+  - **失敗 (Failure)**: 圖表卡在 0% 並彈出紅字「查無雲端替代方案」。**後續引導**：提示「請調整為 IaaS 虛擬機評估方案」，或「聯絡平台管理員新增支援服務」。
 - **BDD**: `Given` 獲得初始相容報告 `When` 人工標註 Jenkins 必定保留，並局部重置 `Then` AI 重新評估整合風險並更新報告。
 
 #### B3. 地緣合規與存取延遲優化
@@ -86,7 +96,9 @@
   2. 根據目標客群位置，在地圖上直觀提供延遲最低的 Top 3 Region 建議。
   3. 若使用者強行選擇違反法規限制的區域，必須以紅字強烈阻擋並給出原因。
 - **操作流程**: 1. 從首頁登入地緣合規設定區。 2. 輸入目標客群所在地。 3. **AI重置/人工微調**: 「全部重置」切換法規情境，並人工加入自定義限制。
-- **系統回饋**: 成功：地圖顯示最佳推薦 Region；失敗：提示所選區域不符合指定法規。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 世界地圖上出現綠色光點標示最佳 Region，並附上法規核准打勾。**後續引導**：引導點擊「確認區域並鎖定專案設定」。
+  - **失敗 (Failure)**: 地圖上的所選區域覆蓋紅色斜線，彈出「違反 GDPR」警告。**後續引導**：提示「請點擊系統推薦的替代 Region」，或「聯絡法務/資安團隊評估例外豁免」。
 - **BDD**: `Given` 系統建議美東機房 `When` Fiona 人工勾選 GDPR 並局部重置 `Then` 系統重新推薦歐盟機房。
 
 ---
@@ -103,7 +115,9 @@
   2. 產出細至每項資源層級的動態成本拆解圓餅圖。
   3. 允許使用者輸入「每日運作時數」，系統需即時重新計算每月總費用。
 - **操作流程**: 1. 從首頁登入 FinOps 看板。 2. 匯入架構執行 TCO 計算。 3. **AI重置/人工微調**: 「全部重置」切換流量模型，並人工修改預設開機時數為 8 小時。
-- **系統回饋**: 成功：動態圓餅圖顯示預算；失敗：特定服務報價失敗顯示「價格未知」。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 中心出現動態更新的圓餅圖，綠色字體顯示總預算範圍內。**後續引導**：引導點擊「設定預算超支警報 (Billing Alarm)」。
+  - **失敗 (Failure)**: 部分區塊顯示灰色並標示「定價無法獲取」。**後續引導**：提示「請手動輸入預估金額」，或引導「點擊聯絡 FinOps 分析師 (David) 確認合約價格」。
 - **BDD**: `Given` 初始 TCO 為 $5000 `When` David 人工修改開機時數為 8 小時並局部重置 `Then` TCO 更新為 $2000，並標記 Manual Override。
 
 #### C2. 專案資源優化與定價模型對比
@@ -116,7 +130,9 @@
   2. 精確計算轉換為 1-year/3-year RI 的預期節省百分比。
   3. 允許使用者人工排除特定核心機器，系統需動態重新計算剩餘資源的節省效益。
 - **操作流程**: 1. 從首頁進入成本優化區。 2. 要求分析 Spot/RI 效益。 3. **AI重置/人工微調**: 「局部重置」僅看 Spot 實例建議，並人工鎖定某台資料庫拒絕修改。
-- **系統回饋**: 成功：列出節省金額百分比；失敗：提示該架構無適用之 Spot 機型。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面浮出金幣動畫，並以大字體顯示「預估節省 30%」。**後續引導**：引導點擊「一鍵套用轉換變更單」。
+  - **失敗 (Failure)**: 畫面提示「該架構不適用 Spot 實例」，建議清單為空。**後續引導**：提示「請嘗試解鎖核心機器再試一次」，或「聯絡維運團隊確認架構彈性」。
 - **BDD**: `Given` AI 建議全上 Spot `When` David 人工鎖定 DB，並對 Web Tier 局部重置 Spot 效益 `Then` 系統重新算出正確的節省金額。
 
 #### C3. Data Egress 隱性成本深度追蹤
@@ -129,7 +145,9 @@
   2. 產出流量熱點圖 (Heat Map)，直觀標示可能導致高昂費用的連線。
   3. 當使用者變更網路拓撲時，即時更新預估的 Egress 總費用。
 - **操作流程**: 1. 從首頁登入網路成本追蹤區。 2. 檢視跨區流量預估。 3. **AI重置/人工微調**: 「局部重置」特定 AZ 流量計算，並人工將傳輸量改為 10TB。
-- **系統回饋**: 成功：產出流量熱點與成本對應圖；失敗：架構缺乏網路連線無法解析。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 架構圖上的連線轉為粗細不同的藍色流向圖，標明費用。**後續引導**：引導點擊「匯出網路流量熱點分析報告」。
+  - **失敗 (Failure)**: 無法解析網路路徑，彈出黃字「請確認網路設定」。**後續引導**：提示「請點擊 AI 檢查網路連線完整性」，或「聯絡網路工程師修復拓撲」。
 - **BDD**: `Given` Egress 預測為 $100 `When` 局部重置並人工修改頻寬至 10TB `Then` Egress 費用飆升，並以紅字強烈標記。
 
 ---
@@ -146,7 +164,9 @@
   2. 生成的代碼必須盡可能引用企業內部的標準 Terraform Modules。
   3. 產出的代碼可直接通過 `terraform init` 與 `terraform validate` 檢查。
 - **操作流程**: 1. 從首頁進入 IaC 工作區。 2. 將畫布轉換為代碼。 3. **AI重置/人工微調**: 對 `variables.tf` 點擊「局部重置」加上公司 prefix，並在 IDE 內人工編輯參數。
-- **系統回饋**: 成功：生成標準 tf 結構檔；失敗：編譯出錯阻擋下載。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 編輯器右下角彈出綠色「✔ 轉換成功」，顯示完整 `.tf` 檔案樹。**後續引導**：引導點擊「進入安全靜態掃描」或「一鍵推送到 Git」。
+  - **失敗 (Failure)**: 編輯器跳出紅色編譯錯誤提示，問題行數高亮標記。**後續引導**：提示「請點選 AI 自動修復錯誤語法」，若無法解決則「聯絡平台工程師 (Elena)」。
 - **BDD**: `Given` AI 初稿生成完畢 `When` Elena 局部重置 prefix 規則並人工改寫 tag `Then` 代碼順利生成並保留人工修改。
 
 #### D2. IaC 安全與合規自動靜態掃描
@@ -159,7 +179,9 @@
   2. 發現 High 或 Critical 漏洞時，必須強制阻擋代碼下載與部署。
   3. 系統必須提供至少一個可直接套用的 AI 修復代碼片段。
 - **操作流程**: 1. 從首頁登入安全審查區。 2. 觸發 tfsec 掃描。 3. **AI重置/人工微調**: 「局部重置」要求 AI 提供不同修復建議，人工選擇採納並套用。
-- **系統回饋**: 成功：顯示全數通過綠標；失敗：發現漏洞閃爍紅燈阻擋部署。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面中央出現滿版綠色的安全盾牌打勾動畫，標示「0 漏洞」。**後續引導**：引導點擊「核准並開始自動化部署」。
+  - **失敗 (Failure)**: 畫面紅光閃爍，阻擋按鈕變灰，列出高危 CVE 漏洞清單。**後續引導**：提示「請點擊 AI 提供的安全修復代碼」，或點選「聯絡資安審查員 (Fiona) 申請特例豁免」。
 - **BDD**: `Given` 掃描出 High 級別漏洞 `When` AI 產出三個修復方案，Elena 人工選擇其一並套用 `Then` 複掃通過，允許 Git Push。
 
 #### D3. Sensitive Values 與 Secret Manager 整合
@@ -172,7 +194,9 @@
   2. 自動將明文替換為對應雲端的安全引用格式 (如 AWS Secrets Manager)。
   3. 若無法提供有效的 Secret ARN，禁止將代碼 Push 至遠端存儲庫。
 - **操作流程**: 1. 從首頁登入機密檢查區。 2. 掃描 hardcoded secrets。 3. **AI重置/人工微調**: 「全部重置」要求改用 Secrets 引用，人工填寫 Secret ARN。
-- **系統回饋**: 成功：明文轉為安全引用格式；失敗：找不到對應的 Secret 變數。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 密碼明文以打字機特效安全轉換為 `aws_secretsmanager_secret` 變數。**後續引導**：引導點擊「儲存代碼並進入下一步」。
+  - **失敗 (Failure)**: 跳出紅字「找不到對應的 Secret ARN，替換失敗」。**後續引導**：提示「請前往 Secrets Manager 創建新金鑰」，或「聯絡資安團隊尋求授權」。
 - **BDD**: `Given` 代碼存在明文密碼 `When` 點擊局部重置轉換為 Secret 引用並人工填上 ARN `Then` 代碼變更為安全合規格式。
 
 ---
@@ -189,7 +213,9 @@
   2. 列出具體建議降級的目標實例型號與預估節省金額。
   3. 支援一鍵生成包含目標機器名單與降級腳本的維運變更單。
 - **操作流程**: 1. 從首頁登入運維看板。 2. 查閱 Agent 降級清單。 3. **AI重置/人工微調**: 「局部重置」要求保留 50% 餘裕，人工排除核心機器。
-- **系統回饋**: 成功：生成正式變更單；失敗：資源具備防刪除保護跳出警告。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 建議清單旁出現綠色的「建議採納」標章，並動態累加節省總額。**後續引導**：引導點擊「創建降級維運變更單 (CR)」。
+  - **失敗 (Failure)**: 目標清單反灰並標示橘色的「受終止保護」。**後續引導**：提示「請前往雲端控制台解除保護狀態」，或「聯絡系統擁有者授權解鎖」。
 - **BDD**: `Given` 降級 5 台機器的建議 `When` 人工剔除 2 台並要求 AI 局部重置剩餘 3 台 `Then` 變更單僅包含 3 台機器的安全降級。
 
 #### E2. 雲端架構演進與現代化引導
@@ -202,7 +228,9 @@
   2. 提供對應的 PaaS 或 Serverless 替代方案。
   3. 估算移轉所需的 ROI 與潛在的效能提升。
 - **操作流程**: 1. 從首頁登入現代化評估區。 2. 分析 Legacy 架構。 3. **AI重置/人工微調**: 「全部重置」改以 Serverless 為主，人工勾選必須保留的 VM。
-- **系統回饋**: 成功：產出 Serverless 移轉計畫；失敗：提示無合適替代品。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面左右並排顯示「Legacy」與「Serverless」的綠色對比雷達圖，展示 ROI 提升。**後續引導**：引導點擊「匯出高階主管評估簡報」。
+  - **失敗 (Failure)**: 畫面提示「技術棧過於老舊，無法自動轉換」。**後續引導**：提示「請嘗試使用 K8s 容器化作為過渡方案」，或「聯絡資深架構師進行人工專案評估」。
 - **BDD**: `Given` 分析報告建議全上 K8s `When` 全部重置要求改看 Serverless 方案 `Then` AI 重新產出以 Lambda 為主的移轉計畫。
 
 #### E3. 自動化維運劇本 (Runbooks) 生成
@@ -215,7 +243,9 @@
   2. 輸出格式必須為自動化工具 (如 AWS SSM) 可執行的 YAML/JSON。
   3. 劇本需包含明確的重啟指令、Timeout 與恢復驗證步驟。
 - **操作流程**: 1. 從首頁進入 Runbook 庫。 2. 要求生成應對劇本。 3. **AI重置/人工微調**: 「局部重置」要求加入快照步驟，並人工修改 Timeout 數值。
-- **系統回饋**: 成功：產出可執行腳本；失敗：指令語法錯誤無法解析。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面以打字機特效生成完整的 YAML 腳本，右側出現「✔ 驗證通過」綠牌。**後續引導**：引導點擊「註冊腳本至自動化 Runbook 庫」。
+  - **失敗 (Failure)**: 指令編輯區塊亮紅燈，顯示「解析錯誤：缺乏必要變數」。**後續引導**：提示「請點擊局部重置讓 AI 重新填寫變數」，或「聯絡 SRE (Ben) 協助編寫腳本」。
 - **BDD**: `Given` 基礎重啟劇本 `When` 局部重置加入快照，並人工延長 Timeout 至 120s `Then` 劇本按新參數安全儲存。
 
 ---
@@ -232,7 +262,9 @@
   2. 透過 MCP 抓取真實監控數據，繪製準確的時間趨勢圖表。
   3. 自動在圖表上標示出超過正常閾值的效能異常點。
 - **操作流程**: 1. 從首頁打開 AI Chat。 2. 詢問「昨日跨雲資料庫延遲狀況」。 3. **AI重置/人工微調**: 「全部重置」改變時間範圍，並人工輸入 Tag 過濾。
-- **系統回饋**: 成功：畫出走勢圖並標出異常；失敗：MCP 連線超時報錯。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 聊天視窗內平滑渲染出綠色時間趨勢圖，異常峰值以紅點醒目提示。**後續引導**：引導點擊「將圖表釘選至個人桌面」或「產生分享連結發送給主管」。
+  - **失敗 (Failure)**: 圖表轉為雜訊狀態，彈出紅色「MCP 連線超時」。**後續引導**：提示「請點擊重試重新連線」，或「聯絡平台管理員 (Jack) 檢查 Agent 狀態」。
 - **BDD**: `Given` 24h 流量圖 `When` 人工加入 `env:prod` tag 並局部重置 `Then` 圖表重新繪製僅顯示生產環境數據。
 
 #### F2. 引導式變更計畫與回滾策略產出
@@ -245,7 +277,9 @@
   2. 強制作為包裹產出對應的反向回滾腳本 (Rollback script)。
   3. 送審前，介面允許 SRE 人工覆寫指令或新增安全驗證步驟。
 - **操作流程**: 1. 從首頁 AI Chat 發起擴容請求。 2. AI 產出 Plan 與 Rollback。 3. **AI重置/人工微調**: 「局部重置」回滾腳本加入安全檢查，並人工修改擴展上限。
-- **系統回饋**: 成功：產生變更包裹等待審批；失敗：指令存在邏輯錯誤被系統擋下。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 產生左右分欄的變更計畫 (Plan) 與帶有綠色防護盾的回滾腳本。**後續引導**：引導點擊「送出審批 (Submit for Approval)」。
+  - **失敗 (Failure)**: 送出按鈕反灰鎖死，提示「回滾腳本邏輯有誤，無法保證系統安全」。**後續引導**：提示「請點擊局部重置要求 AI 重寫回滾邏輯」，或「邀請平台工程師同行審閱」。
 - **BDD**: `Given` 基礎變更 Plan `When` 人工修改實例數至 10 並局部重置回滾邏輯 `Then` 新包裹包含更新的數字與增強的回滾腳本。
 
 #### F3. 行動端高風險操作審批閘門
@@ -258,7 +292,9 @@
   2. 強制要求手機端生物辨識 (如 FaceID) 進行二次授權。
   3. 支援 Reject 功能，並要求填寫退回理由以利後續修改。
 - **操作流程**: 1. 手機端收到推播登入。 2. 檢視高風險變更內容。 3. **AI重置/人工微調**: Karen 可選擇 Reject，並人工在退回理由中寫下修改要求讓 Agent 重做。
-- **系統回饋**: 成功：FaceID 授權通過並寫入 Audit Log；失敗：審核逾時或被拒，操作取消。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 手機畫面顯示綠色大勾勾「授權成功」並伴隨短暫震動。**後續引導**：提示「點擊查看變更單即時執行進度」。
+  - **失敗 (Failure)**: 手機畫面顯示紅叉「授權被拒」或「操作逾時失效」。**後續引導**：提示「請在意見框內填寫退回理由讓 SRE 重新調整」，或「致電 SRE 負責人說明原因」。
 - **BDD**: `Given` 變更單 Pending `When` Karen 人工填寫「需補上離峰時段執行」並 Reject `Then` 變更取消，SRE 收到重置要求。
 
 ---
@@ -275,7 +311,9 @@
   2. 識別活躍狀態但權限過大 (如 `Action: "*"`) 的帳號。
   3. 允許安全管理員快速標記特例 (Exceptions) 或合規排除。
 - **操作流程**: 1. 從首頁進入安全看板。 2. 執行過度授權分析。 3. **AI重置/人工微調**: 「局部重置」排除開發環境的 Role，並人工加註安全標籤。
-- **系統回饋**: 成功：列出高危險清單；失敗：缺 IAM 讀取權限中斷。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 清單過濾動畫完成，顯示綠色標語「已精簡為 15 項待處理對象」。**後續引導**：引導點擊「一鍵產生權限縮減修復 PR」。
+  - **失敗 (Failure)**: 畫面跳出紅色對話框「IAM 讀取權限不足，掃描強制中斷」。**後續引導**：提示「請點擊授權請求按鈕申請跨帳號權限」，或「聯絡平台擁有者授權」。
 - **BDD**: `Given` 掃出 100 個 Role `When` Fiona 局部重置僅顯示 Prod 且人工排除 3 個特例 `Then` 報告精簡為 15 個處理對象。
 
 #### G2. 自動化策略代碼 (Policy-as-Code) 生成
@@ -288,7 +326,9 @@
   2. 系統內建測試沙盒，確保代碼通過基礎邏輯驗證。
   3. 允許在 IDE 介面內由資安人員人工修改條件式與正則表達式。
 - **操作流程**: 1. 要求將安全規則轉為代碼。 2. AI 生成 Rego。 3. **AI重置/人工微調**: 「全部重置」改產出 AWS Config 規則，人工修改正則表達式。
-- **系統回饋**: 成功：代碼通過測試；失敗：編譯錯誤。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 代碼編輯區塊右上角亮起綠燈，模擬終端機顯示 `PASS`。**後續引導**：引導點擊「將此策略合併至主分支生效」。
+  - **失敗 (Failure)**: 終端機報出紅色編譯錯誤，高亮提示語法不符之處。**後續引導**：提示「請在 IDE 內人工修復語法」，或「點擊 AI 智能除錯按鈕協助」。
 - **BDD**: `Given` 生成 OPA 策略 `When` Fiona 人工修改正則並點擊測試 `Then` 系統回報測試通過。
 
 #### G3. AI 驅動自動化威脅建模 (STRIDE)
@@ -301,7 +341,9 @@
   2. 產出包含威脅等級與具體緩解建議的報告。
   3. 允許使用者人工標註防禦措施，動態移出高危險清單。
 - **操作流程**: 1. 匯入架構至威脅建模區。 2. 產生 STRIDE 報告。 3. **AI重置/人工微調**: 「局部重置」聚焦 Spoofing，人工標註已防護節點。
-- **系統回饋**: 成功：產出威脅分級報告；失敗：架構圖殘缺無法建模。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 產生動態雷達圖，顯示各威脅已受控，整體呈現綠色健康狀態。**後續引導**：引導點擊「將此威脅報告與架構圖綁定存檔」。
+  - **失敗 (Failure)**: 雷達圖無法生成，提示「架構圖元件過少，無法判定邊界」。**後續引導**：提示「請回到畫布完善架構網路細節」，或「聯絡架構師共同協作」。
 - **BDD**: `Given` 10 項中度威脅 `When` 人工標記 2 項已由 WAF 防禦並局部重置 `Then` 該 2 項移出高危險名單。
 
 ---
@@ -318,7 +360,9 @@
   2. 將 API 參數轉譯為 Agent 能準確理解的 System Prompt。
   3. 註冊前進行自動 Health Check，失敗則拒絕上架。
 - **操作流程**: 1. 進入 MCP 目錄。 2. 貼上內部 API 端點。 3. **AI重置/人工微調**: 「全部重置」縮短 Prompt，人工編輯必填欄位備註。
-- **系統回饋**: 成功：轉為 Active 上架；失敗：Schema 格式不符。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 工具卡片轉為鮮豔的 `ACTIVE` 狀態，並打上綠色勾勾。**後續引導**：引導點擊「立即在 AI Chat 中進行測試呼叫」。
+  - **失敗 (Failure)**: 卡片劇烈震動並顯示紅字「Schema 格式解析失敗」。**後續引導**：提示「請檢查 YAML/JSON 語法是否合規」，或「聯絡 API 開發者確認文件規格」。
 - **BDD**: `Given` 500 字 Prompt `When` 點擊全部重置精簡並人工補上 `region` 限制 `Then` 成功註冊且解析正確。
 
 #### H2. AI Agent 存取邊界與權限審核
@@ -331,7 +375,9 @@
   2. 支援強制綁定全域最高權限邊界 (如僅限 Read-only)。
   3. 當 Agent 試圖超越權限呼叫工具時，阻擋並在 Audit Log 留下攔截紀錄。
 - **操作流程**: 1. 登入後台審查區。 2. 檢視新註冊 MCP。 3. **AI重置/人工微調**: 「局部重置」要求重新判斷風險，或人工設定為 `Read-only`。
-- **系統回饋**: 成功：權限邊界全域生效；失敗：全域政策衝突警告。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面頂端彈出綠色橫幅「權限邊界已成功鎖定為全域生效」。**後續引導**：引導點擊「返回 MCP 目錄檢視其他工具」。
+  - **失敗 (Failure)**: 跳出黃色警示框「該設定與現有全域安全策略衝突」。**後續引導**：提示「請檢視現有全域策略清單」，或「聯絡資安主管 (Fiona) 確認例外豁免條款」。
 - **BDD**: `Given` AI 建議給予 Deploy 權限 `When` Jack 人工強制修改為 Read-only `Then` 所有 Agent 呼叫該工具時失去寫入能力。
 
 #### H3. 桌面端深層作業空間整合與審視
@@ -344,7 +390,9 @@
   2. 跨裝置自動記憶使用者的客製化版面配置。
   3. 提供全域「全部重置」按鈕，一鍵恢復預設四格視圖。
 - **操作流程**: 1. 登入 Desktop Web 總覽。 2. 檢視各面板。 3. **AI重置/人工微調**: 人工拖拉變更儀表板排版，「全部重置」還原預設版面。
-- **系統回饋**: 成功：記憶客製化版面；失敗：載入逾時。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 畫面排版流暢滑動復位，右下角提示「✔ 版面配置已儲存並同步」。**後續引導**：引導點擊「切換至全螢幕展示模式」以利會議報告。
+  - **失敗 (Failure)**: 面板小工具持續轉圈載入失敗，顯示橘色斷線圖示。**後續引導**：提示「請點擊右上角『全部重置』恢復預設版面」，或「提交 Bug 報告給系統維護團隊」。
 - **BDD**: `Given` 儀表板被拖拉混亂 `When` Alex 點擊全部重置佈局 `Then` 畫面瞬間恢復乾淨的預設四格視圖。
 
 ---
@@ -363,7 +411,9 @@
   2. Outputs compatible `.drawio` format diagrams using standard cloud service icons.
   3. The canvas must include clear logical connections, network boundaries (VPC/AZ), and data flow directions.
 - **Operational Flow**: 1. Log into Desktop Web. 2. Input needs in AI Chat. 3. **AI Reset/Manual Adjust**: Click "Full Reset" if dissatisfied, or manually type corrections in the chat.
-- **System Feedback**: Success: Green light, auto-save canvas; Failure: Red text for resource conflict.
+- **System Feedback**:
+  - **Success**: A green toast "✔ Architecture draft generated" appears in the center, autosaving the canvas. **Next Step**: A button prompts "Proceed to IaC generation" or "Start Well-Architected review".
+  - **Failure**: A red warning box pops up at the top: "Resource Conflict: Service not supported in selected Region." **Next Step**: Prompts "Please adjust parameters in the chat and retry" or offers a shortcut to "Contact Lead Architect (Alex) for help".
 - **BDD**: `Given` Alex is typing `When` he requests a canvas, resets it, and manually adds "needs WAF" `Then` AI renders a new architecture including a WAF.
 
 #### A2. AI + draw.io Collaborative Editing
@@ -376,7 +426,9 @@
   2. The AI must preserve or automatically reconnect existing logical links when replacing or adding nodes.
   3. Supports tracking AI modification history, allowing users to 1-click Undo any changes.
 - **Operational Flow**: 1. Open canvas from homepage. 2. Box select areas for AI tuning. 3. **AI Reset/Manual Adjust**: "Partial Reset" a node to swap models, then manually drag lines.
-- **System Feedback**: Success: Node swapped without breaking links; Failure: Warns if connection is impossible.
+- **System Feedback**:
+  - **Success**: The modified node flashes a green border for 2 seconds with "Changes synced." **Next Step**: A floating button prompts "Export architecture diagram" or "View estimated costs."
+  - **Failure**: The node turns red, links break, and a prompt says "Component does not support this protocol." **Next Step**: Prompts "Please manually drag lines to reconnect" or "Click to read cloud compatibility documentation."
 - **BDD**: `Given` A base architecture exists `When` DB is partially reset to Aurora and manually linked to Gateway `Then` System only swaps the DB, keeping manual links.
 
 #### A3. Automated Well-Architected Review & Simulation
@@ -389,7 +441,9 @@
   2. Simulates Single Point of Failure (SPOF) or AZ-level outages and estimates RPO/RTO achievement rates.
   3. Outputs a downloadable, detailed health score and remediation checklist PDF report.
 - **Operational Flow**: 1. Access Assessment Dashboard. 2. Trigger architecture scan. 3. **AI Reset/Manual Adjust**: "Partial Reset" to relax RTO metrics, or manually drop in a backup node.
-- **System Feedback**: Success: High-score health report; Failure: Flashing red SPOF warning.
+- **System Feedback**:
+  - **Success**: Pops up a green perfect-score badge with confetti, showing "Compliant with Best Practices." **Next Step**: Prompts to "Download PDF Report" and "Send to management for review."
+  - **Failure**: SPOF nodes are marked with a bouncing red exclamation mark detailing the penalty. **Next Step**: Prompts "Click to let AI auto-add backup nodes" or "Contact SRE team to discuss."
 - **BDD**: `Given` A SPOF is detected `When` Hannah manually adds a backup node and clicks partial reset `Then` The score recalculates and passes.
 
 ---
@@ -406,7 +460,9 @@
   2. The comparison matrix must evaluate at least 3 dimensions: SLAs, hardware limits, and billing models.
   3. Allows 1-click export of the decision matrix into an easily shareable PDF report.
 - **Operational Flow**: 1. Access Selection Module. 2. Input workload traits. 3. **AI Reset/Manual Adjust**: "Full Reset" to switch to cost-first weight, or manually hide AWS.
-- **System Feedback**: Success: Detailed matrix table; Failure: Yellow API timeout warning.
+- **System Feedback**:
+  - **Success**: Outputs a dynamic comparison chart with provider logos, highlighting the optimal choice. **Next Step**: Prompts "Apply this provider and begin architecture design."
+  - **Failure**: Dashboard shows a yellow "API Timeout" banner; data turns gray. **Next Step**: Prompts "Please click refresh" or "Submit ticket to platform maintenance team if it persists."
 - **BDD**: `Given` A generated matrix `When` Catherine partially resets to update SLAs and manually hides AWS `Then` The system updates data for remaining vendors.
 
 #### B2. Tech Ecosystem Compatibility Scan
@@ -419,7 +475,9 @@
   2. Provides an exact compatibility score (0-100%) for each technology migration.
   3. Offers preliminary estimates for migration and code-refactoring effort.
 - **Operational Flow**: 1. Access Compatibility Room. 2. Import on-prem stack. 3. **AI Reset/Manual Adjust**: "Partial Reset" for a specific DB, manually tag "Must keep CI/CD tools."
-- **System Feedback**: Success: Lists migration hours; Failure: No managed service found.
+- **System Feedback**:
+  - **Success**: Displays a circular progress bar (e.g., 85% compatible) expanding into a green list of seamless migrations. **Next Step**: Prompts "View list of codes requiring manual refactoring."
+  - **Failure**: Chart stuck at 0% with red text "No cloud alternative found." **Next Step**: Prompts "Please adjust to IaaS VM evaluation" or "Contact platform admin to add support."
 - **BDD**: `Given` An initial report `When` Jenkins is manually tagged as mandatory and reset `Then` AI reassesses integration risks.
 
 #### B3. Latency Optimization & Geo-Compliance
@@ -432,7 +490,9 @@
   2. Visually recommends the Top 3 lowest-latency Regions on a map.
   3. Strongly blocks users with red text if they select a Region violating chosen regulations.
 - **Operational Flow**: 1. Enter Geo-compliance setup. 2. Input target audience location. 3. **AI Reset/Manual Adjust**: "Full Reset" to change regulations, manually inject custom GDPR rules.
-- **System Feedback**: Success: Map highlights best Region; Failure: Warns if Region is non-compliant.
+- **System Feedback**:
+  - **Success**: Map displays green glowing dots on the best Regions with a compliance checkmark. **Next Step**: Prompts "Confirm Region and lock project settings."
+  - **Failure**: Selected Region is covered in red slashes with a "GDPR Violation" warning. **Next Step**: Prompts "Please click system recommended alternatives" or "Contact legal/security for exception review."
 - **BDD**: `Given` US-East is recommended `When` Fiona manually checks GDPR and clicks partial reset `Then` System recommends EU data centers.
 
 ---
@@ -449,7 +509,9 @@
   2. Outputs dynamic cost breakdown pie charts detailed to the individual resource level.
   3. Instantly recalculates total monthly cost when the user modifies "daily operational hours".
 - **Operational Flow**: 1. Access FinOps Dashboard. 2. Import diagram. 3. **AI Reset/Manual Adjust**: "Full Reset" to high-bandwidth model, manually edit uptime.
-- **System Feedback**: Success: Dynamic pie chart; Failure: Unknown prices grayed out.
+- **System Feedback**:
+  - **Success**: Center displays a dynamic pie chart with the total budget in green text indicating it's within limits. **Next Step**: Prompts "Set up Billing Alarm."
+  - **Failure**: Certain wedges turn gray labeled "Price Unavailable." **Next Step**: Prompts "Please manually input estimates" or "Contact FinOps (David) to verify contract pricing."
 - **BDD**: `Given` Initial TCO is $5000 `When` David manually edits uptime to 8h and partially resets `Then` TCO drops to $2000, tagged "Manual Override".
 
 #### C2. Resource Optimization & Pricing Model Comparison
@@ -462,7 +524,9 @@
   2. Calculates expected savings percentages for converting to 1/3-year RIs.
   3. Allows users to manually exclude core machines, dynamically recalculating savings for the rest.
 - **Operational Flow**: 1. Open Cost Optimizer. 2. Request Spot analysis. 3. **AI Reset/Manual Adjust**: "Partial Reset" to view Spot options, manually lock a DB.
-- **System Feedback**: Success: Shows savings %; Failure: No applicable Spot instances.
+- **System Feedback**:
+  - **Success**: A coin animation floats up, showing "Est. 30% Savings" in large text. **Next Step**: Prompts "Apply 1-click conversion Change Request."
+  - **Failure**: Screen prompts "Architecture not suitable for Spot instances"; list remains empty. **Next Step**: Prompts "Try unlocking core machines" or "Contact Ops to verify architecture elasticity."
 - **BDD**: `Given` AI suggests 100% Spot `When` David manually locks the DB and partially resets `Then` System calculates savings strictly for unlocked tiers.
 
 #### C3. Hidden Cost (Data Egress) Deep Dive
@@ -475,7 +539,9 @@
   2. Outputs traffic heat maps visually flagging expensive connections (e.g., DB syncs).
   3. Instantly updates estimated Egress fees when the topology is altered on the canvas.
 - **Operational Flow**: 1. Open Network Tracker. 2. Review egress. 3. **AI Reset/Manual Adjust**: "Partial Reset" an AZ route, manually change volume to 10TB.
-- **System Feedback**: Success: Egress heat map; Failure: Cannot parse network without connections.
+- **System Feedback**:
+  - **Success**: Canvas connections morph into blue flow lines of varying thickness with cost tags. **Next Step**: Prompts "Export network egress heatmap report."
+  - **Failure**: Cannot parse routing, showing yellow text "Please verify network config." **Next Step**: Prompts "Ask AI to check network topology integrity" or "Contact Network Engineer."
 - **BDD**: `Given` $100 Egress forecast `When` Partially reset and manually bumped to 10TB `Then` Egress costs spike in red.
 
 ---
@@ -492,7 +558,9 @@
   2. Generated code must maximize reuse of internal standard Terraform Modules.
   3. Output code must pass basic `terraform init/validate` checks out-of-the-box.
 - **Operational Flow**: 1. Access IaC Workspace. 2. Convert canvas to code. 3. **AI Reset/Manual Adjust**: "Partial Reset" variables to add prefixes, manually edit tags.
-- **System Feedback**: Success: Generates standard `.tf` files; Failure: Syntax compilation block.
+- **System Feedback**:
+  - **Success**: The editor pops up a green "✔ Conversion Successful" and displays the `.tf` file tree. **Next Step**: Prompts "Proceed to static security scan" or "1-click Git Push."
+  - **Failure**: Red compilation errors flash in the editor, highlighting problematic lines. **Next Step**: Prompts "Click for AI to auto-fix syntax" or "Contact Platform Engineer (Elena)."
 - **BDD**: `Given` AI draft generated `When` Elena partially resets prefixes and manually edits tags `Then` Code compiles preserving her changes.
 
 #### D2. Automated Static Security Scan
@@ -505,7 +573,9 @@
   2. Forcibly blocks code download/deployment when High vulnerabilities are detected.
   3. Provides directly applicable AI-remediation code snippets for found vulnerabilities.
 - **Operational Flow**: 1. Enter Security Review. 2. Trigger tfsec scan. 3. **AI Reset/Manual Adjust**: "Partial Reset" for alternative fix suggestions, manually apply one.
-- **System Feedback**: Success: Green pass mark; Failure: Red flash blocks deployment.
+- **System Feedback**:
+  - **Success**: A full-screen green security shield checks off, indicating "0 Vulnerabilities." **Next Step**: Prompts "Approve and begin automated deployment."
+  - **Failure**: Screen flashes red, blocks deployment buttons, and lists Critical CVEs. **Next Step**: Prompts "Click to apply AI security fixes" or "Contact Security (Fiona) for Risk Acceptance."
 - **BDD**: `Given` High-severity bug found `When` AI suggests fixes and Elena manually applies one `Then` Rescan passes, Git Push unlocked.
 
 #### D3. Sensitive Values & Secret Manager Check
@@ -518,7 +588,9 @@
   2. Forcibly replaces plaintext with secure references (e.g., AWS Secrets Manager ARNs).
   3. Prohibits pushing code to remote repos without valid Secret ARN mappings.
 - **Operational Flow**: 1. Open Secret Scanner. 2. Scan for hardcoded keys. 3. **AI Reset/Manual Adjust**: "Full Reset" to force AWS Secrets format, manually input ARN.
-- **System Feedback**: Success: Plaintext securely converted; Failure: Missing secret mapping.
+- **System Feedback**:
+  - **Success**: Plaintext transforms into `aws_secretsmanager_secret` variables via typewriter effect. **Next Step**: Prompts "Save code and proceed to next step."
+  - **Failure**: Pops up red text "Matching Secret ARN not found, conversion failed." **Next Step**: Prompts "Go to Secrets Manager to create a new key" or "Contact Security for permissions."
 - **BDD**: `Given` Hardcoded password exists `When` Partially reset to Secret Ref and manually filled ARN `Then` Code updates to a secure format.
 
 ---
@@ -535,7 +607,9 @@
   2. Lists specific target instance types for downgrading and estimates monthly savings.
   3. Supports 1-click generation of formal Change Requests with downsize scripts.
 - **Operational Flow**: 1. Open Ops Dashboard. 2. Check downsize lists. 3. **AI Reset/Manual Adjust**: "Partial Reset" to demand 50% buffer, manually exclude core machines.
-- **System Feedback**: Success: Change Request created; Failure: Termination protection warning.
+- **System Feedback**:
+  - **Success**: A green "Adoption Recommended" badge appears next to the list, dynamically tallying savings. **Next Step**: Prompts "Create downsize Change Request (CR)."
+  - **Failure**: List greys out with an orange "Termination Protection Active" label. **Next Step**: Prompts "Go to cloud console to disable protection" or "Contact system owner for authorization."
 - **BDD**: `Given` 5 machines flagged `When` Manually excluding 2 and partially resetting the rest `Then` CR created for 3 machines safely.
 
 #### E2. Architecture Modernization Guidance
@@ -548,7 +622,9 @@
   2. Provides managed PaaS or Serverless (e.g., AWS Lambda) technical alternatives.
   3. Estimates the Return on Investment (ROI) and potential performance gains.
 - **Operational Flow**: 1. Access Modernization Evaluator. 2. Analyze Legacy setup. 3. **AI Reset/Manual Adjust**: "Full Reset" to prefer Serverless, manually check VMs that must remain.
-- **System Feedback**: Success: Serverless ROI plan; Failure: No Serverless alternative available.
+- **System Feedback**:
+  - **Success**: Side-by-side green radar charts comparing Legacy vs. Serverless appear, highlighting ROI gains. **Next Step**: Prompts "Export executive summary presentation."
+  - **Failure**: Prompts "Tech stack too legacy for automated Serverless conversion." **Next Step**: Prompts "Try using containerization (K8s) as a transitional step" or "Contact Lead Architect for manual review."
 - **BDD**: `Given` Plan suggests K8s `When` Fully reset to demand Serverless `Then` AI outputs a Lambda-centric migration plan.
 
 #### E3. Automated Runbooks Generation
@@ -561,7 +637,9 @@
   2. Outputs scripts in YAML/JSON directly executable by automation tools.
   3. Includes explicit restart commands, timeout parameters, and health validation steps.
 - **Operational Flow**: 1. Open Runbook Library. 2. Generate DB crash playbook. 3. **AI Reset/Manual Adjust**: "Partial Reset" to inject snapshot step, manually adjust Timeouts.
-- **System Feedback**: Success: Executable YAML generated; Failure: Parse error on invalid syntax.
+- **System Feedback**:
+  - **Success**: YAML script generates via typewriter effect, with a green "✔ Validation Passed" badge. **Next Step**: Prompts "Register script into automated Runbook Library."
+  - **Failure**: Editor flashes red stating "Parse Error: Missing required variables." **Next Step**: Prompts "Click partial reset to let AI refill variables" or "Contact SRE (Ben) to code it."
 - **BDD**: `Given` Basic restart script generated `When` Ben partially resets to add snapshot and manually sets Timeout to 120s `Then` Playbook saved securely.
 
 ---
@@ -578,7 +656,9 @@
   2. Fetches real telemetry data via internal MCPs and renders accurate time-trend charts.
   3. Automatically flags anomalous performance spikes directly on the chart.
 - **Operational Flow**: 1. Open AI Chat. 2. Ask "Yesterday's cross-cloud DB latency". 3. **AI Reset/Manual Adjust**: "Full Reset" to change timeframe to 1 week, manually append a tag filter.
-- **System Feedback**: Success: Trend chart highlights anomalies; Failure: MCP timeout error.
+- **System Feedback**:
+  - **Success**: Smoothly renders a green trend chart in chat, with anomalies tagged via red dots. **Next Step**: Prompts "Pin chart to personal dashboard" or "Generate shareable link for manager."
+  - **Failure**: Chart dissolves into static, popping a red "MCP Connection Timeout." **Next Step**: Prompts "Click to retry connection" or "Contact Platform Admin (Jack) to verify Agent."
 - **BDD**: `Given` 24h chart generated `When` Ben manually adds `env:prod` tag and partially resets `Then` Chart filters to production data only.
 
 #### F2. Guided Change Plan & Rollback Generation
@@ -591,7 +671,9 @@
   2. Mandates the output of a paired reverse Rollback script.
   3. Allows SREs to manually overwrite commands or inject security validation steps.
 - **Operational Flow**: 1. Request scaling via AI Chat. 2. AI generates Plan & Rollback. 3. **AI Reset/Manual Adjust**: "Partial Reset" rollback script for safety checks, manually edit max capacity.
-- **System Feedback**: Success: Change package ready; Failure: Logic error blocks plan.
+- **System Feedback**:
+  - **Success**: Generates split-pane views of the Plan and a green shield-tagged Rollback script. **Next Step**: Prompts "Submit package for Approval."
+  - **Failure**: Submit button greyed out with "Rollback logic flawed; system safety unverified." **Next Step**: Prompts "Ask AI to rewrite rollback logic" or "Invite Platform Engineer for peer review."
 - **BDD**: `Given` Base Plan generated `When` Ben manually sets instances to 10 and partially resets rollback logic `Then` New package has updated numbers and safer rollback.
 
 #### F3. Mobile Approval Gate for High-Risk Actions
@@ -604,7 +686,9 @@
   2. Mandates secondary biometric authorization (FaceID/Fingerprint) on mobile to approve.
   3. Supports a Reject function requiring a typed reason to aid subsequent revisions.
 - **Operational Flow**: 1. Receives push, logs into Mobile Web. 2. Reviews high-risk change. 3. **AI Reset/Manual Adjust**: Manually Rejects and types a reason, forcing the Agent to redo the plan.
-- **System Feedback**: Success: FaceID passes, Audit logged; Failure: Timeout/Rejected cancels action.
+- **System Feedback**:
+  - **Success**: Mobile screen shows a large green checkmark "Authorization Successful" with a short vibration. **Next Step**: Prompts "Tap to view real-time execution progress."
+  - **Failure**: Mobile shows a red cross "Authorization Denied" or "Session Timeout." **Next Step**: Prompts "Type rejection reason for SRE to rework" or "Call SRE Lead to explain."
 - **BDD**: `Given` CR is Pending `When` Karen manually types "Do this off-hours" and Rejects `Then` CR cancels, returning feedback to SRE.
 
 ---
@@ -621,7 +705,9 @@
   2. Identifies active accounts/services possessing overly broad permissions (e.g., `Action: "*"`).
   3. Allows security admins to quickly flag Exceptions or perform compliance exclusions.
 - **Operational Flow**: 1. Open Security Dashboard. 2. Run over-permission analysis. 3. **AI Reset/Manual Adjust**: "Partial Reset" to exclude Dev, manually add security tags.
-- **System Feedback**: Success: High-risk list displayed; Failure: Missing IAM read rights.
+- **System Feedback**:
+  - **Success**: List filtering animation completes, showing green text "Refined to 15 actionable items." **Next Step**: Prompts "1-click generate PR to reduce privileges."
+  - **Failure**: Pops a red dialog "Insufficient IAM Read Permissions, scan aborted." **Next Step**: Prompts "Click to request cross-account access" or "Contact Platform Owner."
 - **BDD**: `Given` 100 Roles flagged `When` Fiona partially resets to show only Prod and manually excludes 3 `Then` Report shrinks to 15 actionable items.
 
 #### G2. Automated Policy-as-Code Generation
@@ -634,7 +720,9 @@
   2. Features a built-in test sandbox ensuring generated code passes basic logic validation.
   3. Integrates an IDE interface allowing manual edits of conditions and regex patterns.
 - **Operational Flow**: 1. Ask AI to convert rules to Code. 2. AI generates Rego. 3. **AI Reset/Manual Adjust**: "Full Reset" to request AWS Config, manually edit regex in IDE.
-- **System Feedback**: Success: Passes built-in tester; Failure: Syntax compilation errors.
+- **System Feedback**:
+  - **Success**: Code block corner lights up green, mock terminal displays `PASS`. **Next Step**: Prompts "Merge this policy into the main branch to enforce."
+  - **Failure**: Terminal throws red compilation errors, highlighting syntax mismatches. **Next Step**: Prompts "Manually fix syntax in IDE" or "Click AI Smart Debug for assistance."
 - **BDD**: `Given` AI-generated OPA policy `When` Fiona manually edits the regex condition and tests `Then` Tester reports success.
 
 #### G3. AI-Driven Threat Modeling (STRIDE)
@@ -647,7 +735,9 @@
   2. Outputs a report containing threat tiers (High/Medium/Low) and mitigation suggestions.
   3. Allows users to manually mark nodes as protected, dynamically removing them from the high-risk list.
 - **Operational Flow**: 1. Import diagram to Threat Modeler. 2. Generate STRIDE report. 3. **AI Reset/Manual Adjust**: "Partial Reset" to focus on Spoofing, manually mark nodes as protected.
-- **System Feedback**: Success: Professional threat tier report; Failure: Incomplete diagram prevents modeling.
+- **System Feedback**:
+  - **Success**: Renders a dynamic radar chart showing all threats mitigated, glowing green. **Next Step**: Prompts "Save and bind this threat report to the architecture diagram."
+  - **Failure**: Radar chart fails to load, stating "Not enough canvas components to define boundaries." **Next Step**: Prompts "Return to canvas to refine network details" or "Contact Architect to collaborate."
 - **BDD**: `Given` 10 medium threats found `When` Fiona manually marks 2 as WAF-protected and partially resets `Then` The 2 items drop off the risk list.
 
 ---
@@ -664,7 +754,9 @@
   2. Translates API parameters into a System Prompt that Agents comprehend with 100% accuracy.
   3. Performs automated Health Checks before registration; rejects if connections fail.
 - **Operational Flow**: 1. Enter MCP Catalog. 2. Paste API endpoint. 3. **AI Reset/Manual Adjust**: "Full Reset" to shrink verbose Prompt, manually edit required param notes.
-- **System Feedback**: Success: Goes Active; Failure: Schema mismatch rejection.
+- **System Feedback**:
+  - **Success**: Tool card flips to a vibrant `ACTIVE` state with a green check. **Next Step**: Prompts "Test call this tool immediately in AI Chat."
+  - **Failure**: Card shakes violently displaying red text "Schema parse failed." **Next Step**: Prompts "Check YAML/JSON formatting compliance" or "Contact API developer to verify spec."
 - **BDD**: `Given` 500-word prompt generated `When` Elena fully resets for brevity and manually adds a `region` requirement `Then` Tool goes live successfully.
 
 #### H2. Agent Access Boundaries & Review
@@ -677,7 +769,9 @@
   2. Enforces global maximum permission boundaries, ensuring Agents cannot perform high-risk actions.
   3. Intercepts and logs an Audit record whenever an Agent attempts to invoke a tool beyond its boundary.
 - **Operational Flow**: 1. Open Admin console. 2. Review new MCP tool. 3. **AI Reset/Manual Adjust**: "Partial Reset" asking AI to re-evaluate risk, or manually force it to `Read-only`.
-- **System Feedback**: Success: Boundary enforces globally; Failure: Global policy conflict warning.
+- **System Feedback**:
+  - **Success**: Top banner flashes green: "Permission boundaries successfully enforced globally." **Next Step**: Prompts "Return to MCP Catalog to review other tools."
+  - **Failure**: Yellow warning box: "Settings conflict with existing global security policies." **Next Step**: Prompts "Review global policy list" or "Contact Security Lead (Fiona) for exemptions."
 - **BDD**: `Given` AI suggests Deploy rights `When` Jack manually forces `Read-only` `Then` All Agents lose write access when calling this tool.
 
 #### H3. Desktop Deep Workspace Experience
@@ -690,5 +784,7 @@
   2. System automatically remembers and synchronizes customized layout configurations across devices.
   3. Provides a global "Full Reset" button to instantly restore the default 4-grid view.
 - **Operational Flow**: 1. Log into Desktop Web overview. 2. View Cost/Sec/Arch panels. 3. **AI Reset/Manual Adjust**: Manually drag to rearrange widgets, "Full Reset" to restore default layout.
-- **System Feedback**: Success: Saves custom view; Failure: Layout timeout.
+- **System Feedback**:
+  - **Success**: Layout smoothly slides into place, bottom right toast says "✔ Layout saved and synced." **Next Step**: Prompts "Switch to Fullscreen Presentation Mode" for meetings.
+  - **Failure**: Widget spins endlessly, resolving to an orange broken-link icon. **Next Step**: Prompts "Click 'Full Reset' to restore default layout" or "Submit Bug Report to maintenance team."
 - **BDD**: `Given` A messy dashboard `When` Alex clicks Full Reset layout `Then` Screen instantly snaps back to the clean default 4-grid view.
