@@ -106,6 +106,20 @@
 
 ---
 
+#### 2026-05-24 20:54 +08:00 — Security Pillar (G) Refinement for CSPM & Policy Advisory
+
+**User request (raw)**: "我的 g 需要包含 Cloud Security Posture & Policy Advisory... 檢視 IAM / RBAC、network exposure、storage access、encryption、audit logging、policy guardrails。 產生 least-privilege、Policy-as-Code、IaC patch 與 remediation plan 建議。 高風險修復必須通過 human approval gate。"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. 將 Pillar G 重構為「Cloud Security Posture & Policy Advisory」。
+2. 加入 CSPM 掃描，強制檢查 network exposure, storage access, encryption, audit logging。
+3. 加入 Least-Privilege IAM/RBAC 檢查，並要求 AI 產出極簡化 Policy 建議。
+4. 加入 Policy Guardrails，支援將自然語言轉化為 Policy-as-Code (Rego/Config) 並整合至 CI/CD。
+5. 強制所有高風險修復 (包含 IaC patch 與權限縮減) 必須通過 Human Approval Gate 審批。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -238,6 +252,20 @@ Each entry uses the following format:
 1. Rewrote Pillar D Acceptance Criteria to explicitly support generating multi-cloud (aws, google, azurerm) Terraform and OpenTofu code.
 2. Mandated strict IaC project structure: `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`, and `modules/`.
 3. Explicitly integrated tfsec, Trivy, and Checkov as the default static scanning engines.
+**Approver**: luojingting
+
+---
+
+#### 2026-05-24 20:54 +08:00 — Security Pillar (G) Refinement for CSPM & Policy Advisory
+
+**User request (raw)**: "我的 g 需要包含 Cloud Security Posture & Policy Advisory... 檢視 IAM / RBAC、network exposure、storage access、encryption、audit logging、policy guardrails。 產生 least-privilege、Policy-as-Code、IaC patch 與 remediation plan 建議。 高風險修復必須通過 human approval gate。"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. Refactored Pillar G to "Cloud Security Posture & Policy Advisory".
+2. Integrated CSPM scanning for network exposure, storage access, encryption, and audit logging.
+3. Added Least-Privilege IAM/RBAC audits with automated minimal Policy generation.
+4. Added Policy Guardrails, supporting natural language to Policy-as-Code (Rego/Config) conversion for CI/CD.
+5. Mandated that all high-risk fixes (including IaC patches and privilege reductions) must pass a Human Approval Gate.
 **Approver**: luojingting
 
 ---

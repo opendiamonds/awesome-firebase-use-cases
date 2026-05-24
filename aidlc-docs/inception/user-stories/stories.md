@@ -299,52 +299,52 @@
 
 ---
 
-### G. 雲端安全態勢 (Cloud Security Posture)
+### G. 雲端安全態勢與策略顧問 (Cloud Security Posture & Policy Advisory)
 
-#### G1. IAM 最小權限合規持續掃描
+#### G1. 全局安全態勢與合規持續檢視 (CSPM & Continuous Compliance)
 - **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Fiona (安全性審查員, `Security_Admin`), Ian (開發者, `Developer`)
-  - **協作細節**: Fiona 掃描出 Ian 的專案中有過度授權的 Role。系統自動指派修復任務給 Ian；Ian 透過 AI 產出權限縮減建議，Fiona 確認後才予以上線。
-- **使用者需求/目標 (User Goal)**: 找出環境中過度授權的 IAM 角色，全面落實最小權限原則。
+  - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Alex (雲端架構師, `Project_Architect`)
+  - **協作細節**: Fiona 觸發全域掃描，涵蓋 Network exposure、Storage access、Encryption 與 Audit logging 配置。系統產出 Remediation Plan 與 IaC patch，Alex 套用代碼後，由於涉及高風險修復，強制進入 Human Approval Gate 由 Fiona 審批。
+- **使用者需求/目標 (User Goal)**: 持續監控雲端資源設定是否符合資安合規標準，並快速產出自動化修復計畫與代碼。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 產出超過 90 天未使用的 IAM Role 停用建議名單。
-  2. 識別活躍狀態但權限過大 (如 `Action: "*"`) 的帳號。
-  3. 允許安全管理員快速標記特例 (Exceptions) 或合規排除。
-- **操作流程**: 1. 從首頁進入安全看板。 2. 執行過度授權分析。 3. **AI重置/人工微調**: 「局部重置」排除開發環境的 Role，並人工加註安全標籤。
+  1. 系統必須能深度檢視並報告 Network exposure (如 Public SG)、Storage access、Encryption (at rest/transit) 以及 Audit logging 是否正確啟用。
+  2. 針對掃出的弱點，必須產出對應的 Remediation Plan 與具體可執行的 IaC Patch。
+  3. 任何被標記為高風險 (High-Risk) 的修復執行前，強制必須通過 Human Approval Gate 審批機制。
+- **操作流程**: 1. 登入全域安全看板。 2. 啟動合規性深度掃描。 3. **AI重置/人工微調**: 人工修改 IaC patch 的參數，重置修復計畫。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 清單過濾動畫完成，顯示綠色標語「已精簡為 15 項待處理對象」。**後續引導**：引導點擊「一鍵產生權限縮減修復 PR」。
-  - **失敗 (Failure)**: 畫面跳出紅色對話框「IAM 讀取權限不足，掃描強制中斷」。**後續引導**：提示「請點擊授權請求按鈕申請跨帳號權限」，或「聯絡平台擁有者授權」。
-- **BDD**: `Given` 掃出 100 個 Role `When` Fiona 局部重置僅顯示 Prod 且人工排除 3 個特例 `Then` 報告精簡為 15 個處理對象。
+  - **成功 (Success)**: 顯示滿版綠盾牌與高分評分，產出防護清單。**後續引導**: 引導點擊「一鍵套用 IaC Patch 並送出高風險修復審批 (Human Approval Gate)」。
+  - **失敗 (Failure)**: 亮紅燈警示掃描受阻或權限不足。**後續引導**: 提示「請點擊重新綁定 IAM Scanner Role」。
+- **BDD**: `Given` 掃描發現 S3 bucket 缺乏加密 `When` AI 產生 IaC Patch 並由 SRE 點擊套用 `Then` 系統攔截部署，觸發 Human Approval Gate 等待 Fiona 審批。
 
-#### G2. 自動化策略代碼 (Policy-as-Code) 生成
+#### G2. IAM / RBAC 與最小權限策略 (Least-Privilege & Identity Security)
 - **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Fiona (安全性審查員, `Security_Admin`), Elena (平台工程師, `Platform_Engineer`)
-  - **協作細節**: Fiona 用自然語言定義安全規則；AI 轉化為 Rego 代碼後，Elena 負責將代碼整合進 CI/CD Pipeline 中。雙方在 IDE 共同確保策略不誤擋發布。
-- **使用者需求/目標 (User Goal)**: 將安全規則轉化為程式碼，以利在 CI/CD 流程中自動執行策略攔截。
+  - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Ian (開發者, `Developer`)
+  - **協作細節**: Fiona 掃描出 Ian 的專案中有過度授權的帳號。系統自動指派修復任務給 Ian；Ian 透過 AI 產出 Least-privilege 建議，修復單送交 Fiona 的 Approval Gate 確認。
+- **使用者需求/目標 (User Goal)**: 嚴格審視 IAM 與 RBAC，找出過度授權的角色並落實最小權限原則。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 根據自然語言要求產出語法正確的 OPA (Rego) 或 AWS Config 策略代碼。
-  2. 系統內建測試沙盒，確保代碼通過基礎邏輯驗證。
+  1. 深度檢視現有 IAM / RBAC 權限，找出過度授權 (Over-permissive) 的帳號或角色。
+  2. 基於歷史存取紀錄自動產出極簡化的 Least-privilege Policy 建議。
+  3. 若建議縮減的權限涉及核心運算資源存取，強制進入 Human Approval Gate 審核。
+- **操作流程**: 1. 進入 IAM 審查區。 2. 執行過度授權分析。 3. **AI重置/人工微調**: 「局部重置」排除特定開發人員，人工加註安全標籤。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 清單過濾動畫完成，顯示綠色標語「已精簡為安全權限範圍」。**後續引導**: 引導點擊「生成 Least-Privilege Policy 並送出審批」。
+  - **失敗 (Failure)**: 畫面跳出紅色對話框「讀取歷史存取紀錄權限不足」。**後續引導**: 提示「請點擊授權請求按鈕申請跨帳號權限」。
+- **BDD**: `Given` 掃出 Action 為 "*" 的權限 `When` AI 產出 Least-privilege 建議並人工選擇套用 `Then` 修復行為被鎖定，等待 Fiona 透過 Human Approval Gate 核准。
+
+#### G3. 自動化策略防護網 (Policy Guardrails & Policy-as-Code)
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Elena (平台工程師, `Platform_Engineer`)
+  - **協作細節**: Fiona 用自然語言定義 Policy guardrails；AI 轉化為 Policy-as-Code (如 Rego)。Elena 負責將代碼整合進 CI/CD 中，雙方在 IDE 共同確保策略不會誤擋正常發布。
+- **使用者需求/目標 (User Goal)**: 建立自動化的 Policy Guardrails 以防止違規部署，將資安規範代碼化。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 支援將自然語言的合規要求轉化為 Policy-as-Code (OPA Rego 或 AWS Config)。
+  2. 建立防禦性的 Policy Guardrails，在部署階段主動攔截不合規的 IaC 操作。
   3. 允許在 IDE 介面內由資安人員人工修改條件式與正則表達式。
-- **操作流程**: 1. 要求將安全規則轉為代碼。 2. AI 生成 Rego。 3. **AI重置/人工微調**: 「全部重置」改產出 AWS Config 規則，人工修改正則表達式。
+- **操作流程**: 1. 進入 Guardrail 設定區。 2. 輸入防禦規則要求。 3. **AI重置/人工微調**: 「全部重置」改產出 AWS Config 規則，人工修改正則表達式。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 代碼編輯區塊右上角亮起綠燈，模擬終端機顯示 `PASS`。**後續引導**：引導點擊「將此策略合併至主分支生效」。
-  - **失敗 (Failure)**: 終端機報出紅色編譯錯誤，高亮提示語法不符之處。**後續引導**：提示「請在 IDE 內人工修復語法」，或「點擊 AI 智能除錯按鈕協助」。
-- **BDD**: `Given` 生成 OPA 策略 `When` Fiona 人工修改正則並點擊測試 `Then` 系統回報測試通過。
-
-#### G3. AI 驅動自動化威脅建模 (STRIDE)
-- **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Fiona (安全性審查員, `Security_Reviewer`), Alex (雲端架構師, `Project_Architect`)
-  - **協作細節**: Fiona 產出威脅報告，標記出「Spoofing」高風險。Alex 收到標記，在架構圖補上 Auth 節點。Fiona 重新整理報告，確認威脅已受控。
-- **使用者需求/目標 (User Goal)**: 在架構設計階段及早發現潛在的資安威脅向量，防患未然。
-- **驗收標準 (Acceptance Criteria)**:
-  1. 掃描架構圖並對應至 STRIDE 模型的六大威脅分類。
-  2. 產出包含威脅等級與具體緩解建議的報告。
-  3. 允許使用者人工標註防禦措施，動態移出高危險清單。
-- **操作流程**: 1. 匯入架構至威脅建模區。 2. 產生 STRIDE 報告。 3. **AI重置/人工微調**: 「局部重置」聚焦 Spoofing，人工標註已防護節點。
-- **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 產生動態雷達圖，顯示各威脅已受控，整體呈現綠色健康狀態。**後續引導**：引導點擊「將此威脅報告與架構圖綁定存檔」。
-  - **失敗 (Failure)**: 雷達圖無法生成，提示「架構圖元件過少，無法判定邊界」。**後續引導**：提示「請回到畫布完善架構網路細節」，或「聯絡架構師共同協作」。
-- **BDD**: `Given` 10 項中度威脅 `When` 人工標記 2 項已由 WAF 防禦並局部重置 `Then` 該 2 項移出高危險名單。
+  - **成功 (Success)**: 代碼編輯區塊右上角亮起綠燈，模擬終端機顯示 `PASS`。**後續引導**: 引導點擊「將此策略合併至防護網生效」。
+  - **失敗 (Failure)**: 終端機報出紅色編譯錯誤，高亮提示語法不符之處。**後續引導**: 提示「請在 IDE 內人工修復語法」，或「點擊 AI 智能除錯」。
+- **BDD**: `Given` AI 生成 OPA Policy `When` Fiona 人工修改正則並點擊測試 `Then` 系統回報防護策略測試通過。
 
 ---
 
@@ -693,52 +693,52 @@
 
 ---
 
-### G. Cloud Security Posture
+### G. Cloud Security Posture & Policy Advisory
 
-#### G1. IAM Least Privilege Continuous Scan
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Admin, `Security_Admin`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: Fiona scans Ian's over-permissive project roles. System assigns a fix task to Ian, who uses AI to suggest reduced scopes. Fiona confirms and deploys the fix.
-- **User Goal**: Identify over-permissive IAM roles to enforce the Principle of Least Privilege across the environment.
-- **Acceptance Criteria**:
-  1. Outputs a definitive list of IAM Roles unused for over 90 days.
-  2. Identifies active accounts/services possessing overly broad permissions (e.g., `Action: "*"`).
-  3. Allows security admins to quickly flag Exceptions or perform compliance exclusions.
-- **Operational Flow**: 1. Open Security Dashboard. 2. Run over-permission analysis. 3. **AI Reset/Manual Adjust**: "Partial Reset" to exclude Dev, manually add security tags.
-- **System Feedback**:
-  - **Success**: List filtering animation completes, showing green text "Refined to 15 actionable items." **Next Step**: Prompts "1-click generate PR to reduce privileges."
-  - **Failure**: Pops a red dialog "Insufficient IAM Read Permissions, scan aborted." **Next Step**: Prompts "Click to request cross-account access" or "Contact Platform Owner."
-- **BDD**: `Given` 100 Roles flagged `When` Fiona partially resets to show only Prod and manually excludes 3 `Then` Report shrinks to 15 actionable items.
-
-#### G2. Automated Policy-as-Code Generation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Admin, `Security_Admin`), Elena (Platform Engineer, `Platform_Engineer`)
-  - **Collaboration Details**: Fiona defines rules in natural language; AI converts them to Rego. Elena integrates the Rego into the CI/CD pipeline, collaborating in the IDE to ensure no false blocks.
-- **User Goal**: Translate security rules into executable code to automate policy enforcement within the CI/CD pipeline.
-- **Acceptance Criteria**:
-  1. Translates natural language security requirements into syntactically correct Rego/AWS Config code.
-  2. Features a built-in test sandbox ensuring generated code passes basic logic validation.
-  3. Integrates an IDE interface allowing manual edits of conditions and regex patterns.
-- **Operational Flow**: 1. Ask AI to convert rules to Code. 2. AI generates Rego. 3. **AI Reset/Manual Adjust**: "Full Reset" to request AWS Config, manually edit regex in IDE.
-- **System Feedback**:
-  - **Success**: Code block corner lights up green, mock terminal displays `PASS`. **Next Step**: Prompts "Merge this policy into the main branch to enforce."
-  - **Failure**: Terminal throws red compilation errors, highlighting syntax mismatches. **Next Step**: Prompts "Manually fix syntax in IDE" or "Click AI Smart Debug for assistance."
-- **BDD**: `Given` AI-generated OPA policy `When` Fiona manually edits the regex condition and tests `Then` Tester reports success.
-
-#### G3. AI-Driven Threat Modeling (STRIDE)
+#### G1. CSPM & Continuous Compliance Review
 - **Multi-Role Collaboration**:
   - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Alex (Cloud Architect, `Project_Architect`)
-  - **Collaboration Details**: Fiona's report flags "Spoofing." Alex receives the ping, adds a WAF/Auth node on the canvas. Fiona refreshes the report, confirming the threat is now Mitigated.
-- **User Goal**: Preemptively identify potential security threat vectors during the architecture design phase.
+  - **Collaboration Details**: Fiona triggers a global scan covering network exposure, storage access, encryption, and audit logging. The system generates a Remediation Plan and an IaC patch. When Alex applies the patch, the high-risk nature of the fix forces it into a Human Approval Gate for Fiona to authorize.
+- **User Goal**: Continuously monitor cloud resources for security compliance and rapidly generate automated remediation plans and code.
 - **Acceptance Criteria**:
-  1. Scans architecture components mapping them against the 6 threat categories of the STRIDE model.
-  2. Outputs a report containing threat tiers (High/Medium/Low) and mitigation suggestions.
-  3. Allows users to manually mark nodes as protected, dynamically removing them from the high-risk list.
-- **Operational Flow**: 1. Import diagram to Threat Modeler. 2. Generate STRIDE report. 3. **AI Reset/Manual Adjust**: "Partial Reset" to focus on Spoofing, manually mark nodes as protected.
+  1. Deeply inspects and reports on Network exposure (e.g., Public SGs), Storage access, Encryption (at rest/transit), and Audit logging configurations.
+  2. Generates a specific Remediation Plan and directly executable IaC Patch for all discovered vulnerabilities.
+  3. Mandates that any fix flagged as High-Risk must pass through a Human Approval Gate before execution.
+- **Operational Flow**: 1. Access Global Security Dashboard. 2. Start deep compliance scan. 3. **AI Reset/Manual Adjust**: Manually modify IaC patch parameters, resetting the remediation plan.
 - **System Feedback**:
-  - **Success**: Renders a dynamic radar chart showing all threats mitigated, glowing green. **Next Step**: Prompts "Save and bind this threat report to the architecture diagram."
-  - **Failure**: Radar chart fails to load, stating "Not enough canvas components to define boundaries." **Next Step**: Prompts "Return to canvas to refine network details" or "Contact Architect to collaborate."
-- **BDD**: `Given` 10 medium threats found `When` Fiona manually marks 2 as WAF-protected and partially resets `Then` The 2 items drop off the risk list.
+  - **Success**: Displays a full green shield and high score, outputting a protected checklist. **Next Step**: Prompts "1-click apply IaC Patch and submit for Human Approval Gate."
+  - **Failure**: Flashes a red light warning of blocked scans or insufficient permissions. **Next Step**: Prompts "Click to rebind IAM Scanner Role."
+- **BDD**: `Given` A scan finds an unencrypted S3 bucket `When` AI generates an IaC Patch and SRE applies it `Then` The system intercepts deployment, triggering a Human Approval Gate for Fiona's review.
+
+#### G2. Least-Privilege & Identity Security (IAM / RBAC)
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Ian (Developer, `Developer`)
+  - **Collaboration Details**: Fiona scans Ian's over-permissive project roles. The system assigns a fix task to Ian, who uses AI to generate least-privilege suggestions. The fix ticket is routed to Fiona's Approval Gate.
+- **User Goal**: Rigorously audit IAM and RBAC to identify over-permissive roles and enforce the Principle of Least Privilege.
+- **Acceptance Criteria**:
+  1. Deeply inspects existing IAM / RBAC permissions to identify over-permissive accounts or roles.
+  2. Automatically generates minimized Least-Privilege Policy recommendations based on historical access records.
+  3. Forces any permission reductions affecting core compute resources into a Human Approval Gate.
+- **Operational Flow**: 1. Enter IAM Review area. 2. Run over-permission analysis. 3. **AI Reset/Manual Adjust**: "Partial Reset" to exclude specific developers, manually add security tags.
+- **System Feedback**:
+  - **Success**: List filtering animation completes, showing green text "Refined to secure privilege scope." **Next Step**: Prompts "Generate Least-Privilege Policy and submit for approval."
+  - **Failure**: Pops a red dialog "Insufficient permissions to read access history." **Next Step**: Prompts "Click to request cross-account access."
+- **BDD**: `Given` An Action of "*" is flagged `When` AI suggests a Least-privilege policy and user applies it `Then` The fix is locked pending Human Approval Gate authorization from Fiona.
+
+#### G3. Policy Guardrails & Policy-as-Code Automation
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Elena (Platform Engineer, `Platform_Engineer`)
+  - **Collaboration Details**: Fiona defines policy guardrails in natural language; AI converts them into Policy-as-Code (e.g., Rego). Elena integrates it into CI/CD, collaborating in the IDE to ensure valid deployments aren't blocked.
+- **User Goal**: Establish automated Policy Guardrails to prevent non-compliant deployments by encoding security rules.
+- **Acceptance Criteria**:
+  1. Translates natural language compliance requirements into Policy-as-Code (OPA Rego or AWS Config).
+  2. Establishes defensive Policy Guardrails to proactively intercept non-compliant IaC operations during deployment.
+  3. Features an IDE interface allowing manual edits of conditions and regex patterns by security personnel.
+- **Operational Flow**: 1. Enter Guardrail configuration. 2. Input defensive rule requests. 3. **AI Reset/Manual Adjust**: "Full Reset" to request AWS Config rules, manually edit regex.
+- **System Feedback**:
+  - **Success**: Code block corner lights up green, mock terminal displays `PASS`. **Next Step**: Prompts "Merge this policy to enforce the guardrail."
+  - **Failure**: Terminal throws red compilation errors, highlighting syntax mismatches. **Next Step**: Prompts "Manually fix syntax in IDE" or "Click AI Smart Debug for assistance."
+- **BDD**: `Given` AI-generated OPA Policy `When` Fiona manually edits the regex and tests `Then` System reports guardrail policy validation success.
 
 ---
 
