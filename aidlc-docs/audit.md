@@ -120,6 +120,19 @@
 
 ---
 
+#### 2026-05-24 21:01 +08:00 — MCP Pillar (H) Refinement for Skill Lifecycle & Agent Routing
+
+**User request (raw)**: "幫我看h類的內容 1跟2比較沒問題 3 幫我看看能不能補充 管理 MCP servers、tools、AI Skills、cloud provider connectors 與 reusable workflows。 支援註冊、啟用/停用、版本控管、權限範圍、健康檢查、相依性檢查與審批流程。 將工具能力納入 Agent Routing Layer，讓 AI 能安全選用合適工具執行 read-only 分析或經審批後的維運操作。"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. 重寫 Pillar H3 為「全域 MCP 工具與 Skill 註冊生命週期管理」。
+2. 加入完整的工具生命週期管理，包含 MCP servers, AI Skills, Cloud Connectors 及 workflows。
+3. 導入自動化的 Health Check 與 Dependency Check 機制。
+4. 將所有工具註冊納入 Agent Routing Layer，賦予 AI 自主但受控的工具調用能力 (限定 read-only 或需過 Human Approval Gate)。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -266,6 +279,19 @@ Each entry uses the following format:
 3. Added Least-Privilege IAM/RBAC audits with automated minimal Policy generation.
 4. Added Policy Guardrails, supporting natural language to Policy-as-Code (Rego/Config) conversion for CI/CD.
 5. Mandated that all high-risk fixes (including IaC patches and privilege reductions) must pass a Human Approval Gate.
+**Approver**: luojingting
+
+---
+
+#### 2026-05-24 21:01 +08:00 — MCP Pillar (H) Refinement for Skill Lifecycle & Agent Routing
+
+**User request (raw)**: "幫我看h類的內容 1跟2比較沒問題 3 幫我看看能不能補充 管理 MCP servers、tools、AI Skills、cloud provider connectors 與 reusable workflows。 支援註冊、啟用/停用、版本控管、權限範圍、健康檢查、相依性檢查與審批流程。 將工具能力納入 Agent Routing Layer，讓 AI 能安全選用合適工具執行 read-only 分析或經審批後的維運操作。"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. Rewrote Pillar H3 as "Global MCP Tool & Skill Lifecycle Management".
+2. Added comprehensive lifecycle management for MCP servers, AI Skills, Cloud Connectors, and workflows.
+3. Introduced automated Health Check and Dependency Check mechanisms.
+4. Integrated tool registration into the Agent Routing Layer, empowering AI with autonomous yet governed tool invocation (restricted to read-only or routed via Human Approval Gates).
 **Approver**: luojingting
 
 ---

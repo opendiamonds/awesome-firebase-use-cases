@@ -380,20 +380,20 @@
   - **失敗 (Failure)**: 跳出黃色警示框「該設定與現有全域安全策略衝突」。**後續引導**：提示「請檢視現有全域策略清單」，或「聯絡資安主管 (Fiona) 確認例外豁免條款」。
 - **BDD**: `Given` AI 建議給予 Deploy 權限 `When` Jack 人工強制修改為 Read-only `Then` 所有 Agent 呼叫該工具時失去寫入能力。
 
-#### H3. 桌面端深層作業空間整合與審視
+#### H3. 全域 MCP 工具與 Skill 註冊生命週期管理 (MCP & Skill Lifecycle)
 - **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Alex (雲端架構師), David (FinOps 分析師), Fiona (安全性審查員)
-  - **協作細節**: 三人共享專案工作區但預設視圖不同。Alex 看到架構圖，David 看成本圖表，Fiona 看漏洞清單。他們可將特定的 Widget 分享至對方的作業空間進行討論。
-- **使用者需求/目標 (User Goal)**: 提供可高度客製化的中心化視圖，掌控專案架構、成本與安全全貌。
+  - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Jack (平台管理員, `Platform_Admin`)
+  - **協作細節**: Elena 註冊新的 MCP server 與雲端連接器 (Connectors)，並設定其讀寫權限範圍。系統進行依賴性與健康檢查後，交由 Jack 進行啟用審批。審批通過後，該工具正式納入 Agent Routing Layer 供 AI 選用。
+- **使用者需求/目標 (User Goal)**: 統一管理與配置 AI 依賴的所有外部工具與工作流，確保 Agent 只能在安全審批後的邊界內自動調用工具。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 桌面端儀表板支援模塊化 (Widgets) 的自由拖拉與排版。
-  2. 跨裝置自動記憶使用者的客製化版面配置。
-  3. 提供全域「全部重置」按鈕，一鍵恢復預設四格視圖。
-- **操作流程**: 1. 登入 Desktop Web 總覽。 2. 檢視各面板。 3. **AI重置/人工微調**: 人工拖拉變更儀表板排版，「全部重置」還原預設版面。
+  1. 支援管理包含 MCP servers, Tools, AI Skills, Cloud provider connectors 以及 Reusable workflows 的完整生命週期 (註冊、啟用/停用、版本控管)。
+  2. 內建自動化的相依性檢查 (Dependency Check) 與定期的健康檢查 (Health Check)，失效的工具將被標記並停用。
+  3. 將所有合規工具納入 **Agent Routing Layer**，使 AI 能根據意圖自動且安全地選用合適工具，執行 read-only 分析或觸發經審批 (Human Approval Gate) 的維運操作。
+- **操作流程**: 1. 進入 MCP 與 Skill 管理中心。 2. 新增或更新 MCP Server。 3. **AI重置/人工微調**: 人工調整工具權限邊界，限制其僅能執行 Read-only 動作。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 畫面排版流暢滑動復位，右下角提示「✔ 版面配置已儲存並同步」。**後續引導**：引導點擊「切換至全螢幕展示模式」以利會議報告。
-  - **失敗 (Failure)**: 面板小工具持續轉圈載入失敗，顯示橘色斷線圖示。**後續引導**：提示「請點擊右上角『全部重置』恢復預設版面」，或「提交 Bug 報告給系統維護團隊」。
-- **BDD**: `Given` 儀表板被拖拉混亂 `When` Alex 點擊全部重置佈局 `Then` 畫面瞬間恢復乾淨的預設四格視圖。
+  - **成功 (Success)**: 新工具卡片亮起綠燈顯示「ACTIVE」，並標示「Routing Layer 已接入」。**後續引導**: 引導點擊「在 Sandbox 測試 Agent 工具調用」。
+  - **失敗 (Failure)**: 卡片亮紅燈顯示「Health Check 失敗」或「相依性缺失」。**後續引導**: 提示「請點擊檢視錯誤日誌」或「重新配置雲端連接器憑證」。
+- **BDD**: `Given` Elena 註冊了一個具備修改權限的 Cloud Connector `When` AI 自動測試連線成功，但 Jack 人工在審批階段將其降級為 Read-only `Then` Agent 在 Routing Layer 呼叫該工具時僅能執行查詢動作。
 
 ---
 
@@ -774,17 +774,17 @@
   - **Failure**: Yellow warning box: "Settings conflict with existing global security policies." **Next Step**: Prompts "Review global policy list" or "Contact Security Lead (Fiona) for exemptions."
 - **BDD**: `Given` AI suggests Deploy rights `When` Jack manually forces `Read-only` `Then` All Agents lose write access when calling this tool.
 
-#### H3. Desktop Deep Workspace Experience
+#### H3. Global MCP Tool & Skill Lifecycle Management
 - **Multi-Role Collaboration**:
-  - **Roles Involved**: Alex (Cloud Architect), David (FinOps Analyst), Fiona (Security Reviewer)
-  - **Collaboration Details**: The trio shares a single project workspace but have distinct default widgets. They can seamlessly share specific widgets (like a cost spike chart) to each other's views for discussion.
-- **User Goal**: Provide a highly customizable centralized view to command the project's architecture, cost, and security landscape.
+  - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Jack (Platform Admin, `Platform_Admin`)
+  - **Collaboration Details**: Elena registers a new MCP server and cloud provider connectors, defining their permission scopes. Following automated dependency and health checks, the tool is routed to Jack for approval. Once approved, it is integrated into the Agent Routing Layer for AI usage.
+- **User Goal**: Centrally manage and configure all external tools and workflows the AI relies on, ensuring Agents only invoke tools within safe, pre-approved boundaries.
 - **Acceptance Criteria**:
-  1. Desktop dashboard supports free-form drag-and-drop layout structuring of modular widgets.
-  2. System automatically remembers and synchronizes customized layout configurations across devices.
-  3. Provides a global "Full Reset" button to instantly restore the default 4-grid view.
-- **Operational Flow**: 1. Log into Desktop Web overview. 2. View Cost/Sec/Arch panels. 3. **AI Reset/Manual Adjust**: Manually drag to rearrange widgets, "Full Reset" to restore default layout.
+  1. Supports full lifecycle management (Registration, Enable/Disable, Version Control) for MCP servers, Tools, AI Skills, Cloud Provider Connectors, and Reusable Workflows.
+  2. Features built-in automated Dependency Checks and recurring Health Checks, automatically flagging and disabling failing tools.
+  3. Integrates all compliant tools into an **Agent Routing Layer**, empowering the AI to safely and autonomously select appropriate tools for read-only analysis or human-approved operational actions.
+- **Operational Flow**: 1. Access MCP & Skill Management Center. 2. Register or update an MCP Server. 3. **AI Reset/Manual Adjust**: Manually adjust tool boundaries to strictly enforce Read-only limits.
 - **System Feedback**:
-  - **Success**: Layout smoothly slides into place, bottom right toast says "✔ Layout saved and synced." **Next Step**: Prompts "Switch to Fullscreen Presentation Mode" for meetings.
-  - **Failure**: Widget spins endlessly, resolving to an orange broken-link icon. **Next Step**: Prompts "Click 'Full Reset' to restore default layout" or "Submit Bug Report to maintenance team."
-- **BDD**: `Given` A messy dashboard `When` Alex clicks Full Reset layout `Then` Screen instantly snaps back to the clean default 4-grid view.
+  - **Success**: Tool card turns green displaying "ACTIVE" with a "Routing Layer Connected" badge. **Next Step**: Prompts "Test Agent tool invocation in Sandbox."
+  - **Failure**: Card turns red displaying "Health Check Failed" or "Missing Dependencies." **Next Step**: Prompts "Click to view error logs" or "Reconfigure connector credentials."
+- **BDD**: `Given` Elena registers a Cloud Connector with write permissions `When` AI successfully tests the connection, but Jack manually downgrades it to Read-only during approval `Then` Agents using the Routing Layer can only perform read actions via this tool.
