@@ -94,6 +94,18 @@
 
 ---
 
+#### 2026-05-24 20:47 +08:00 — IaC Pillar (D) Refinement for Terraform/OpenTofu
+
+**User request (raw)**: "幫我在 user story 的 d類 確認有 Infrastructure as Code - Terraform / OpenTofu... 產生 aws、google、azurerm provider 對應的 Terraform / OpenTofu 模組。 支援 main.tf、variables.tf、outputs.tf、providers.tf 與 modules/ 結構。 整合 tfsec、trivy、Checkov 等靜態掃描工具。"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. 重寫 Pillar D 驗收標準，明確支援產出跨雲 (aws, google, azurerm) 的 Terraform 與 OpenTofu 代碼。
+2. 確立嚴格的 IaC 專案結構：`main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` 及 `modules/`。
+3. 明確整合 tfsec, Trivy, Checkov 作為預設的靜態掃描引擎。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -214,6 +226,18 @@ Each entry uses the following format:
 2. Added highly detailed UI feedback descriptions for both success and failure scenarios.
 3. Introduced explicit Call-To-Action (CTA) next steps for every scenario to guide users or direct them to support.
 4. Committed changes to Git.
+**Approver**: luojingting
+
+---
+
+#### 2026-05-24 20:47 +08:00 — IaC Pillar (D) Refinement for Terraform/OpenTofu
+
+**User request (raw)**: "幫我在 user story 的 d類 確認有 Infrastructure as Code - Terraform / OpenTofu... 產生 aws、google、azurerm provider 對應的 Terraform / OpenTofu 模組。 支援 main.tf、variables.tf、outputs.tf、providers.tf 與 modules/ 結構。 整合 tfsec、trivy、Checkov 等靜態掃描工具。"
+**Stage**: Inception → User Stories (Refinement)
+**Outcome**: 
+1. Rewrote Pillar D Acceptance Criteria to explicitly support generating multi-cloud (aws, google, azurerm) Terraform and OpenTofu code.
+2. Mandated strict IaC project structure: `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`, and `modules/`.
+3. Explicitly integrated tfsec, Trivy, and Checkov as the default static scanning engines.
 **Approver**: luojingting
 
 ---

@@ -154,15 +154,15 @@
 
 ### D. 標準化 IaC 生成與安全交付 (IaC Generation)
 
-#### D1. 模板化 Terraform 代碼自動產出
+#### D1. 模板化 Terraform / OpenTofu 代碼自動產出
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Ian (開發者, `Developer`)
   - **協作細節**: Elena 負責制定變數與模組 (Modules) 規範；Ian 在撰寫特定服務時生成代碼。系統確保 Ian 產出的代碼自動套用 Elena 設定的企業標籤。
-- **使用者需求/目標 (User Goal)**: 自動化產生符合企業標準的 IaC 代碼，消除手動撰寫錯誤。
+- **使用者需求/目標 (User Goal)**: 自動化產生符合企業標準的 IaC 代碼，支援多雲架構並消除手動撰寫錯誤。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 代碼目錄必須嚴格區分 `main.tf`, `variables.tf`, `outputs.tf` 等結構。
-  2. 生成的代碼必須盡可能引用企業內部的標準 Terraform Modules。
-  3. 產出的代碼可直接通過 `terraform init` 與 `terraform validate` 檢查。
+  1. 能根據畫布架構自動產出支援 `aws`, `google`, `azurerm` provider 對應的 Terraform / OpenTofu 模組代碼。
+  2. 代碼目錄必須嚴格遵循企業標準，包含 `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` 與 `modules/` 結構。
+  3. 產出的代碼可直接通過 `terraform init` / `tofu init` 與 `validate` 語法檢查。
 - **操作流程**: 1. 從首頁進入 IaC 工作區。 2. 將畫布轉換為代碼。 3. **AI重置/人工微調**: 對 `variables.tf` 點擊「局部重置」加上公司 prefix，並在 IDE 內人工編輯參數。
 - **系統回饋 (System Feedback)**:
   - **成功 (Success)**: 編輯器右下角彈出綠色「✔ 轉換成功」，顯示完整 `.tf` 檔案樹。**後續引導**：引導點擊「進入安全靜態掃描」或「一鍵推送到 Git」。
@@ -173,29 +173,29 @@
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Fiona (資安審查員, `Security_Reviewer`)
   - **協作細節**: Elena 提交 IaC 代碼觸發掃描；若掃出漏洞，Fiona 會收到通知，她可以選擇批准風險 (Risk Acceptance) 或要求 AI 提供修復建議讓 Elena 套用。
-- **使用者需求/目標 (User Goal)**: 在部署前攔截代碼中的資安弱點與合規性問題。
+- **使用者需求/目標 (User Goal)**: 在部署前透過多重掃描引擎攔截代碼中的資安弱點與合規性問題。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 內建整合 tfsec 或 Trivy，在匯出前強制進行背景靜態安全掃描。
+  1. 內建整合 tfsec、Trivy 與 Checkov，在匯出前強制進行深度靜態安全掃描。
   2. 發現 High 或 Critical 漏洞時，必須強制阻擋代碼下載與部署。
   3. 系統必須提供至少一個可直接套用的 AI 修復代碼片段。
-- **操作流程**: 1. 從首頁登入安全審查區。 2. 觸發 tfsec 掃描。 3. **AI重置/人工微調**: 「局部重置」要求 AI 提供不同修復建議，人工選擇採納並套用。
+- **操作流程**: 1. 從首頁登入安全審查區。 2. 觸發 tfsec/Checkov 綜合掃描。 3. **AI重置/人工微調**: 「局部重置」要求 AI 提供不同修復建議，人工選擇採納並套用。
 - **系統回饋 (System Feedback)**:
   - **成功 (Success)**: 畫面中央出現滿版綠色的安全盾牌打勾動畫，標示「0 漏洞」。**後續引導**：引導點擊「核准並開始自動化部署」。
   - **失敗 (Failure)**: 畫面紅光閃爍，阻擋按鈕變灰，列出高危 CVE 漏洞清單。**後續引導**：提示「請點擊 AI 提供的安全修復代碼」，或點選「聯絡資安審查員 (Fiona) 申請特例豁免」。
-- **BDD**: `Given` 掃描出 High 級別漏洞 `When` AI 產出三個修復方案，Elena 人工選擇其一並套用 `Then` 複掃通過，允許 Git Push。
+- **BDD**: `Given` Checkov 掃描出 High 級別漏洞 `When` AI 產出三個修復方案，Elena 人工選擇其一並套用 `Then` 複掃通過，允許 Git Push。
 
 #### D3. Sensitive Values 與 Secret Manager 整合
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Ian (開發者, `Developer`)
   - **協作細節**: 系統攔截到 Ian 提交的明文密碼；Fiona 接獲警報，強制要求轉為 Secret 引用。Ian 收到修復工單，透過 AI 一鍵替換為安全的 ARN。
-- **使用者需求/目標 (User Goal)**: 確保代碼中絕不包含明文密碼，避免金鑰外洩風險。
+- **使用者需求/目標 (User Goal)**: 確保 IaC 代碼中絕不包含明文密碼，避免金鑰外洩風險。
 - **驗收標準 (Acceptance Criteria)**:
   1. 精準掃描並找出代碼中任何 hardcoded 的明文金鑰、密碼。
-  2. 自動將明文替換為對應雲端的安全引用格式 (如 AWS Secrets Manager)。
+  2. 自動將明文替換為對應雲端 (如 AWS Secrets Manager / Azure Key Vault) 的安全引用格式。
   3. 若無法提供有效的 Secret ARN，禁止將代碼 Push 至遠端存儲庫。
 - **操作流程**: 1. 從首頁登入機密檢查區。 2. 掃描 hardcoded secrets。 3. **AI重置/人工微調**: 「全部重置」要求改用 Secrets 引用，人工填寫 Secret ARN。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 密碼明文以打字機特效安全轉換為 `aws_secretsmanager_secret` 變數。**後續引導**：引導點擊「儲存代碼並進入下一步」。
+  - **成功 (Success)**: 密碼明文以打字機特效安全轉換為 Provider 原生 Secret 變數。**後續引導**：引導點擊「儲存代碼並進入下一步」。
   - **失敗 (Failure)**: 跳出紅字「找不到對應的 Secret ARN，替換失敗」。**後續引導**：提示「請前往 Secrets Manager 創建新金鑰」，或「聯絡資安團隊尋求授權」。
 - **BDD**: `Given` 代碼存在明文密碼 `When` 點擊局部重置轉換為 Secret 引用並人工填上 ARN `Then` 代碼變更為安全合規格式。
 
@@ -548,15 +548,15 @@
 
 ### D. Standardized IaC Generation & Secure Delivery
 
-#### D1. Templated Terraform Generation
+#### D1. Templated Terraform / OpenTofu Generation
 - **Multi-Role Collaboration**:
   - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Ian (Developer, `Developer`)
   - **Collaboration Details**: Elena enforces module/tagging standards; when Ian generates code for his services, the system ensures Elena's enterprise tags are automatically applied.
-- **User Goal**: Automate the creation of enterprise-standard IaC code to eliminate manual coding errors.
+- **User Goal**: Automate the creation of enterprise-standard IaC code that supports multi-cloud providers, eliminating manual coding errors.
 - **Acceptance Criteria**:
-  1. Exported code directories strictly separate `main.tf`, `variables.tf`, `outputs.tf`.
-  2. Generated code must maximize reuse of internal standard Terraform Modules.
-  3. Output code must pass basic `terraform init/validate` checks out-of-the-box.
+  1. Automatically generates Terraform / OpenTofu module code supporting `aws`, `google`, and `azurerm` providers based on the canvas.
+  2. The code directory must strictly follow enterprise standards, including `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`, and `modules/` structure.
+  3. Output code must pass basic `terraform init` / `tofu init` and `validate` checks out-of-the-box.
 - **Operational Flow**: 1. Access IaC Workspace. 2. Convert canvas to code. 3. **AI Reset/Manual Adjust**: "Partial Reset" variables to add prefixes, manually edit tags.
 - **System Feedback**:
   - **Success**: The editor pops up a green "✔ Conversion Successful" and displays the `.tf` file tree. **Next Step**: Prompts "Proceed to static security scan" or "1-click Git Push."
@@ -567,29 +567,29 @@
 - **Multi-Role Collaboration**:
   - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Fiona (Security Reviewer, `Security_Reviewer`)
   - **Collaboration Details**: Elena triggers a scan; Fiona receives a ping for any vulnerabilities. Fiona can accept the risk or ask AI for fix snippets, which Elena then applies.
-- **User Goal**: Intercept security vulnerabilities and compliance issues in the code before deployment.
+- **User Goal**: Intercept security vulnerabilities and compliance issues in the code before deployment using multiple scanning engines.
 - **Acceptance Criteria**:
-  1. Natively integrates tfsec/Trivy to force static scans before export.
+  1. Natively integrates tfsec, Trivy, and Checkov to force deep static scans before export.
   2. Forcibly blocks code download/deployment when High vulnerabilities are detected.
   3. Provides directly applicable AI-remediation code snippets for found vulnerabilities.
-- **Operational Flow**: 1. Enter Security Review. 2. Trigger tfsec scan. 3. **AI Reset/Manual Adjust**: "Partial Reset" for alternative fix suggestions, manually apply one.
+- **Operational Flow**: 1. Enter Security Review. 2. Trigger combined tfsec/Checkov scan. 3. **AI Reset/Manual Adjust**: "Partial Reset" for alternative fix suggestions, manually apply one.
 - **System Feedback**:
   - **Success**: A full-screen green security shield checks off, indicating "0 Vulnerabilities." **Next Step**: Prompts "Approve and begin automated deployment."
   - **Failure**: Screen flashes red, blocks deployment buttons, and lists Critical CVEs. **Next Step**: Prompts "Click to apply AI security fixes" or "Contact Security (Fiona) for Risk Acceptance."
-- **BDD**: `Given` High-severity bug found `When` AI suggests fixes and Elena manually applies one `Then` Rescan passes, Git Push unlocked.
+- **BDD**: `Given` Checkov flagged a High-severity bug `When` AI suggests fixes and Elena manually applies one `Then` Rescan passes, Git Push unlocked.
 
 #### D3. Sensitive Values & Secret Manager Check
 - **Multi-Role Collaboration**:
   - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: System detects Ian's hardcoded password. Fiona mandates a Secret conversion. Ian uses AI to 1-click replace it with a secure AWS ARN before committing.
-- **User Goal**: Ensure code never contains plaintext passwords, preventing credential leaks.
+  - **Collaboration Details**: System detects Ian's hardcoded password. Fiona mandates a Secret conversion. Ian uses AI to 1-click replace it with a secure AWS/Azure ARN before committing.
+- **User Goal**: Ensure IaC code never contains plaintext passwords, preventing credential leaks.
 - **Acceptance Criteria**:
   1. Scans and highlights hardcoded plaintext keys/passwords.
-  2. Forcibly replaces plaintext with secure references (e.g., AWS Secrets Manager ARNs).
+  2. Forcibly replaces plaintext with secure references to native cloud providers (e.g., AWS Secrets Manager, Azure Key Vault).
   3. Prohibits pushing code to remote repos without valid Secret ARN mappings.
-- **Operational Flow**: 1. Open Secret Scanner. 2. Scan for hardcoded keys. 3. **AI Reset/Manual Adjust**: "Full Reset" to force AWS Secrets format, manually input ARN.
+- **Operational Flow**: 1. Open Secret Scanner. 2. Scan for hardcoded keys. 3. **AI Reset/Manual Adjust**: "Full Reset" to force native Secrets format, manually input ARN.
 - **System Feedback**:
-  - **Success**: Plaintext transforms into `aws_secretsmanager_secret` variables via typewriter effect. **Next Step**: Prompts "Save code and proceed to next step."
+  - **Success**: Plaintext transforms into native Provider Secret variables via typewriter effect. **Next Step**: Prompts "Save code and proceed to next step."
   - **Failure**: Pops up red text "Matching Secret ARN not found, conversion failed." **Next Step**: Prompts "Go to Secrets Manager to create a new key" or "Contact Security for permissions."
 - **BDD**: `Given` Hardcoded password exists `When` Partially reset to Secret Ref and manually filled ARN `Then` Code updates to a secure format.
 
