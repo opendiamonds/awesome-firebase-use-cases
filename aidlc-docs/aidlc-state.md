@@ -105,5 +105,5 @@
   - Workflow Planning: ⏳
   - Application Design: 🔄 (baseline exists)
   - Units Generation: ⏳
-- 🟢 Construction: ⏳
+- 🟢 Construction: ✅ (A1 Code Generation)
 - 🟡 Operations: ⏳
