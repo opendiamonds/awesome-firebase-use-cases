@@ -137,33 +137,23 @@ Cloud-360 內建 MCP 與 Skill 管理功能，用來治理平台可呼叫的工�
 
 ## Documentation
 
-Cloud-360 的 `docs/` 文件必須同時包含中文版與英文版。
-All Cloud-360 documents under `docs/` must include both Chinese and English versions.
+Cloud-360 的文件統一存放於 `aidlc-docs/` 目錄，由 AIDLC 各階段自動產生與維護。
+All Cloud-360 documents are maintained under `aidlc-docs/`, generated and updated by AIDLC workflow stages.
 
-- [Documentation Index](aidlc-docs/README.md)
-- [AIDLC State](aidlc-docs/aidlc-state.md)
+- [AIDLC Docs Index](aidlc-docs/README.md)
 - [System Requirement Specification](aidlc-docs/inception/requirements/cloud-360-srs.md)
 - [System Architecture](aidlc-docs/inception/application-design/system-architecture.md)
-- [Core Pillars User Stories](aidlc-docs/inception/user-stories/core-pillars.md)
+- [User Stories](aidlc-docs/inception/user-stories/stories.md)
+- [User Personas](aidlc-docs/inception/user-stories/personas.md)
 - [ADR 0001: Repository Scope](aidlc-docs/inception/decisions/0001-repo-scope.md)
 - [ADR 0002: Agent Routing Layer](aidlc-docs/inception/decisions/0002-agent-routing-layer.md)
 - [ADR 0003: Web-Based Desktop and Mobile Experience](aidlc-docs/inception/decisions/0003-web-based-experience.md)
 - [ADR 0004: MCP and Skill Management](aidlc-docs/inception/decisions/0004-mcp-skill-management.md)
 - [ADR 0005: Bilingual Documentation](aidlc-docs/inception/decisions/0005-bilingual-documentation.md)
 - [ADR 0006: Adopt AIDLC Framework](aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md)
-
-## AI-SDLC Framework: AIDLC
-
-Cloud-360 採用 [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) 作為 AI-SDLC 開發方法論，提升 Claude Code 與其他 AI agent 的開發精準度與需求完整性。詳見 [ADR 0006](aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md) 與專案根目錄 [`CLAUDE.md`](CLAUDE.md)。
-
-- AIDLC version: 0.1.8（見 `.aidlc-rule-details/VERSION`）
-- Entry point: `.aidlc-rules/aws-aidlc-rules/core-workflow.md`
-- Detail rules: `.aidlc-rule-details/{common,inception,construction,operations,extensions}/`
-- Artifact 輸出位置：`aidlc-docs/`（state、audit、inception/construction/operations）
-- Pre-enabled extensions：security baseline、property-based testing、bilingual-docs（永遠強制）
-- 啟動口令：`Using AI-DLC, ...`，或請 AI agent 進行需求分析、設計、實作、IaC 產製、運維工作
-
-> AIDLC migration 已完成（PR1 + PR2）：所有 SRS / architecture / user stories / ADRs 皆位於 `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`。`docs/` 已下線。
+- [Detailed Spec - Architecture Design](docs/srs/detailed/A-architecture-design-spec.md)
+- [Detailed Spec - Component Selection](docs/srs/detailed/B-component-selection-logic.md)
+- [Detailed Spec - FinOps Rules](docs/srs/detailed/C-finops-estimation-rules.md)
 
 ## Repository Contract
 
