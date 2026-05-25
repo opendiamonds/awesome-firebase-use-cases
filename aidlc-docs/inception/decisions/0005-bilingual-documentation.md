@@ -7,14 +7,15 @@
 
 - Status: Accepted
 - Date: 2026-05-02
+- Amendment 2026-05-09: ADR-0006 PR2 後文件位置改為 `aidlc-docs/`，本 ADR 的雙語要求自動延伸至 `aidlc-docs/**/*.md`。
 
 ## Context
 
-Cloud-360 會由中文使用者、國際協作者、AI agent、dev-agent 與不同技術角色共同閱讀與維護。為避免規格理解落差，`docs/` 文件必須同時提供中文版與英文版。
+Cloud-360 會由中文使用者、國際協作者、AI agent、dev-agent 與不同技術角色共同閱讀與維護。為避免規格理解落差，所有專案文件必須同時提供中文版與英文版。原規範針對 `docs/**/*.md`；ADR-0006 PR2 後遷移至 `aidlc-docs/**/*.md`，雙語要求不變。
 
 ## Decision
 
-所有 `docs/**/*.md` 文件必須包含：
+所有 `aidlc-docs/**/*.md` 文件必須包含：
 
 - `## 中文版`
 - `## English Version`
@@ -23,10 +24,10 @@ Cloud-360 會由中文使用者、國際協作者、AI agent、dev-agent 與不�
 
 ## Requirements
 
-- 新增或修改 docs 文件時，必須同步更新中文與英文內容。
+- 新增或修改 `aidlc-docs/` 文件時，必須同步更新中文與英文內容。
 - README 可以保持產品入口，但需連到雙語 docs。
 - SRS、Architecture、User Stories、ADR 都必須雙語。
-- CI 的 repository contract validation 必須檢查 docs 文件是否包含雙語章節。
+- CI 的 repository contract validation 必須檢查 `aidlc-docs/` 文件是否包含雙語章節（PR2 後 docs/ 不再存在）。
 
 ## Consequences
 
@@ -38,14 +39,15 @@ Cloud-360 會由中文使用者、國際協作者、AI agent、dev-agent 與不�
 
 - Status: Accepted
 - Date: 2026-05-02
+- Amendment 2026-05-09: After ADR-0006 PR2, documentation lives under `aidlc-docs/`. The bilingual requirement of this ADR automatically extends to `aidlc-docs/**/*.md`.
 
 ## Context
 
-Cloud-360 documentation will be read and maintained by Chinese-speaking users, international collaborators, AI agents, dev-agents, and different technical roles. To avoid requirement and architecture misunderstandings, all documentation under `docs/` must provide both Chinese and English versions.
+Cloud-360 documentation will be read and maintained by Chinese-speaking users, international collaborators, AI agents, dev-agents, and different technical roles. To avoid requirement and architecture misunderstandings, all project documentation must provide both Chinese and English versions. The original wording targeted `docs/**/*.md`; after the PR2 migration in ADR-0006 it applies to `aidlc-docs/**/*.md` — the bilingual requirement itself is unchanged.
 
 ## Decision
 
-Every `docs/**/*.md` document must include:
+Every `aidlc-docs/**/*.md` document must include:
 
 - `## 中文版`
 - `## English Version`
@@ -54,10 +56,10 @@ The documentation may use a single-file bilingual format. The initial phase uses
 
 ## Requirements
 
-- When adding or modifying docs, both Chinese and English content must be updated together.
+- When adding or modifying files under `aidlc-docs/`, both Chinese and English content must be updated together.
 - README may remain the product entry point, but it should link to bilingual docs.
 - SRS, Architecture, User Stories, and ADRs must all be bilingual.
-- CI repository contract validation must check whether docs files contain bilingual sections.
+- CI repository contract validation must check whether `aidlc-docs/` files contain bilingual sections (after PR2, `docs/` no longer exists).
 
 ## Consequences
 

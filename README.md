@@ -47,7 +47,7 @@ flowchart TB
     Tools --> Azure[Azure]
 ```
 
-完整架構說明請見 [System Architecture](docs/architecture/system-architecture.md)。
+完整架構說明請見 [System Architecture](aidlc-docs/inception/application-design/system-architecture.md)。
 
 ## Core Modules
 
