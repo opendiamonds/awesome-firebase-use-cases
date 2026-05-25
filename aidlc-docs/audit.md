@@ -133,6 +133,18 @@
 
 ---
 
+#### 2026-05-25 11:01 +08:00 — Synchronize Contract Validation Script
+
+**User request (raw)**: "幫我根據 最外層的 readme 調整 scripts資料夾底下的 validate_repo_contract"
+**Stage**: Inception → Framework Maintenance
+**Outcome**: 
+1. 更新 `scripts/validate_repo_contract.py`，修正 `aidlc-docs/inception/user-stories/stories.md` 的關鍵字檢查。
+2. 將檢查項目由原有的舊版名稱更新為 `Cost Estimation & FinOps` 與 `Cloud Security Posture`，以對應 `README.md` 中確立的 Core Modules 命名。
+3. 執行 Contract Validation 測試通過。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -292,6 +304,18 @@ Each entry uses the following format:
 2. Added comprehensive lifecycle management for MCP servers, AI Skills, Cloud Connectors, and workflows.
 3. Introduced automated Health Check and Dependency Check mechanisms.
 4. Integrated tool registration into the Agent Routing Layer, empowering AI with autonomous yet governed tool invocation (restricted to read-only or routed via Human Approval Gates).
+**Approver**: luojingting
+
+---
+
+#### 2026-05-25 11:01 +08:00 — Synchronize Contract Validation Script
+
+**User request (raw)**: "幫我根據 最外層的 readme 調整 scripts資料夾底下的 validate_repo_contract"
+**Stage**: Inception → Framework Maintenance
+**Outcome**: 
+1. Updated `scripts/validate_repo_contract.py` to fix keyword validation for `aidlc-docs/inception/user-stories/stories.md`.
+2. Replaced deprecated pillar names with `Cost Estimation & FinOps` and `Cloud Security Posture` to match the finalized Core Modules in `README.md`.
+3. Executed and successfully passed the Contract Validation test.
 **Approver**: luojingting
 
 ---

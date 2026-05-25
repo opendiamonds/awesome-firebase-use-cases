@@ -68,8 +68,8 @@ REQUIRED_TEXT = {
     ),
     "aidlc-docs/inception/user-stories/stories.md": (
         "Architecture Design",
-        "Cost Governance",
-        "Security Compliance",
+        "Cost Estimation & FinOps",
+        "Cloud Security Posture",
         "Mobile",
     ),
     "aidlc-docs/inception/user-stories/personas.md": (
