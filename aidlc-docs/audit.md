@@ -351,3 +351,9 @@ Each entry uses the following format:
 **Context**: Construction Phase - Core Logic implementation
 
 ---
+
+## Construction (A1 OpenRouter & n8n Integration)
+**Timestamp**: 2026-06-06T04:20:00Z
+**User Input**: "A1 我想要改成接 claude code api 讓 claude 去理解使用者需求的並且去畫架構圖 並且架構圖的 icon 屎要打 n8n webhook 去取得 icon svg 內容" / "我現在用 openrouter 就好"
+**AI Response**: "Integrated OpenRouter API using httpx to parse chat history dynamically into structured JSON components. Integrated asynchronous requests to n8n webhook for generating dynamic SVG icons and embedding them into the draw.io XML structure. Cleaned up dependencies and updated .env variables for the new architecture."
+**Context**: Construction Phase - AI Brain & Dynamic Asset Integration

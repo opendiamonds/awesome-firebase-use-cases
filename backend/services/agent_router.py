@@ -1,3 +1,7 @@
+import os
+import json
+import base64
+import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -11,98 +15,147 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[Message]
 
+async def fetch_icon_from_n8n(service_name: str) -> str:
+    webhook_url = os.environ.get("N8N_WEBHOOK_URL")
+    fallback_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#cccccc"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="black" font-size="14">{service_name}</text></svg>'''
+    
+    if not webhook_url:
+        return fallback_svg
+        
+    try:
+        async with httpx.AsyncClient() as client:
+            # We assume n8n expects a GET with service_name
+            response = await client.get(webhook_url, params={"service": service_name}, timeout=5.0)
+            if response.status_code == 200:
+                # If n8n returns raw SVG
+                content = response.text.strip()
+                if content.startswith("<svg"):
+                    return content
+                # If n8n returns JSON {"svg": "..."}
+                try:
+                    data = response.json()
+                    if "svg" in data:
+                        return data["svg"]
+                except:
+                    pass
+    except Exception as e:
+        print(f"Failed to fetch icon for {service_name} from n8n: {e}")
+        
+    return fallback_svg
+
 @router.post("/generate")
-def chat_and_generate(request: ChatRequest):
+async def chat_and_generate(request: ChatRequest):
     messages = request.messages
     if not messages:
         raise HTTPException(status_code=400, detail="對話不可為空")
         
-    last_user_msg = ""
-    for msg in reversed(messages):
-        if msg.role == "user":
-            last_user_msg = msg.content.lower()
-            break
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+    
+    if not openrouter_key and not anthropic_key:
+        raise HTTPException(status_code=500, detail="尚未設定 OPENROUTER_API_KEY 或 ANTHROPIC_API_KEY 環境變數")
+
+    system_prompt = """
+    你是一位資深的 AWS 雲端架構師。你的任務是與使用者對話並釐清他們的雲端架構需求。
+    請仔細閱讀對話歷史，判斷需求是否足夠明確（例如：是否知道需要哪些運算資源、資料庫、快取、資安防護等）。
+    
+    如果你需要更多資訊，請溫和地反問使用者。
+    如果需求已經足夠明確，你可以決定產出架構圖。
+    
+    你必須且只能回傳 JSON 格式字串，格式如下：
+    {
+      "reply_message": "給使用者的文字回覆",
+      "generate_ready": true 或 false (代表是否要開始畫圖),
+      "components": ["waf", "alb", "ec2_web", "aurora", "redis"] (若 generate_ready 為 false，則可為空陣列)
+    }
+    
+    請不要輸出 JSON 以外的任何文字。
+    """
+    
+    response_text = ""
+    
+    try:
+        if not openrouter_key:
+            raise HTTPException(status_code=500, detail="未提供 OPENROUTER_API_KEY")
             
-    # 處理資源衝突檢測
-    if "衝突" in last_user_msg or "conflict" in last_user_msg:
-        raise HTTPException(status_code=400, detail="資源衝突：所選區域不支援該服務")
+        model_name = os.environ.get("LLM_MODEL", "anthropic/claude-sonnet-4.6")
         
-    # 分析歷史紀錄中的所有需求
-    full_text = " ".join([m.content.lower() for m in messages if m.role == "user"])
-    
-    needs_db = "資料庫" in full_text or "aurora" in full_text or "db" in full_text
-    needs_cache = "快取" in full_text or "redis" in full_text or "elasticache" in full_text
-    needs_waf = "waf" in full_text or "防護" in full_text
-    needs_ha = "ha" in full_text or "高可用" in full_text
-    is_ecommerce = "電商" in full_text or "購物" in full_text
-    
-    response_msg = ""
+        formatted_messages = [{"role": "system", "content": system_prompt}]
+        for msg in messages:
+            formatted_messages.append({"role": msg.role, "content": msg.content})
+            
+        async with httpx.AsyncClient() as http_client:
+            resp = await http_client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": model_name,
+                    "messages": formatted_messages,
+                    "temperature": 0.3
+                },
+                timeout=30.0
+            )
+            if resp.status_code != 200:
+                print(f"OpenRouter Error: {resp.text}")
+                raise HTTPException(status_code=500, detail="OpenRouter API 呼叫失敗")
+                
+            response_text = resp.json()["choices"][0]["message"]["content"]
+            
+        # Try parsing JSON
+        try:
+            parsed_data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Fallback if Claude returns markdown wrapped json
+            cleaned = response_text.replace("```json", "").replace("```", "").strip()
+            parsed_data = json.loads(cleaned)
+            
+        reply_message = parsed_data.get("reply_message", "好的，我了解了。")
+        generate_ready = parsed_data.get("generate_ready", False)
+        components = parsed_data.get("components", [])
+        
+    except Exception as e:
+        print(f"Claude API Error: {e}")
+        raise HTTPException(status_code=500, detail=f"呼叫 Claude API 發生錯誤: {str(e)}")
+        
     xml_data = ""
     
-    # State Machine (Mock LLM Agent)
-    if is_ecommerce and not needs_db and not needs_cache:
-        response_msg = "好的！想建立一個電商網站。請問您的電商網站預計會有高流量嗎？是否需要資料庫（如 Aurora）與快取機制（如 Redis）來加速？"
-    elif not needs_db and not needs_waf and not is_ecommerce:
-        response_msg = "收到您的需求。為了確保架構完整，請問您需要加入資料庫或是特定的安全性防護（例如 WAF）嗎？"
-    else:
-        response_msg = "了解，根據您的需求，我已經為您規劃了合適的雲端架構圖。您可以在右側檢視，如果需要調整（例如加入 WAF 或 Redis），請直接告訴我！"
-        
-        # 產生複雜架構圖 XML (基於需求)
+    if generate_ready and components:
         cells = []
-        y_pos = 120
+        # Background VPC
+        cells.append('<mxCell id="vpc" value="AWS Cloud / VPC" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;align=left;verticalAlign=top;fillColor=none;strokeColor=#b85450;fontSize=18;fontStyle=1" vertex="1" parent="1"><mxGeometry x="40" y="40" width="800" height="600" as="geometry"/></mxCell>')
         
-        # VPC / AZ Box
-        cells.append('<mxCell id="vpc" value="VPC (10.0.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;align=left;verticalAlign=top;fillColor=none;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="720" height="500" as="geometry"/></mxCell>')
+        x, y = 100, 100
+        prev_comp = None
         
-        if needs_ha:
-             cells.append('<mxCell id="az1" value="Availability Zone A" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;align=left;verticalAlign=top;fillColor=none;strokeColor=#d79b00;" vertex="1" parent="vpc"><mxGeometry x="20" y="40" width="320" height="440" as="geometry"/></mxCell>')
-             cells.append('<mxCell id="az2" value="Availability Zone B" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;align=left;verticalAlign=top;fillColor=none;strokeColor=#d79b00;" vertex="1" parent="vpc"><mxGeometry x="360" y="40" width="320" height="440" as="geometry"/></mxCell>')
-        else:
-             cells.append('<mxCell id="az1" value="Availability Zone A" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;align=left;verticalAlign=top;fillColor=none;strokeColor=#d79b00;" vertex="1" parent="vpc"><mxGeometry x="20" y="40" width="660" height="440" as="geometry"/></mxCell>')
-             
-        # WAF
-        if needs_waf:
-            cells.append('<mxCell id="waf" value="AWS WAF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="340" y="100" width="120" height="60" as="geometry"/></mxCell>')
+        for idx, comp in enumerate(components):
+            svg_content = await fetch_icon_from_n8n(comp)
+            b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode("utf-8")
             
-        # ALB
-        cells.append('<mxCell id="alb" value="Application Load Balancer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="320" y="200" width="160" height="60" as="geometry"/></mxCell>')
-        
-        # EC2
-        cells.append('<mxCell id="ec2_1" value="EC2 Instance (Web)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="120" y="300" width="120" height="60" as="geometry"/></mxCell>')
-        if needs_ha:
-            cells.append('<mxCell id="ec2_2" value="EC2 Instance (Web)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="500" y="300" width="120" height="60" as="geometry"/></mxCell>')
+            # draw.io image style with embedded SVG
+            style = f"shape=image;image=data:image/svg+xml;base64,{b64_svg};verticalLabelPosition=bottom;verticalAlign=top;align=center;"
+            comp_id = f"comp_{idx}"
             
-        # DB
-        if needs_db:
-            cells.append('<mxCell id="db" value="Amazon Aurora" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="140" y="420" width="80" height="80" as="geometry"/></mxCell>')
-        
-        # Redis
-        if needs_cache:
-            cells.append('<mxCell id="redis" value="ElastiCache (Redis)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="520" y="420" width="80" height="80" as="geometry"/></mxCell>')
+            cells.append(f'<mxCell id="{comp_id}" value="{comp.upper()}" style="{style}" vertex="1" parent="1"><mxGeometry x="{x}" y="{y}" width="80" height="80" as="geometry"/></mxCell>')
             
-        # Connections
-        if needs_waf:
-            cells.append('<mxCell id="edge1" edge="1" parent="1" source="waf" target="alb"><mxGeometry relative="1" as="geometry"/></mxCell>')
-        
-        cells.append('<mxCell id="edge2" edge="1" parent="1" source="alb" target="ec2_1"><mxGeometry relative="1" as="geometry"/></mxCell>')
-        if needs_ha:
-            cells.append('<mxCell id="edge3" edge="1" parent="1" source="alb" target="ec2_2"><mxGeometry relative="1" as="geometry"/></mxCell>')
+            if prev_comp:
+                # Add connection
+                cells.append(f'<mxCell id="edge_{idx}" edge="1" parent="1" source="{prev_comp}" target="{comp_id}"><mxGeometry relative="1" as="geometry"/></mxCell>')
             
-        if needs_db:
-            cells.append('<mxCell id="edge4" edge="1" parent="1" source="ec2_1" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>')
-            if needs_ha:
-                cells.append('<mxCell id="edge5" edge="1" parent="1" source="ec2_2" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>')
+            prev_comp = comp_id
+            
+            x += 150
+            if x > 600:
+                x = 100
+                y += 150
                 
-        if needs_cache:
-            cells.append('<mxCell id="edge6" edge="1" parent="1" source="ec2_1" target="redis"><mxGeometry relative="1" as="geometry"/></mxCell>')
-            if needs_ha:
-                cells.append('<mxCell id="edge7" edge="1" parent="1" source="ec2_2" target="redis"><mxGeometry relative="1" as="geometry"/></mxCell>')
-
         inner_xml = "".join(cells)
         xml_data = f"""<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>{inner_xml}</root></mxGraphModel>"""
     
     return {
         "status": "success", 
-        "message": response_msg,
+        "message": reply_message,
         "xml": xml_data if xml_data else None
     }
