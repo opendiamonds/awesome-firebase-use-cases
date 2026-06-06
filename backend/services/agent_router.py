@@ -24,20 +24,36 @@ async def fetch_icon_from_n8n(service_name: str) -> str:
         
     try:
         async with httpx.AsyncClient() as client:
-            # We assume n8n expects a GET with service_name
-            response = await client.get(webhook_url, params={"service": service_name}, timeout=5.0)
+            response = await client.post(webhook_url, json={"service": service_name}, timeout=5.0)
             if response.status_code == 200:
                 # If n8n returns raw SVG
                 content = response.text.strip()
                 if content.startswith("<svg"):
                     return content
-                # If n8n returns JSON {"svg": "..."}
+                # If n8n returns JSON
                 try:
                     data = response.json()
-                    if "svg" in data:
-                        return data["svg"]
-                except:
-                    pass
+                    
+                    # 處理 n8n 直出資料庫陣列的狀況
+                    if isinstance(data, list) and len(data) > 0:
+                        item = data[0]
+                        if "svg_content" in item:
+                            return item["svg_content"]
+                        if "svg" in item:
+                            return item["svg"]
+                            
+                    # 處理包在物件內的狀況
+                    elif isinstance(data, dict):
+                        if "svg_content" in data:
+                            return data["svg_content"]
+                        if "svg" in data:
+                            return data["svg"]
+                        if "data" in data and "svg" in data["data"]:
+                            return data["data"]["svg"]
+                            
+                    print(f"Warning: Unexpected JSON format from n8n: {str(data)[:100]}")
+                except Exception as e:
+                    print(f"Error parsing n8n response: {str(e)}")
     except Exception as e:
         print(f"Failed to fetch icon for {service_name} from n8n: {e}")
         
@@ -102,15 +118,28 @@ async def chat_and_generate(request: ChatRequest):
                 print(f"OpenRouter Error: {resp.text}")
                 raise HTTPException(status_code=500, detail="OpenRouter API 呼叫失敗")
                 
-            response_text = resp.json()["choices"][0]["message"]["content"]
+            try:
+                resp_json = resp.json()
+                response_text = resp_json["choices"][0]["message"]["content"]
+            except Exception as e:
+                print(f"OpenRouter Raw Response (Failed to parse JSON): {resp.text}")
+                response_text = ""
             
         # Try parsing JSON
         try:
             parsed_data = json.loads(response_text)
         except json.JSONDecodeError:
             # Fallback if Claude returns markdown wrapped json
-            cleaned = response_text.replace("```json", "").replace("```", "").strip()
-            parsed_data = json.loads(cleaned)
+            try:
+                cleaned = response_text.replace("```json", "").replace("```", "").strip()
+                parsed_data = json.loads(cleaned)
+            except Exception:
+                # 處理 LLM 完全沒有輸出 JSON，只給純文字回覆的狀況
+                parsed_data = {
+                    "reply_message": response_text.strip(),
+                    "generate_ready": False,
+                    "components": []
+                }
             
         reply_message = parsed_data.get("reply_message", "好的，我了解了。")
         generate_ready = parsed_data.get("generate_ready", False)

@@ -357,3 +357,11 @@ Each entry uses the following format:
 **User Input**: "A1 我想要改成接 claude code api 讓 claude 去理解使用者需求的並且去畫架構圖 並且架構圖的 icon 屎要打 n8n webhook 去取得 icon svg 內容" / "我現在用 openrouter 就好"
 **AI Response**: "Integrated OpenRouter API using httpx to parse chat history dynamically into structured JSON components. Integrated asynchronous requests to n8n webhook for generating dynamic SVG icons and embedding them into the draw.io XML structure. Cleaned up dependencies and updated .env variables for the new architecture."
 **Context**: Construction Phase - AI Brain & Dynamic Asset Integration
+
+---
+
+## Construction (A1 Error Handling & UX Tweak)
+**Timestamp**: 2026-06-06T05:25:00Z
+**User Input**: "Claude API Error: Expecting value: line 1 column 1 (char 0)" / "前端修一下 不要按 enter 就送出訊息 我是要換行"
+**AI Response**: "Enhanced LLM JSON parsing with robust fallback mechanisms to handle non-JSON conversational responses. Fixed n8n webhook integration to properly handle JSON array responses and POST requests. Modified frontend ChatBox to insert newline on Enter, and send message on Cmd/Ctrl+Enter."
+**Context**: Construction Phase - UX & Stability Improvements
