@@ -1,10 +1,17 @@
 import os
 import json
 import base64
+import urllib.parse
 import httpx
+import logging
+import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
+
+# 設置日誌記錄器
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -36,11 +43,54 @@ async def fetch_icon_from_n8n(service_name: str) -> str:
                     
                     # 處理 n8n 直出資料庫陣列的狀況
                     if isinstance(data, list) and len(data) > 0:
-                        item = data[0]
-                        if "svg_content" in item:
-                            return item["svg_content"]
-                        if "svg" in item:
-                            return item["svg"]
+                        matched_item = None
+                        service_name_lower = service_name.lower()
+                        
+                        # 1. 精確子字串匹配
+                        for item in data:
+                            name = item.get("icon_name", "").lower()
+                            if service_name_lower in name:
+                                matched_item = item
+                                break
+                        
+                        # 2. 如果沒匹配到，且 service_name 含有底線，拿各個單字去比對
+                        if not matched_item and "_" in service_name_lower:
+                            parts = [p for p in service_name_lower.split("_") if p not in ["web", "group", "service"]]
+                            for part in parts:
+                                if len(part) > 1:
+                                    for item in data:
+                                        name = item.get("icon_name", "").lower()
+                                        if part in name:
+                                            matched_item = item
+                                            break
+                                    if matched_item:
+                                        break
+                                        
+                        # 3. 專屬 Alias 映射比對
+                        if not matched_item:
+                            aliases = {
+                                "alb": ["elastic load balancing", "load balancing", "load-balancer", "loadbalancer", "elb"],
+                                "redis": ["elasticache", "cache"],
+                                "ec2_web": ["ec2", "virtual-server"]
+                            }
+                            if service_name_lower in aliases:
+                                for alias in aliases[service_name_lower]:
+                                    for item in data:
+                                        name = item.get("icon_name", "").lower()
+                                        if alias in name:
+                                            matched_item = item
+                                            break
+                                    if matched_item:
+                                        break
+
+                        # 4. 如果最終都沒匹配到，就 fallback 拿第一個項目
+                        if not matched_item:
+                            matched_item = data[0]
+
+                        if "svg_content" in matched_item:
+                            return matched_item["svg_content"]
+                        if "svg" in matched_item:
+                            return matched_item["svg"]
                             
                     # 處理包在物件內的狀況
                     elif isinstance(data, dict):
@@ -68,7 +118,13 @@ async def chat_and_generate(request: ChatRequest):
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
     
+    logger.info("========================================")
+    logger.info("收到畫圖/對話請求，正在進行環境變數檢查...")
+    logger.info(f"OPENROUTER_API_KEY 狀態: {'已設定' if openrouter_key else '未設定'}")
+    logger.info(f"ANTHROPIC_API_KEY 狀態: {'已設定' if anthropic_key else '未設定'}")
+    
     if not openrouter_key and not anthropic_key:
+        logger.error("錯誤: 未設定 API Key")
         raise HTTPException(status_code=500, detail="尚未設定 OPENROUTER_API_KEY 或 ANTHROPIC_API_KEY 環境變數")
 
     system_prompt = """
@@ -92,14 +148,18 @@ async def chat_and_generate(request: ChatRequest):
     
     try:
         if not openrouter_key:
+            logger.error("錯誤: OPENROUTER_API_KEY 遺失")
             raise HTTPException(status_code=500, detail="未提供 OPENROUTER_API_KEY")
             
         model_name = os.environ.get("LLM_MODEL", "anthropic/claude-sonnet-4.6")
+        logger.info(f"準備呼叫 OpenRouter API. 模型: {model_name}")
         
         formatted_messages = [{"role": "system", "content": system_prompt}]
         for msg in messages:
             formatted_messages.append({"role": msg.role, "content": msg.content})
             
+        logger.info("傳送給 OpenRouter 的對話長度為 %d 筆", len(formatted_messages))
+        
         async with httpx.AsyncClient() as http_client:
             resp = await http_client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -114,18 +174,23 @@ async def chat_and_generate(request: ChatRequest):
                 },
                 timeout=30.0
             )
+            
+            logger.info(f"OpenRouter API 回應狀態碼: {resp.status_code}")
+            
             if resp.status_code != 200:
-                print(f"OpenRouter Error: {resp.text}")
+                logger.error(f"OpenRouter Error Detail: {resp.text}")
                 raise HTTPException(status_code=500, detail="OpenRouter API 呼叫失敗")
                 
             try:
                 resp_json = resp.json()
                 response_text = resp_json["choices"][0]["message"]["content"]
+                logger.info("OpenRouter 回應內容獲取成功")
             except Exception as e:
-                print(f"OpenRouter Raw Response (Failed to parse JSON): {resp.text}")
+                logger.error(f"解析 OpenRouter JSON 失敗. 回應內容: {resp.text}")
                 response_text = ""
             
         # Try parsing JSON
+        logger.info(f"開始解析 LLM 傳回之 JSON. 原始字串: {response_text}")
         try:
             parsed_data = json.loads(response_text)
         except json.JSONDecodeError:
@@ -133,7 +198,8 @@ async def chat_and_generate(request: ChatRequest):
             try:
                 cleaned = response_text.replace("```json", "").replace("```", "").strip()
                 parsed_data = json.loads(cleaned)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"JSON 結構解析失敗，Fallback 為純文字處置: {str(e)}")
                 # 處理 LLM 完全沒有輸出 JSON，只給純文字回覆的狀況
                 parsed_data = {
                     "reply_message": response_text.strip(),
@@ -145,26 +211,40 @@ async def chat_and_generate(request: ChatRequest):
         generate_ready = parsed_data.get("generate_ready", False)
         components = parsed_data.get("components", [])
         
+        logger.info(f"解析後狀態: generate_ready={generate_ready}, components={components}")
+        
     except Exception as e:
-        print(f"Claude API Error: {e}")
+        logger.error(f"Claude/OpenRouter API Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"呼叫 Claude API 發生錯誤: {str(e)}")
         
     xml_data = ""
     
     if generate_ready and components:
         cells = []
+        
+        # 併行（Parallel）向 n8n Webhook 抓取所有元件 of SVG 圖示，縮短 sequential 請求所產生的 loading 時間
+        webhook_url = os.environ.get("N8N_WEBHOOK_URL")
+        logger.info(f"開始抓取元件圖示. N8N Webhook URL: {'設定已啟用' if webhook_url else '未設定，將使用內建 Fallback SVG'}")
+        
+        # 使用 asyncio.gather 來加速抓取
+        svg_contents = await asyncio.gather(*(fetch_icon_from_n8n(comp) for comp in components))
+        logger.info("元件圖示抓取程序已完成。")
+        
         # Background VPC
         cells.append('<mxCell id="vpc" value="AWS Cloud / VPC" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;align=left;verticalAlign=top;fillColor=none;strokeColor=#b85450;fontSize=18;fontStyle=1" vertex="1" parent="1"><mxGeometry x="40" y="40" width="800" height="600" as="geometry"/></mxCell>')
         
         x, y = 100, 100
         prev_comp = None
         
-        for idx, comp in enumerate(components):
-            svg_content = await fetch_icon_from_n8n(comp)
+        for idx, (comp, svg_content) in enumerate(zip(components, svg_contents)):
+            # 1. 將 SVG 以 Base64 編碼
             b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode("utf-8")
+            # 2. 不要在頭部使用分號，使用逗號分隔，讓 draw.io 在內部自動補上 ";base64"
+            # 這樣既可避免分號被 style 解析器截斷，又能讓 draw.io 自動還原出正確的 base64 格式
+            image_src = f"data:image/svg+xml,{b64_svg}"
             
-            # draw.io image style with embedded SVG
-            style = f"shape=image;image=data:image/svg+xml;base64,{b64_svg};verticalLabelPosition=bottom;verticalAlign=top;align=center;"
+            # 在樣式中直接嵌入沒有分號的 Data URI
+            style = f"shape=image;image={image_src};verticalLabelPosition=bottom;verticalAlign=top;align=center;"
             comp_id = f"comp_{idx}"
             
             cells.append(f'<mxCell id="{comp_id}" value="{comp.upper()}" style="{style}" vertex="1" parent="1"><mxGeometry x="{x}" y="{y}" width="80" height="80" as="geometry"/></mxCell>')
@@ -181,7 +261,12 @@ async def chat_and_generate(request: ChatRequest):
                 y += 150
                 
         inner_xml = "".join(cells)
+        # 返回最標準且相容的 mxGraphModel 結構
         xml_data = f"""<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>{inner_xml}</root></mxGraphModel>"""
+        logger.info("架構圖 XML 組裝完成")
+    
+    logger.info("API 處理完畢，準備返回結果")
+    logger.info("========================================")
     
     return {
         "status": "success", 

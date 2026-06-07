@@ -2,21 +2,78 @@ import { useEffect, useRef } from 'react';
 
 interface DrawioCanvasProps {
   xml: string;
+  onLoadComplete?: () => void;
 }
 
-export const DrawioCanvas = ({ xml }: DrawioCanvasProps) => {
+export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const isIframeReadyRef = useRef(false);
+  const pendingXmlRef = useRef<string>('');
 
+  // 使用 Ref 緩存最新的 onLoadComplete callback，避免 Effect 依賴它導致無限循環
+  const onLoadCompleteRef = useRef(onLoadComplete);
   useEffect(() => {
-    if (xml && iframeRef.current) {
+    onLoadCompleteRef.current = onLoadComplete;
+  });
+
+  // 當 xml 改變時，存入 pendingXmlRef。若 ready 則直接發送
+  useEffect(() => {
+    if (!xml) {
+      isIframeReadyRef.current = false;
+      pendingXmlRef.current = '';
+      return;
+    }
+
+    pendingXmlRef.current = xml;
+
+    if (isIframeReadyRef.current && iframeRef.current) {
       const message = JSON.stringify({
         action: 'load',
         autosave: 1,
         xml: xml
       });
       iframeRef.current.contentWindow?.postMessage(message, '*');
+      if (onLoadCompleteRef.current) {
+        onLoadCompleteRef.current();
+      }
     }
   }, [xml]);
+
+  // 監聽來自 iframe 的 init 事件
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // 確保來自 diagrams.net
+      if (!event.origin.includes('diagrams.net')) return;
+      if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
+
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        
+        if (data.event === 'init') {
+          isIframeReadyRef.current = true;
+          
+          if (pendingXmlRef.current) {
+            const message = JSON.stringify({
+              action: 'load',
+              autosave: 1,
+              xml: pendingXmlRef.current
+            });
+            iframeRef.current.contentWindow?.postMessage(message, '*');
+            if (onLoadCompleteRef.current) {
+              onLoadCompleteRef.current();
+            }
+          }
+        }
+      } catch {
+        // 忽略非 JSON 的訊息
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative">
