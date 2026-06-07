@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 from services.agent_router import router as agent_router
 
+# Load environment variables
+load_dotenv(override=True)
 app = FastAPI(title="Cloud-360 API")
 
 # Setup CORS
