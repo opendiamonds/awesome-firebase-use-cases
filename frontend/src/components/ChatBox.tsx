@@ -109,8 +109,8 @@ export const ChatBox = ({ messages, onGenerate, onReset, isGenerating }: ChatBox
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-              placeholder="輸入您的架構需求..."
+              onKeyDown={(e) => { if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit(e); } }}
+              placeholder="輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)"
               className="w-full max-h-[120px] pl-3 pr-2 py-2 bg-transparent text-gray-900 text-[14px] resize-none focus:outline-none placeholder:text-gray-400 min-h-[44px]"
               rows={1}
               disabled={isGenerating}
