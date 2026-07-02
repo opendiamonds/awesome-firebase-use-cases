@@ -276,6 +276,38 @@ Acceptance criteria:
 - Redacts secrets and sensitive payloads.
 - Links tool execution back to user request, agent trace and audit log.
 
+## J. Identity Authentication & Role-Based Access Control
+
+### J1. Unified Login Portal
+
+As a platform user, I want a secure and independent login page to authenticate my credentials and start my session.
+
+Acceptance criteria:
+
+- Provides a dedicated web login page for username and password authentication.
+- Implements secure token delivery and encrypted session storage in the browser with token expiration.
+- Returns generic, obfuscated error messages for failed login attempts to prevent user enumeration.
+
+### J2. Role-Based Page Visibility
+
+As a logged-in user, I want my workspace navigation and page visibility to be restricted to my role's permissions.
+
+Acceptance criteria:
+
+- Dynamically hides or shows sidebar options and menus based on the current user role.
+- Intercepts manual URL route changes and redirects unauthorized access attempts to a 403 Forbidden page.
+- Back-end APIs must simultaneously validate user roles and token scopes to prevent front-end bypass.
+
+### J3. Admin Permission Console
+
+As a platform administrator, I want to edit and assign user roles and permissions dynamically so that I can enforce least privilege.
+
+Acceptance criteria:
+
+- Provides an administrator-only control panel listing all users and their assigned roles.
+- Allows administrators to dynamically update a user's role, taking effect immediately upon the next user refresh.
+- Enforces mandatory audit logging for every role change event, specifying the administrator, the target user, and the role changes.
+
 ## English Version
 
 This document defines Cloud-360 user stories across the core platform pillars:
@@ -289,5 +321,7 @@ This document defines Cloud-360 user stories across the core platform pillars:
 - Cloud Security Posture and Policy Advisory.
 - Web-Based Desktop and Mobile Experience.
 - MCP and Skill Management.
+- Identity Authentication and Role-Based Access Control.
 
 Each story includes acceptance criteria so implementation work can be validated through Spec-Driven Development. The MCP and Skill Management stories require registries, catalogs, permission/risk classification, approval workflow, and observability for agent tool selection.
+

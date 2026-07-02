@@ -181,6 +181,18 @@
 
 ---
 
+#### 2026-07-02 16:32 +08:00 — Identity Authentication & RBAC User Stories
+
+**User request (raw)**: "0. 需要做使用者權限管理，一個登入頁面，使用者登入後僅能看到自己有權限的頁面，也需要一管理員可以編輯的使用者權限"
+**Stage**: Inception → Requirements & User Stories Addition
+**Outcome**: 
+1. 在 [cloud-360-srs.md](file:///Users/luojingting/Documents/opendimand/cloud/aidlc-docs/inception/requirements/cloud-360-srs.md) 中新增 Pillar J 中英文規格需求與技術約束。
+2. 在 [core-pillars.md](file:///Users/luojingting/Documents/opendimand/cloud/aidlc-docs/inception/user-stories/core-pillars.md) 中定義 Pillar J 的 J1, J2, J3 故事大綱。
+3. 在 [stories.md](file:///Users/luojingting/Documents/opendimand/cloud/aidlc-docs/inception/user-stories/stories.md) 中新增 Pillar J 中英文詳細情境故事，包含角色協作、驗收標準與 BDD 劇本。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -507,3 +519,12 @@ Each entry uses the following format:
 **User Input**: "data%3Aimage%2Fsvg%2…C9nPgo8L3N2Zz4%3D:1 GET https://embed.diagrams.net/data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CCjxzdmcgd2lk… 404 (Not Found)"
 **AI Response**: "Discovered that percent-encoding 'data:image/' into 'data%3Aimage%2F' prevents draw.io's JS engine from identifying it as a Data URI (as it only matches plain 'data:image/'). This causes draw.io to treat it as a relative path and make an HTTP request, resulting in a 404. Refactored XML generation in `backend/services/agent_router.py` to format the image as 'data:image/svg+xml,[Base64_Content]' (omitting ';base64'). This safely avoids the semicolon splitting while maintaining the plain 'data:image/' header, allowing draw.io to automatically autocomplete the ';base64' modifier internally, restoring proper inline SVG rendering and completely resolving both the 404 and 'Not a diagram file' errors."
 **Context**: Construction Phase - SVG Rendering Stability
+
+---
+
+## Inception (Identity Authentication & RBAC User Stories)
+**Timestamp**: 2026-07-02T16:32:00+08:00
+**User Input**: "0. 需要做使用者權限管理，一個登入頁面，使用者登入後僅能看到自己有權限的頁面，也需要一管理員可以編輯的使用者權限"
+**AI Response**: "Added Pillar J (Identity Authentication & Role-Based Access Control) to cloud-360-srs.md, core-pillars.md, and stories.md in both Chinese and English. Defined stories J1 (Unified Login Portal), J2 (Role-Based Page Visibility), and J3 (Admin Permission Console) with detailed BDD scenarios and acceptance criteria."
+**Context**: Inception Phase - RBAC Specification
+
