@@ -10,6 +10,7 @@ export const WorkspacePage = () => {
   const { token } = useAuth();
   const [xml, setXml] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState<string>('');
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   
   const [messages, setMessages] = useState<Message[]>([
@@ -26,6 +27,7 @@ export const WorkspacePage = () => {
   const handleGenerate = async (prompt: string) => {
     setIsGenerating(true);
     setToast(null);
+    setProgress('');
     
     const newMessages: Message[] = [...messages, { role: 'user', content: prompt }];
     setMessages(newMessages);
@@ -40,16 +42,53 @@ export const WorkspacePage = () => {
         body: JSON.stringify({ messages: newMessages })
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.detail || '生成失敗');
+        throw new Error('生成失敗');
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       
-      if (data.xml) {
-        setXml(data.xml);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage = '';
+      let buffer = '';
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === 'message') {
+                  assistantMessage += data.content;
+                  setMessages(prev => {
+                    const next = [...prev];
+                    next[next.length - 1].content = assistantMessage;
+                    return next;
+                  });
+                } else if (data.type === 'progress') {
+                  setProgress(data.content);
+                } else if (data.type === 'xml') {
+                  setXml(data.content);
+                  setProgress('');
+                  showToast('雲端架構草圖已成功生成', 'success');
+                } else if (data.type === 'error') {
+                  setProgress('');
+                  showToast(data.content, 'error');
+                }
+              } catch (e) {
+                // ignore invalid JSON line
+              }
+            }
+          }
+        }
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : '生成失敗';
@@ -126,6 +165,7 @@ export const WorkspacePage = () => {
         onGenerate={handleGenerate} 
         onReset={handleReset} 
         isGenerating={isGenerating} 
+        progress={progress}
       />
       <DrawioCanvas xml={xml} onLoadComplete={handleLoadComplete} />
     </div>
