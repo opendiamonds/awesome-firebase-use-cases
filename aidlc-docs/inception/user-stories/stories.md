@@ -395,6 +395,53 @@
   - **失敗 (Failure)**: 卡片亮紅燈顯示「Health Check 失敗」或「相依性缺失」。**後續引導**: 提示「請點擊檢視錯誤日誌」或「重新配置雲端連接器憑證」。
 - **BDD**: `Given` Elena 註冊了一個具備修改權限的 Cloud Connector `When` AI 自動測試連線成功，但 Jack 人工在審批階段將其降級為 Read-only `Then` Agent 在 Routing Layer 呼叫該工具時僅能執行查詢動作。
 
+### J. 身分認證與基於角色的權限管理 (Identity Authentication & Role-Based Access Control)
+
+#### J1. 統一登入入口與安全憑證驗證
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: 平台內所有使用者 (如 Alex, Fiona, Ian 等), Jack (平台管理員, `Platform_Admin`)
+  - **協作細節**: 所有使用者必須通過統一登入入口完成身分認證以獲取 Session Token。Jack 負責設定密碼複雜度策略與 MFA 規則。
+- **使用者需求/目標 (User Goal)**: 擁有一個安全的登入頁面，驗證身分並開始系統工作，保障帳戶與系統資料的安全。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 提供獨立的 Desktop / Mobile Web 登入頁面，支援帳號與密碼欄位輸入。
+  2. 驗證失敗時必須回傳模糊之錯誤提示（如「帳號或密碼錯誤」），以防止暴力破解與使用者列舉攻擊。
+  3. 驗證成功後，在瀏覽器安全儲存加密的 Token，並隨附時效控制（Token Expiration），逾時自動登出。
+- **操作流程**: 1. 訪問平台首頁網址。 2. 輸入帳號密碼並點擊「登入」。 3. **AI重置/人工微調**: 登入失敗可點擊「重設密碼」，或手動修正輸入之憑證。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 綠色 Toast 提示「✔ 登入成功，正在跳轉...」，隨後頁面跳轉至該角色對應之預設工作面板。**後續引導**：引導進入首頁控制台。
+  - **失敗 (Failure)**: 紅色警告「✘ 登入失敗：帳號或密碼錯誤」。**後續引導**：提示「請確認您的憑證後重試」，或提供「聯絡管理員」按鈕。
+- **BDD**: `Given` 使用者未登入 `When` 輸入正確憑證點擊登入 `Then` 派發 Token 並導向對應角色頁面。
+
+#### J2. 基於角色的權限頁面可見性控制
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Ian (開發者, `Developer`), David (FinOps 分析師, `FinOps_Analyst`), Fiona (資安審查員, `Security_Reviewer`)
+  - **協作細節**: 開發者 Ian 與 FinOps 分析師 David 在登入後，各自只能看到符合自己工作範疇的頁面。當 Ian 企圖越權查看 David 的成本面板時，系統將主動阻擋。
+- **使用者需求/目標 (User Goal)**: 確保平台內不同使用者僅能訪問與其職責相關的選單與工作區，落實職責分離 (SoD) 與最小權限原則。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 側邊導航欄與系統選單必須根據當前使用者的 Role 屬性動態隱藏或顯示對應的工作區連結。
+  2. 當使用者企圖手動修改瀏覽器 URL 路由（Bypass）訪問未授權頁面（如 `Developer` 訪問 `/admin`）時，前端路由守衛必須立刻攔截並將其導向 403 Forbidden 頁面。
+  3. 後端 API 接收請求時，必須同步比對 Token 中的 Role 範圍，確認無權限時回傳 403 HTTP code。
+- **操作流程**: 1. 使用者登入並進入主畫面。 2. 檢視左側選單，訪問授權模組。 3. **AI重置/人工微調**: 系統選單動態更新，若發生誤判，管理員可「局部重置」清除當前 Session 快取要求重配。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 介面順暢渲染授權的面板選單。**後續引導**：引導點擊進入相關分析工作區。
+  - **失敗 (Failure)**: 畫面轉為「403 拒絕存取」錯誤警告。**後續引導**：提示「您無此頁面的存取權限」，並提供「返回首頁」或「申請權限」按鈕。
+- **BDD**: `Given` Ian 的角色為 Developer `When` 嘗試修改瀏覽器 URL 訪問 `/admin` `Then` 路由守衛攔截並顯示 403 拒絕訪問。
+
+#### J3. 管理員專屬的權限編輯與指派面板
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Catherine (管理員, `Project_Admin`), Ian (開發者, `Developer`)
+  - **協作細節**: Catherine 進入權限面板，編輯 Ian 的角色。變更後，Ian 的系統權限將動態更新，且此動作將自動記錄至稽核日誌供 Fiona 審查。
+- **使用者需求/目標 (User Goal)**: 讓管理員可以方便地檢視所有帳戶，並根據項目職責即時調配或收回使用者權限。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 提供管理員專屬的 RBAC 管理面板，能完整列出系統內所有使用者名稱、角色與權限範圍。
+  2. 允許管理員點擊編輯並動態變更任一使用者的角色，變更必須存入後端資料庫且在目標使用者下次重新整理時立即生效。
+  3. 每次權限的變更（升級或降級）必須被強制記錄至平台稽核日誌 (Audit Log)，內容需包含執行管理員、受影響帳戶、以及權限異動詳情。
+- **操作流程**: 1. 管理員進入「權限管理面板」。 2. 選擇使用者並修改其角色屬性後存檔。 3. **AI重置/人工微調**: 點擊「重置此使用者」可還原至系統預設權限。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 綠色彈窗提示「✔ 使用者角色已更新為 SRE」，該行狀態更新為最新角色。**後續引導**：引導「檢視稽核日誌確認變更已記錄」。
+  - **失敗 (Failure)**: 紅色提示「✘ 更新失敗：不能將最後一位管理員降級」。**後續引導**：提示「請先指派其他管理員後重試」。
+- **BDD**: `Given` 管理員 Catherine 登入權限管理面板 `When` 將 Ian 的角色改為 SRE 並點擊儲存 `Then` 使用者狀態更新，且 Audit Log 生成對應變更紀錄。
+
 ---
 
 ## English Version (Translation)
@@ -788,3 +835,51 @@
   - **Success**: Tool card turns green displaying "ACTIVE" with a "Routing Layer Connected" badge. **Next Step**: Prompts "Test Agent tool invocation in Sandbox."
   - **Failure**: Card turns red displaying "Health Check Failed" or "Missing Dependencies." **Next Step**: Prompts "Click to view error logs" or "Reconfigure connector credentials."
 - **BDD**: `Given` Elena registers a Cloud Connector with write permissions `When` AI successfully tests the connection, but Jack manually downgrades it to Read-only during approval `Then` Agents using the Routing Layer can only perform read actions via this tool.
+
+### J. Identity Authentication & Role-Based Access Control (RBAC)
+
+#### J1. Unified Login Portal & Secure Credentials Validation
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: All platform users (e.g., Alex, Fiona, Ian), Jack (Platform Admin, `Platform_Admin`)
+  - **Collaboration Details**: All users must verify their identities through the unified login portal to obtain a Session Token. Jack configures password complexity policies and MFA rules.
+- **User Goal**: Securely log into the platform, validating credentials to start a session and protecting accounts and system data.
+- **Acceptance Criteria**:
+  1. Provides a dedicated Desktop / Mobile Web login page with username and password input fields.
+  2. Returns a generic, obfuscated error message on verification failure (e.g., "Invalid username or password") to prevent brute-force and user enumeration attacks.
+  3. Securely stores the encrypted token in the browser upon successful validation, carrying a token expiration time to auto-logout on timeout.
+- **Operational Flow**: 1. Access the platform login URL. 2. Enter credentials and click "Login". 3. **AI Reset/Manual Adjust**: Reset password if failed, or manually correct the input credentials.
+- **System Feedback**:
+  - **Success**: A green toast shows "✔ Login successful, redirecting...", and the page redirects to the user role's default dashboard. **Next Step**: Enters dashboard homepage.
+  - **Failure**: A red warning shows "✘ Login failed: Invalid username or password." **Next Step**: Prompts "Please check your credentials and retry" or offers a "Contact Admin" button.
+- **BDD**: `Given` A user is unauthenticated `When` they enter valid credentials and click login `Then` A token is issued and they are redirected to their role's page.
+
+#### J2. Role-Based Page Visibility Control
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Ian (Developer, `Developer`), David (FinOps Analyst, `FinOps_Analyst`), Fiona (Security Reviewer, `Security_Reviewer`)
+  - **Collaboration Details**: Developer Ian and FinOps Analyst David each only see pages relevant to their duties post-login. When Ian attempts to access David's cost console, the system blocks him.
+- **User Goal**: Ensure users only access menus and workspaces relevant to their roles, enforcing Separation of Duties (SoD) and least privilege.
+- **Acceptance Criteria**:
+  1. The sidebar navigation and system menus dynamically show or hide workspace links based on the user's role.
+  2. When a user manually modifies the browser URL to bypass restrictions (e.g., a Developer visiting `/admin`), the route guards intercept and redirect them to a 403 Forbidden page.
+  3. The back-end APIs must simultaneously validate the user's role in the token, returning a 403 HTTP code on unauthorized requests.
+- **Operational Flow**: 1. User logs in and enters dashboard. 2. Views the sidebar and accesses authorized modules. 3. **AI Reset/Manual Adjust**: Menus auto-update; if a misconfiguration occurs, administrators can "Partial Reset" the session cache.
+- **System Feedback**:
+  - **Success**: Smoothly renders authorized menus and widgets. **Next Step**: Click to enter the workspace.
+  - **Failure**: Redirects to a "403 Access Denied" page. **Next Step**: Prompts "You do not have permission to view this page" and provides "Return to Home" or "Request Access" buttons.
+- **BDD**: `Given` Ian's role is Developer `When` he manually alters the URL path to `/admin` `Then` The route guard intercepts and renders a 403 Access Denied page.
+
+#### J3. Administrator's Permission Management & Assignment Panel
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Catherine (Admin, `Project_Admin`), Ian (Developer, `Developer`)
+  - **Collaboration Details**: Catherine enters the permission console to edit Ian's role. Upon saving, Ian's privileges update instantly, and the action is logged to the Audit Log for Fiona to review.
+- **User Goal**: Enable administrators to inspect all accounts and dynamically assign or revoke user privileges based on project duties.
+- **Acceptance Criteria**:
+  1. Provides an administrator-only RBAC panel listing all users, their assigned roles, and permission scopes.
+  2. Allows administrators to edit and save role changes, updating database states and applying new privileges to the target user upon their next refresh.
+  3. Enforces mandatory audit logging for role updates, specifying the administrator, the target user, and change details.
+- **Operational Flow**: 1. Admin accesses "User Management Panel". 2. Selects a user, modifies their role, and saves. 3. **AI Reset/Manual Adjust**: Click "Reset User" to restore platform default privileges.
+- **System Feedback**:
+  - **Success**: A green toast prompts "✔ User role updated to SRE," updating the table state. **Next Step**: Prompts "Check audit log to confirm changes."
+  - **Failure**: A red alert prompts "✘ Update failed: Cannot downgrade the last administrator." **Next Step**: Prompts "Assign another admin first."
+- **BDD**: `Given` Administrator Catherine is logged into the console `When` she changes Ian's role to SRE and saves `Then` The user state updates, and a corresponding audit entry is logged.
+
