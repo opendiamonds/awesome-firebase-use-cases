@@ -3,10 +3,16 @@ import json
 import base64
 import urllib.parse
 import httpx
+import logging
+import asyncio
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
+
+# 設置日誌記錄器
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -85,7 +91,13 @@ async def chat_and_generate(request: ChatRequest):
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
     
+    logger.info("========================================")
+    logger.info("收到畫圖/對話請求，正在進行環境變數檢查...")
+    logger.info(f"OPENROUTER_API_KEY 狀態: {'已設定' if openrouter_key else '未設定'}")
+    logger.info(f"ANTHROPIC_API_KEY 狀態: {'已設定' if anthropic_key else '未設定'}")
+    
     if not openrouter_key and not anthropic_key:
+        logger.error("錯誤: 未設定 API Key")
         raise HTTPException(status_code=500, detail="尚未設定 OPENROUTER_API_KEY 或 ANTHROPIC_API_KEY 環境變數")
 
     system_prompt = """

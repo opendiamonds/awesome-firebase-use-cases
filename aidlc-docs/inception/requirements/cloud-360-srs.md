@@ -118,7 +118,22 @@ Cloud-360 需提供 MCP servers、MCP tools、AI Skills 與 cloud provider conne
 - Versioning：記錄版本、schema、owner、相依性、變更紀錄與 rollback target。
 - Health Check：檢查 MCP server availability、tool schema、auth scope、latency、error rate 與最近執行狀態。
 - Approval Workflow：新增、升級、停用高風險 MCP / Skill 或擴權時需 human approval。
-- Agent Routing Integration：Routing Agent 需可依任務、上下文、風險與權限選擇合適 MCP / Skill。
+- Agent Tool Selection Observability：Agent Routing Layer 需可依任務、上下文、風險與權限選擇合適 MCP / Skill，且可追蹤調用原因。
+
+#### J. Identity Authentication & Role-Based Access Control
+
+基於角色的存取控制 (RBAC) 確保平台使用者身分之安全性與權限邊界。
+
+**J1. 功能需求 (Functional Requirements)**
+- **統一登入入口**：系統必須提供安全、獨立之登入介面供使用者輸入帳號密碼進行身分驗證。
+- **頁面權限控制**：使用者登入後，其側邊導航與可存取頁面必須嚴格限制在其角色權限範圍內。
+- **權限編輯面板**：提供專屬於系統管理員 (`Project_Admin`) 的管理控制台，供管理員檢視、編輯並動態更新不同使用者的角色與權限範圍。
+
+**J2. 技術約束 (Technical Constraints)**
+- **路由安全防護**：前端路由與後端 API 必須同步實施 RBAC 驗證，防止未授權使用者通過修改 URL 路由或發送直接 API 請求來繞過權限控制（Bypass）。
+- **機密資料保護**：身分憑證與 Session Token 的存取與傳輸必須符合安全傳輸協議 (HTTPS)，且密碼必須經過強雜湊算法 (e.g., bcrypt/Argon2) 加密儲存。
+- **變更即時生效**：管理員修改權限後，新的角色權限必須即刻套用至目標使用者。
+- **操作審計日誌**：所有使用者權限與角色的變更行為，必須被強制寫入系統審計日誌 (Audit Log)。
 
 ### 4. User Experience Requirements
 
@@ -319,6 +334,21 @@ Cloud-360 must provide centralized management capabilities for MCP servers, MCP 
 - Health Check: Check MCP server availability, tool schema, auth scope, latency, error rate, and latest execution status.
 - Approval Workflow: Require human approval when adding, upgrading, disabling, or escalating privileges for high-risk MCPs/Skills.
 - Agent Routing Integration: Allow the Routing Agent to select appropriate MCPs/Skills based on task, context, risk, and permissions.
+
+#### J. Identity Authentication & Role-Based Access Control
+
+Role-Based Access Control (RBAC) secures platform users' identities and enforces permission boundaries.
+
+**J1. Functional Requirements**
+- **Unified Login Portal**: The system must provide a secure, independent login interface for user credentials verification.
+- **Page Visibility Control**: Post-login page access and sidebar navigation must be strictly restricted to the user's role-based permissions.
+- **Admin Permission Console**: Provides an administrative control panel for the system administrator (`Project_Admin`) to view, edit, and dynamically assign roles and permission scopes for different users.
+
+**J2. Technical Constraints**
+- **Route Guard Protection**: Front-end routing and back-end APIs must simultaneously enforce RBAC checks, preventing unauthorized users from bypassing controls via URL path modification or direct API calls.
+- **Credential Protection**: Transmitting and storing session tokens or passwords must use secure protocols (HTTPS) and strong hashing algorithms (e.g., bcrypt/Argon2).
+- **Immediate Effect**: Upon role updates by administrators, the new permissions must take effect instantly for the target user.
+- **Audit Logging**: Any user privilege change or role re-assignment must be logged strictly inside the system audit log.
 
 ### 4. User Experience Requirements
 

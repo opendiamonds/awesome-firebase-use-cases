@@ -89,11 +89,16 @@ function App() {
           }
         }
       }
-    } catch (err: any) {
-      showToast(err.message || '生成失敗', 'error');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : '生成失敗';
+      showToast(errMsg, 'error');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleLoadComplete = () => {
+    showToast('雲端架構草圖已成功生成', 'success');
   };
 
   const handleReset = () => {
@@ -163,7 +168,7 @@ function App() {
           isGenerating={isGenerating} 
           progress={progress}
         />
-        <DrawioCanvas xml={xml} />
+        <DrawioCanvas xml={xml} onLoadComplete={handleLoadComplete} />
       </div>
     </Layout>
   );
