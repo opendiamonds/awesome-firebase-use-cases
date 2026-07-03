@@ -1,7 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+import logging
 from services.agent_router import router as agent_router
+from services.user_router import router as user_router
+from database import init_db
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("cloud360.main")
 
 # Load environment variables
 load_dotenv(override=True)
@@ -16,7 +23,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Startup event to initialize database
+@app.on_event("startup")
+def on_startup():
+    logger.info("後端服務正在啟動...")
+    init_db()
+
 app.include_router(agent_router, prefix="/api/architecture")
+app.include_router(user_router, prefix="/api/auth")
 
 @app.get("/")
 def read_root():
