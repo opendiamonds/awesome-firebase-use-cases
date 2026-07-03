@@ -193,6 +193,31 @@
 
 ---
 
+#### 2026-07-02 16:49 +08:00 — Identity Authentication & RBAC Construction
+
+**User request (raw)**: "0. 需要做使用者權限管理，一個登入頁面，使用者登入後僅能看到自己有權限的頁面，也需要一管理員可以編輯的使用者權限"
+**Stage**: Construction → Authentication & RBAC Implementation
+**Outcome**: 
+1. **Docker PostgreSQL 部署**：建立 `docker-compose.yml` 運行本地 PostgreSQL 容器。
+2. **後端認證 API 與角色指派**：使用 SQLAlchemy 設計 `User` 模型，以 `personas.md` 的 11 位平台人物進行初始化（密碼經過 bcrypt 強雜湊加密）。實作 JWT 認證、`/api/auth/login`、`/api/auth/me` 與限制管理員使用的角色指派 API，並在變更角色時寫入日誌。
+3. **前端路由守衛與介面**：引入 `react-router-dom` 配置路由，實作 `ProtectedRoute` 與 `AdminRoute` 路由守衛。設計玻璃擬態設計的登入頁面（`/login`）、403 Forbidden 頁面與管理員 RBAC 控制面板（`/admin`）。
+4. **全站整合**：重構 `Sidebar.tsx` 與 `App.tsx` 以接入 AuthContext 與角色導航，並通過 `npm run build` 編譯驗證。
+**Approver**: luojingting
+
+---
+
+#### 2026-07-03 11:20 +08:00 — User Registration Implementation
+
+**User request (raw)**: "我想要多一個註冊的功能"
+**Stage**: Construction → Account Registration Feature
+**Outcome**: 
+1. **後端註冊 API**：在 `user_router.py` 中新增 `POST /api/auth/register`，包含輸入長度（username: 3-20, password: 6-30）、正則防注入過濾、重複帳號檢查，並在寫入資料庫時預設指派為 `"Developer"` 角色且對密碼進行 `bcrypt` 強雜湊加密。
+2. **前端註冊卡片**：重構 `LoginPage.tsx`，在玻璃擬態卡片內新增「沒有帳號？立即註冊 / 已有帳號？立即登入」表單狀態切換。在註冊表單中整合確認密碼（Confirm Password）的前端比對校驗。
+3. **整合自動登入**：註冊成功後後端直接生成並返回 JWT Token，前端接收後寫入快取，實現註冊後即自動登入的順暢體驗。
+**Approver**: luojingting
+
+---
+
 ## English Version
 
 ### Log Format
@@ -528,3 +553,55 @@ Each entry uses the following format:
 **AI Response**: "Added Pillar J (Identity Authentication & Role-Based Access Control) to cloud-360-srs.md, core-pillars.md, and stories.md in both Chinese and English. Defined stories J1 (Unified Login Portal), J2 (Role-Based Page Visibility), and J3 (Admin Permission Console) with detailed BDD scenarios and acceptance criteria."
 **Context**: Inception Phase - RBAC Specification
 
+---
+
+## Construction (Identity Authentication & RBAC Implementation)
+**Timestamp**: 2026-07-02T16:49:00+08:00
+**User Input**: "0. 需要做使用者權限管理，一個登入頁面，使用者登入後僅能看到自己有權限的頁面，也需要一管理員可以編輯的使用者權限"
+**AI Response**: "Successfully constructed the complete authentication and RBAC system (Pillar J). Implemented local Docker PostgreSQL deployment via docker-compose.yml. Constructed FastAPI JWT auth and user management routers using SQLAlchemy, seeding 11 personas from personas.md with bcrypt hashed credentials. Integrated react-router-dom in frontend, creating LoginPage, ForbiddenPage, and AdminPage with route guards. Integrated Sidebar and App component configurations with AuthContext, verifying full build via npm run build."
+**Context**: Construction Phase - Authentication & RBAC Integration
+
+
+
+#### 2026-07-03 11:19:52 +08:00 — User Registration
+
+**User request (raw)**: "註冊新帳號 test_register"
+**Stage**: Operations → Account Creation
+**Outcome**: 使用者 test_register 成功註冊並指派角色為 Developer，即刻生效。
+**Approver**: System_Auto
+
+---
+
+## Construction (User Registration Implementation)
+**Timestamp**: 2026-07-03T11:20:00+08:00
+**User Input**: "我想要多一個註冊的功能"
+**AI Response**: "Successfully constructed the user registration feature. Added POST /api/auth/register endpoint with regex check, length validator, duplicate username prevention, and automatic 'Developer' role assignment with bcrypt hash. Integrated registration form toggle in frontend LoginPage with double password match validation, allowing auto-login with JWT on successful account creation. Verified clean build via npm run build."
+**Context**: Construction Phase - Account Registration Feature
+
+
+#### 2026-07-03 11:22:20 +08:00 — User Registration
+
+**User request (raw)**: "註冊新帳號 tina"
+**Stage**: Operations → Account Creation
+**Outcome**: 使用者 tina 成功註冊並指派角色為 Developer，即刻生效。
+**Approver**: System_Auto
+
+---
+
+#### 2026-07-03 11:22:58 +08:00 — User Privilege Re-assignment
+
+**User request (raw)**: "變更使用者 jack 角色為 Project_Admin"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 角色成功從 Platform_Admin 變更為 Project_Admin，下次重新整理時生效。
+**Approver**: catherine
+
+---
+
+#### 2026-07-03 11:23:01 +08:00 — User Privilege Re-assignment
+
+**User request (raw)**: "變更使用者 jack 角色為 SRE"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 角色成功從 Project_Admin 變更為 SRE，下次重新整理時生效。
+**Approver**: catherine
+
+---
