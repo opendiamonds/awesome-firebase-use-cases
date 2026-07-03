@@ -365,3 +365,43 @@ Each entry uses the following format:
 **User Input**: "Claude API Error: Expecting value: line 1 column 1 (char 0)" / "前端修一下 不要按 enter 就送出訊息 我是要換行"
 **AI Response**: "Enhanced LLM JSON parsing with robust fallback mechanisms to handle non-JSON conversational responses. Fixed n8n webhook integration to properly handle JSON array responses and POST requests. Modified frontend ChatBox to insert newline on Enter, and send message on Cmd/Ctrl+Enter."
 **Context**: Construction Phase - UX & Stability Improvements
+
+---
+
+## Construction (A1 Architecture Diagram Agent Refactoring)
+**Timestamp**: 2026-07-02T08:33:50Z
+**User Input**: "那如果我想要把接 openrouter 請 ai 畫圖改成寫一個agent 請他幫我話架構圖 這個是可行的嗎" / "我選擇第一個 (原生 Tool Calling)"
+**AI Response**: "Refactored `agent_router.py` to use native Agent Tool Calling instead of prompt-based JSON enforcement. Added `tools` schema for `draw_architecture_diagram` and implemented tool_calls parsing logic. The backend now allows the LLM to autonomously decide when to call the diagram drawing tool, providing a much more robust conversational workflow."
+**Context**: Construction Phase - Agent Refactoring
+
+---
+
+## Construction (A1 Advanced Drawing & Icon Matching)
+**Timestamp**: 2026-07-02T09:28:30Z
+**User Input**: "1. n8n 應該會回傳圖片但同時也有icon 的名字... 2. 以及我是不是要給agent 一個範例去畫圖 他比較知道怎麼畫？"
+**AI Response**: "Upgraded `agent_router.py` drawing tool schema to accept `nodes` (with explicit x, y coordinates) and `edges` (for graph topology). Added a few-shot drawing guide to the system prompt so the Agent can logically arrange nodes. Also upgraded `fetch_icon_from_n8n` to intelligently loop through the array and string-match the requested service name against `name`, `icon_name`, or `service` fields to fetch the precise icon."
+**Context**: Construction Phase - Agent Architecture Upgrade
+
+---
+
+## Construction (A1 Streaming API Integration)
+**Timestamp**: 2026-07-03T03:45:00Z
+**User Input**: "幫我改成用 streaming 的方式產圖 讓我知道產圖進度"
+**AI Response**: "Refactored backend `/generate` endpoint in `agent_router.py` to use FastAPI `StreamingResponse` for SSE. Implemented async chunk parsing of OpenRouter responses, yielding `message` types immediately for typewriter effects, while accumulating `tool_calls` in the background to finally yield the `xml` payload. Modified React frontend `App.tsx` to consume the SSE stream via `ReadableStreamDefaultReader` and `TextDecoder`."
+**Context**: Construction Phase - UX Enhancement
+
+---
+
+## Construction (A1 Progress Indicator)
+**Timestamp**: 2026-07-03T07:53:20Z
+**User Input**: "可以在對話框顯示產架構圖的進度條嗎 讓使用者清楚產圖的進度" / "因為他現在就只有顯示 加載中 看不到任何進度"
+**AI Response**: "Added real-time progress yielding to the `agent_router.py` SSE generator. The backend now pushes `{"type": "progress", "content": "..."}` chunks during tool call detection and n8n icon fetching loops. Updated `App.tsx` to manage `progress` state, and modified `ChatBox.tsx` to display a spinning indicator with the progress text instead of the generic bouncing dots during generation."
+**Context**: Construction Phase - UX Enhancement
+
+---
+
+## Construction (A1 AWS Groups & Orthogonal Edges)
+**Timestamp**: 2026-07-03T08:37:30Z
+**User Input**: "我想要他像我給你的 example 有框架... 像是基本的 aws 以及 vpc, availbility zone, public subnet, private subnet 這種框架... 線條也要照 example 上的呈現方式"
+**AI Response**: "Upgraded `agent_router.py` tool schema to support `groups`. Implemented a smart Bounding Box containment algorithm in Python that automatically calculates the smallest enclosing group for each node or nested group, resolving parent-child relationships and mapping absolute coordinates to draw.io's relative coordinates. Integrated exact draw.io XML styles for AWS Cloud, VPC, AZs, and Subnets from the user's reference file, and switched all edges to use `orthogonalEdgeStyle`."
+**Context**: Construction Phase - Agent Architecture Upgrade
