@@ -605,3 +605,12 @@ Each entry uses the following format:
 **Approver**: catherine
 
 ---
+#### 2026-07-03 19:15:00 +08:00 — Branch Merge (ut)
+
+**User request (raw)**: "我想把現在的合併到ut 要包含sechema 如果遇到衝突，是屬於A1的範圍就以ut為主"
+**Stage**: Operations → Branch Management
+**Outcome**: 成功將 tina/feat/auth-login-rbac 合併至 ut 分支，包含 schema.sql。採用 Fast-forward 合併，無任何衝突發生。
+**Approver**: luojingting
+
+---
+
