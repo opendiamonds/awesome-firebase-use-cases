@@ -1,15 +1,37 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 interface DrawioCanvasProps {
   xml: string;
   onLoadComplete?: () => void;
+  onAutosave?: (xml: string) => void;
+  onSaveClick?: (xml: string) => void;
+  onShareClick?: () => void;
 }
 
-export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
+export interface DrawioCanvasRef {
+  mergeXml: (xml: string) => void;
+}
+
+export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(({ xml, onLoadComplete, onAutosave, onSaveClick, onShareClick }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const latestXmlRef = useRef<string>(xml);
 
-  // 使用 Ref 緩存最新的 onLoadComplete callback，避免 Effect 依賴它導致無限循環
+  useEffect(() => {
+    if (xml) {
+      latestXmlRef.current = xml;
+    }
+  }, [xml]);
+
+  useImperativeHandle(ref, () => ({
+    mergeXml: (mergeData: string) => {
+      if (iframeRef.current && isReady) {
+        iframeRef.current.contentWindow?.postMessage(JSON.stringify({ action: 'merge', xml: mergeData }), '*');
+      }
+    }
+  }), [isReady]);
+
+  // Use a ref for the latest callback to avoid infinite loops
   const onLoadCompleteRef = useRef(onLoadComplete);
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
@@ -39,7 +61,7 @@ export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
     }
   }, [xml, isReady]);
 
-  // 監聽來自 iframe 的 init 事件
+  // 監聽來自 iframe 的 init 事件與 autosave
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // 確保來自 diagrams.net
@@ -50,18 +72,22 @@ export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         
         if (data.event === 'init') {
-          isIframeReadyRef.current = true;
-          
-          if (pendingXmlRef.current) {
+          // isIframeReadyRef.current = true; // removed from previous code, handled by isReady state now.
+          if (xml) {
             const message = JSON.stringify({
               action: 'load',
               autosave: 1,
-              xml: pendingXmlRef.current
+              xml: xml
             });
             iframeRef.current.contentWindow?.postMessage(message, '*');
             if (onLoadCompleteRef.current) {
               onLoadCompleteRef.current();
             }
+          }
+        } else if (data.event === 'autosave' && data.xml) {
+          latestXmlRef.current = data.xml;
+          if (onAutosave) {
+            onAutosave(data.xml);
           }
         }
       } catch {
@@ -73,7 +99,7 @@ export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [xml, onAutosave]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative">
@@ -101,13 +127,16 @@ export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
             </svg>
           </button>
-          <button className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200">
+          <button onClick={onShareClick} className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all duration-200" title="與團隊分享">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
           </button>
           <div className="w-px h-6 bg-gray-200 mx-2"></div>
-          <button className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <button 
+            onClick={() => onSaveClick && onSaveClick(latestXmlRef.current)}
+            className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+          >
             儲存架構圖
           </button>
         </div>
@@ -142,4 +171,4 @@ export const DrawioCanvas = ({ xml, onLoadComplete }: DrawioCanvasProps) => {
 
     </div>
   );
-};
+});
