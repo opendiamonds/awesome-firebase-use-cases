@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import logging
 from services.agent_router import router as agent_router
 from services.user_router import router as user_router
+from services.collab_router import router as collab_router
 from database import init_db
 
 # Configure logging
@@ -31,6 +32,7 @@ def on_startup():
 
 app.include_router(agent_router, prefix="/api/architecture")
 app.include_router(user_router, prefix="/api/auth")
+app.include_router(collab_router, prefix="/api/collab")
 
 @app.get("/")
 def read_root():

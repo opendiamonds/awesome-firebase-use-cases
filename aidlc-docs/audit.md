@@ -651,3 +651,43 @@ Each entry uses the following format:
 
 ---
 
+
+---
+
+#### 2026-07-05 02:04 +0800 — A2 Collaborative Editing Construction
+
+**User request (raw)**: "可以幫我重啟服務嗎... 幫我分析本寫的 a2的需求... 好"
+**Stage**: Construction → Code Generation (A2)
+**Outcome**: 完成 A2 (AI + draw.io Canvas 協同編輯) 功能建置。新增 FastAPI WebSocket collab_router.py、前端 useCollaboration.ts Hook。完成 draw.io merge 指令與 autosave 事件整合，並優化 agent_router.py 以支援 AI 局部編輯與連線保留機制。建立 walkthrough.md。
+**Approver**: luojingting
+
+---
+
+#### 2026-07-05 02:16 +0800 — A2 Collaborative Editing Extension (Diagram Save)
+
+**User request (raw)**: "我想針對A2做一點修改，當我在完成架構圖生成十，我希望可以把產出來的畫面draw io存檔..."
+**Stage**: Construction → Code Generation (A2 Extension)
+**Outcome**: 實作使用者專屬的架構圖資料庫存檔機制 (Single Draft 覆蓋模式)。新增 `UserDiagram` SQLAlchemy 模型並自動寫入資料庫；實作 `/api/collab/diagrams/mine` 的 GET/POST 端點；整合前端自動在頁面載入時拉取歷史紀錄，並於點擊「儲存架構圖」時寫入資料庫。
+**Approver**: luojingting
+
+---
+
+#### 2026-07-05 02:25 +0800 — A2 Collaborative Editing Extension (Multiple Diagrams Support)
+
+**User request (raw)**: "我希望在畫面上有地方可以點選已儲存過的架構圖"
+**Stage**: Construction → Code Generation (A2 Extension)
+**Outcome**: 將原有的單一草稿儲存機制升級為支援多檔案管理。更新了 `UserDiagram` SQLAlchemy 模型加入 `title` 欄位，並透過 Script 重建資料表；在後端新增完整的 GET/POST/PUT API 來處理清單與單筆圖表的更新；前端畫面正上方加入架構圖下拉選單 (Dropdown UI)，支援建立新圖表與切換歷史草稿。
+**Approver**: luojingting
+
+---
+
+#### 2026-07-05 02:37 +0800 — A2 Collaborative Editing Extension (Diagram Sharing & WebSocket Upgrade)
+
+**User request (raw)**: "我現在要做共同編輯 A2的功能，我希望畫面上那個分享的icon 點選之後可以選擇要分享給哪個使用者..."
+**Stage**: Construction → Code Generation (A2 Extension)
+**Outcome**: 實作了架構圖共用權限管理與精準協作連線：
+1. 資料庫新增 `diagram_shares` 多對多關聯表，允許將圖表分享給多位註冊使用者。
+2. 後端新增 `/api/collab/users` 取名單，及 `/api/collab/diagrams/{id}/share` 更新分享權限。
+3. 前端實作 `ShareModal` 元件，點擊分享 Icon 即可勾選團隊成員；下拉選單支援顯示「👥 被分享的圖表」。
+4. WebSocket 連線從固定的 default 頻道改為綁定 `diagramId` (`/api/collab/ws/{diagramId}`)，真正落實了針對特定檔案的多人共編。
+**Approver**: luojingting

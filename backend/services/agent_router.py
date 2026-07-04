@@ -24,6 +24,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
+    current_xml: Optional[str] = None
 
 async def fetch_icon_from_n8n(service_name: str) -> str:
     webhook_url = os.environ.get("N8N_WEBHOOK_URL")
@@ -133,7 +134,16 @@ async def chat_and_generate(request: ChatRequest, current_user: User = Depends(g
          - Data Private Subnet: x=620, y=690, width=440, height=180
        
     請務必保證座標空間足夠，並確保被包覆的節點絕對座標落在父框架的範圍內，且平行的框架(如 AZ與AZ、Subnet與Subnet)不可互相交疊！
+    
+    【局部編輯與連線保留 (Partial Updates)】
+    如果使用者要求修改現有的架構（例如「將 DB 替換為 Aurora」或「加上 WAF」），且提供了目前的 XML 草稿：
+    1. 除非使用者要求「全部重置」，否則請務必仔細閱讀並**保留**他們先前的基礎架構與連線。
+    2. 新增或替換節點時，請給予合適的絕對座標 (x, y)，若是替換請維持原座標。
+    3. 保留與未更動節點相關的連線 (edges)。
     """
+    
+    if request.current_xml:
+        system_prompt += f"\n\n【目前的架構草稿】\n使用者目前畫布上的 XML 內容如下，請在呼叫工具時，基於此內容進行「修改」或「擴充」：\n```xml\n{request.current_xml}\n```\n"
     
     model_name = os.environ.get("LLM_MODEL", "anthropic/claude-sonnet-4.6")
     
