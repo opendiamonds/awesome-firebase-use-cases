@@ -1,11 +1,19 @@
 import os
 import logging
 import bcrypt
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, User
 
 logger = logging.getLogger("cloud360.database")
+
+# 自動判斷環境：如果有設定 APP_ENV，或是預設為 local，就去抓對應的 .env 檔案
+app_env = os.environ.get("APP_ENV", "local")
+if app_env == "local":
+    # 這裡確保只在 local 開發時強制讀取 .env
+    # 部署到正式環境 (如 production) 時，通常由平台 (AWS/Vercel) 直接注入環境變數
+    load_dotenv()
 
 # Database configuration
 DATABASE_URL = os.environ.get(
