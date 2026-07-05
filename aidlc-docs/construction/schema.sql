@@ -1,0 +1,28 @@
+-- Cloud-360 Database Schema (Auto-generated from SQLAlchemy Models)
+
+CREATE TABLE diagram_shares (
+	user_id INTEGER NOT NULL, 
+	diagram_id INTEGER NOT NULL, 
+	PRIMARY KEY (user_id, diagram_id), 
+	FOREIGN KEY(user_id) REFERENCES users (id), 
+	FOREIGN KEY(diagram_id) REFERENCES user_diagrams (id)
+);
+
+CREATE TABLE users (
+	id SERIAL NOT NULL, 
+	username VARCHAR NOT NULL, 
+	password_hash VARCHAR NOT NULL, 
+	role VARCHAR NOT NULL, 
+	is_active BOOLEAN, 
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE user_diagrams (
+	id SERIAL NOT NULL, 
+	user_id INTEGER NOT NULL, 
+	title VARCHAR NOT NULL, 
+	xml_data TEXT NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id)
+);
