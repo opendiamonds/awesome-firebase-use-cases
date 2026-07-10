@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
+export type DiagramSaveStatus = 'saved' | 'unsaved' | 'saving' | 'no-file';
+
 interface DrawioCanvasProps {
   xml: string;
+  /** 工具列顯示的架構圖標題 */
+  diagramTitle?: string;
+  /** 儲存狀態徽章（修正先前寫死「未儲存」） */
+  saveStatus?: DiagramSaveStatus;
   onLoadComplete?: () => void;
   onAutosave?: (xml: string) => void;
   onSaveClick?: (xml: string) => void;
@@ -12,163 +18,250 @@ export interface DrawioCanvasRef {
   mergeXml: (xml: string) => void;
 }
 
-export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(({ xml, onLoadComplete, onAutosave, onSaveClick, onShareClick }, ref) => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [isReady, setIsReady] = useState(false);
-  const latestXmlRef = useRef<string>(xml);
+const SAVE_BADGE: Record<
+  DiagramSaveStatus,
+  { label: string; className: string }
+> = {
+  saved: {
+    label: '已儲存',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  },
+  unsaved: {
+    label: '未儲存',
+    className: 'bg-amber-50 text-amber-600 border-amber-200/50',
+  },
+  saving: {
+    label: '儲存中…',
+    className: 'bg-sky-50 text-sky-700 border-sky-200/50',
+  },
+  'no-file': {
+    label: '尚未建檔',
+    className: 'bg-amber-50 text-amber-600 border-amber-200/50',
+  },
+};
 
-  useEffect(() => {
-    if (xml) {
-      latestXmlRef.current = xml;
-    }
-  }, [xml]);
+export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
+  (
+    {
+      xml,
+      diagramTitle = '未命名架構圖',
+      saveStatus = 'unsaved',
+      onLoadComplete,
+      onAutosave,
+      onSaveClick,
+      onShareClick,
+    },
+    ref
+  ) => {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const [isReady, setIsReady] = useState(false);
+    const latestXmlRef = useRef<string>(xml);
+    const badge = SAVE_BADGE[saveStatus];
 
-  useImperativeHandle(ref, () => ({
-    mergeXml: (mergeData: string) => {
-      if (iframeRef.current && isReady) {
-        iframeRef.current.contentWindow?.postMessage(JSON.stringify({ action: 'merge', xml: mergeData }), '*');
+    useEffect(() => {
+      if (xml) {
+        latestXmlRef.current = xml;
       }
-    }
-  }), [isReady]);
+    }, [xml]);
 
-  // Use a ref for the latest callback to avoid infinite loops
-  const onLoadCompleteRef = useRef(onLoadComplete);
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      try {
-        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (data.event === 'init') {
-          setIsReady(true);
+    useImperativeHandle(
+      ref,
+      () => ({
+        mergeXml: (mergeData: string) => {
+          if (iframeRef.current && isReady) {
+            iframeRef.current.contentWindow?.postMessage(
+              JSON.stringify({ action: 'merge', xml: mergeData }),
+              '*'
+            );
+          }
+        },
+      }),
+      [isReady]
+    );
+
+    const onLoadCompleteRef = useRef(onLoadComplete);
+    useEffect(() => {
+      onLoadCompleteRef.current = onLoadComplete;
+    }, [onLoadComplete]);
+
+    useEffect(() => {
+      const handleMessage = (e: MessageEvent) => {
+        try {
+          const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          if (data.event === 'init') {
+            setIsReady(true);
+          }
+        } catch {
+          // ignore
         }
-      } catch (err) {}
-    };
+      };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
+    }, []);
 
-  useEffect(() => {
-    if (xml && isReady && iframeRef.current) {
-      const message = JSON.stringify({
-        action: 'load',
-        autosave: 1,
-        xml: xml
-      });
-      iframeRef.current.contentWindow?.postMessage(message, '*');
-      if (onLoadCompleteRef.current) {
-        onLoadCompleteRef.current();
+    useEffect(() => {
+      if (xml && isReady && iframeRef.current) {
+        const message = JSON.stringify({
+          action: 'load',
+          autosave: 1,
+          xml: xml,
+        });
+        iframeRef.current.contentWindow?.postMessage(message, '*');
+        if (onLoadCompleteRef.current) {
+          onLoadCompleteRef.current();
+        }
       }
-    }
-  }, [xml, isReady]);
+    }, [xml, isReady]);
 
-  // 監聽來自 iframe 的 init 事件與 autosave
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // 確保來自 diagrams.net
-      if (!event.origin.includes('diagrams.net')) return;
-      if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
+    useEffect(() => {
+      const handleMessage = (event: MessageEvent) => {
+        if (!event.origin.includes('diagrams.net')) return;
+        if (!iframeRef.current || event.source !== iframeRef.current.contentWindow)
+          return;
 
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        
-        if (data.event === 'init') {
-          // isIframeReadyRef.current = true; // removed from previous code, handled by isReady state now.
-          if (xml) {
-            const message = JSON.stringify({
-              action: 'load',
-              autosave: 1,
-              xml: xml
-            });
-            iframeRef.current.contentWindow?.postMessage(message, '*');
-            if (onLoadCompleteRef.current) {
-              onLoadCompleteRef.current();
+        try {
+          const data =
+            typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+          if (data.event === 'init') {
+            if (xml) {
+              const message = JSON.stringify({
+                action: 'load',
+                autosave: 1,
+                xml: xml,
+              });
+              iframeRef.current.contentWindow?.postMessage(message, '*');
+              if (onLoadCompleteRef.current) {
+                onLoadCompleteRef.current();
+              }
+            }
+          } else if (data.event === 'autosave' && data.xml) {
+            latestXmlRef.current = data.xml;
+            if (onAutosave) {
+              onAutosave(data.xml);
             }
           }
-        } else if (data.event === 'autosave' && data.xml) {
-          latestXmlRef.current = data.xml;
-          if (onAutosave) {
-            onAutosave(data.xml);
-          }
+        } catch {
+          // 忽略非 JSON 的訊息
         }
-      } catch {
-        // 忽略非 JSON 的訊息
-      }
-    };
+      };
 
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [xml, onAutosave]);
+      window.addEventListener('message', handleMessage);
+      return () => {
+        window.removeEventListener('message', handleMessage);
+      };
+    }, [xml, onAutosave]);
 
-  return (
-    <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative">
-      
-      {/* Top Toolbar */}
-      <div className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-200/60 flex items-center justify-between px-8 shrink-0 z-10 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-gray-100 rounded-lg text-gray-500">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-gray-900 tracking-tight">電商網站架構 v1.0</h1>
-              <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-amber-50 text-amber-600 rounded-full border border-amber-200/50">未儲存</span>
+    return (
+      <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative">
+        <div className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-200/60 flex items-center justify-between px-8 shrink-0 z-10 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-500">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                />
+              </svg>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5 font-medium">最後更新：剛剛</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-            </svg>
-          </button>
-          <button onClick={onShareClick} className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all duration-200" title="與團隊分享">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-          </button>
-          <div className="w-px h-6 bg-gray-200 mx-2"></div>
-          <button 
-            onClick={() => onSaveClick && onSaveClick(latestXmlRef.current)}
-            className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
-          >
-            儲存架構圖
-          </button>
-        </div>
-      </div>
-
-      {/* Canvas Area */}
-      <div className="flex-1 p-8 overflow-hidden">
-        <div className="w-full h-full bg-white rounded-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-200/50 overflow-hidden relative group">
-          
-          {/* Placeholder Overlay */}
-          <div className={`absolute inset-0 flex items-center justify-center bg-gray-50/90 backdrop-blur-sm flex-col gap-6 z-20 transition-all duration-500 ${xml ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-            <div className="relative">
-              <div className="absolute inset-0 bg-brand-200 rounded-full blur-xl opacity-50 animate-pulse"></div>
-              <div className="w-20 h-20 bg-white rounded-3xl shadow-lg border border-gray-100 flex items-center justify-center relative z-10">
-                <svg className="w-10 h-10 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-gray-900 tracking-tight truncate max-w-[240px]">
+                  {diagramTitle}
+                </h1>
+                <span
+                  className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-full border ${badge.className}`}
+                >
+                  {badge.label}
+                </span>
               </div>
+              <p className="text-xs text-gray-500 mt-0.5 font-medium">
+                {saveStatus === 'saved'
+                  ? '已同步至資料庫'
+                  : saveStatus === 'saving'
+                    ? '正在寫入資料庫…'
+                    : saveStatus === 'no-file'
+                      ? '產圖後請按「儲存架構圖」建檔'
+                      : '有未寫入資料庫的變更'}
+              </p>
             </div>
-            <p className="text-gray-500 font-medium text-sm tracking-wide">請在左側輸入需求以生成架構草圖</p>
           </div>
 
-          {/* Persistent iframe */}
-          <iframe
-            ref={iframeRef}
-            className="w-full h-full border-0 absolute inset-0 z-10"
-            src="https://embed.diagrams.net/?embed=1&ui=min&spin=1&modified=unsaved&proto=json"
-            title="draw.io diagram"
-          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onShareClick}
+              className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all duration-200"
+              title="與團隊分享"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                />
+              </svg>
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-2"></div>
+            <button
+              onClick={() => onSaveClick && onSaveClick(latestXmlRef.current)}
+              className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+            >
+              儲存架構圖
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 p-8 overflow-hidden">
+          <div className="w-full h-full bg-white rounded-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-200/50 overflow-hidden relative group">
+            <div
+              className={`absolute inset-0 flex items-center justify-center bg-gray-50/90 backdrop-blur-sm flex-col gap-6 z-20 transition-all duration-500 ${xml ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-brand-200 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                <div className="w-20 h-20 bg-white rounded-3xl shadow-lg border border-gray-100 flex items-center justify-center relative z-10">
+                  <svg
+                    className="w-10 h-10 text-brand-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-gray-500 font-medium text-sm tracking-wide">
+                請在左側輸入需求以生成架構草圖
+              </p>
+            </div>
+
+            <iframe
+              ref={iframeRef}
+              className="w-full h-full border-0 absolute inset-0 z-10"
+              src="https://embed.diagrams.net/?embed=1&ui=min&spin=1&modified=unsaved&proto=json"
+              title="draw.io diagram"
+            />
+          </div>
         </div>
       </div>
-
-    </div>
-  );
-});
+    );
+  }
+);

@@ -53,6 +53,24 @@
   - **失敗 (Failure)**: SPOF 節點標示為跳動的紅色驚嘆號，並顯示扣分項目。**後續引導**：提示「請點擊 AI 自動加入備援節點」，或點選「聯絡 SRE 團隊討論」。
 - **BDD**: `Given` 掃出資料庫單點故障 `When` Hannah 人工補上備援連線並點擊局部重置評分 `Then` 分數重新計算並達標。
 
+#### A4. 重整後仍記得對話與上次開啟的架構圖
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`)
+  - **協作細節**: Alex 與 Hannah 各自在不同架構圖上與 AI 對話；重整瀏覽器或重新登入後，每人回到自己上次開啟的圖，並看到該圖對應的完整聊天紀錄，互不混淆。
+- **使用者需求/目標 (User Goal)**: 重整重整或短暫離開後，仍能接續與 AI 的多輪對話，並自動回到上次編輯的架構圖，無需重述需求。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 聊天紀錄必須持久化於後端資料庫，鍵值為 **使用者 × 架構圖 (`user_id` + `diagram_id`)**；不同圖表的對話互相隔離。
+  2. 進入工作區（或重整頁面）時，系統必須自動選回該使用者**上次開啟的架構圖**，並載入其 XML 與對應聊天 `messages[]`。
+  3. 每次使用者送出訊息或收到助理回覆後，聊天紀錄須寫回資料庫（至少在一輪對話結束後成功持久化）；切換 `diagramId` 時載入該圖的對話（無紀錄則顯示預設歡迎訊息）。
+  4. 僅圖表擁有者與被分享且有權開啟該圖的使用者可讀寫對應聊天；未授權回傳 403。
+  5. 工作區須提供「清空對話」按鈕：點擊並確認後，刪除**目前架構圖**對應的 `user × diagram` 聊天紀錄，畫布 XML 不變；清空後聊天區回到預設歡迎訊息。
+- **操作流程**: 1. 登入並開啟某架構圖，與 AI 多輪對話。 2. 重整瀏覽器或重新登入進入工作區。 3. 系統自動選回上次圖表並還原聊天；可繼續追問（例如「再加上 WAF」）。 4. 若要重開話題，點「清空對話」→ 確認 → 僅該圖聊天被清除。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 進入工作區後聊天區顯示歷史訊息，畫布為上次圖表；可選 Toast「已還原上次對話」。清空成功時 Toast「✔ 已清空此架構圖的對話」。
+  - **失敗 (Failure)**: 無法載入歷史時顯示預設歡迎訊息與提示「無法還原對話，請重新描述需求」；不阻擋產圖。清空失敗時紅色提示「無法清空對話，請重試」。
+- **BDD**: `Given` Alex 在 diagram#12 已與 AI 對話三輪並重整頁面 `When` 再次進入工作區 `Then` 系統自動開啟 diagram#12 且聊天區顯示原先三輪訊息。  
+  `Given` Alex 在 diagram#12 有歷史對話 `When` 點擊清空對話並確認 `Then` 該圖聊天被刪除、顯示歡迎訊息，且 diagram#12 的 XML 仍在。
+
 ---
 
 ### B. 跨雲選型 (Cross-Cloud Component Selection)
@@ -493,6 +511,24 @@
   - **Success**: Pops up a green perfect-score badge with confetti, showing "Compliant with Best Practices." **Next Step**: Prompts to "Download PDF Report" and "Send to management for review."
   - **Failure**: SPOF nodes are marked with a bouncing red exclamation mark detailing the penalty. **Next Step**: Prompts "Click to let AI auto-add backup nodes" or "Contact SRE team to discuss."
 - **BDD**: `Given` A SPOF is detected `When` Hannah manually adds a backup node and clicks partial reset `Then` The score recalculates and passes.
+
+#### A4. Persist Chat and Last-Opened Diagram Across Refresh
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), Hannah (Engineering Manager, `Project_Editor`)
+  - **Collaboration Details**: Alex and Hannah each chat with AI on different diagrams; after refresh or re-login, each returns to their last-opened diagram with that diagram's full chat history, without cross-talk.
+- **User Goal**: After a browser refresh or short leave, continue the multi-turn AI conversation and land on the last edited diagram without restating requirements.
+- **Acceptance Criteria**:
+  1. Chat history MUST be persisted in the backend DB keyed by **user × diagram (`user_id` + `diagram_id`)**; conversations for different diagrams are isolated.
+  2. On entering the workspace (or refreshing), the system MUST auto-select the user's **last-opened diagram** and load its XML plus the corresponding chat `messages[]`.
+  3. After each user message / assistant reply (at least once per completed turn), chat MUST be written back to the DB; switching `diagramId` loads that diagram's chat (or the default welcome message if empty).
+  4. Only the diagram owner and users with share access may read/write that chat; unauthorized access returns 403.
+  5. The workspace MUST provide a **Clear chat** button: after confirmation, delete the chat for the **current diagram** (`user × diagram`) only; canvas XML is unchanged; the chat UI returns to the default welcome message.
+- **Operational Flow**: 1. Open a diagram and chat with AI for multiple turns. 2. Refresh or re-login into the workspace. 3. System restores last diagram and chat; user can continue (e.g., "add a WAF"). 4. To start fresh, click Clear chat → confirm → only that diagram's chat is cleared.
+- **System Feedback**:
+  - **Success**: Chat shows prior messages and canvas shows last diagram; optional toast "Previous conversation restored." On clear: toast "✔ Chat cleared for this diagram."
+  - **Failure**: Falls back to welcome message with "Could not restore chat; please restate your needs" without blocking diagram generation. Clear failure: red "Could not clear chat; please retry."
+- **BDD**: `Given` Alex chatted three turns on diagram#12 and refreshed `When` he re-enters the workspace `Then` diagram#12 opens and the chat shows the original three turns.  
+  `Given` Alex has chat history on diagram#12 `When` he clears chat and confirms `Then` that diagram's chat is deleted, welcome message shows, and diagram#12 XML remains.
 
 ---
 

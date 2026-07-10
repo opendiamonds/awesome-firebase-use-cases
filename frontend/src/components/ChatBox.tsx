@@ -8,12 +8,22 @@ export interface Message {
 interface ChatBoxProps {
   messages: Message[];
   onGenerate: (prompt: string) => Promise<void>;
-  onReset: () => void;
+  /** A4：只清對話、保留畫布 */
+  onClearChat: () => void;
+  /** A1：全部重置（畫布 + 對話） */
+  onFullReset: () => void;
   isGenerating: boolean;
   progress: string;
 }
 
-export const ChatBox = ({ messages, onGenerate, onReset, isGenerating, progress }: ChatBoxProps) => {
+export const ChatBox = ({
+  messages,
+  onGenerate,
+  onClearChat,
+  onFullReset,
+  isGenerating,
+  progress,
+}: ChatBoxProps) => {
   const [prompt, setPrompt] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -46,12 +56,22 @@ export const ChatBox = ({ messages, onGenerate, onReset, isGenerating, progress 
           <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 架構助理</h2>
           <p className="text-xs text-gray-500 mt-0.5 font-medium">多角色協同設計與自然語言建模</p>
         </div>
-        <button 
-          onClick={onReset}
-          className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-4 py-2 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
-        >
-          新對話
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClearChat}
+            className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-3 py-2 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
+            title="清空此架構圖的對話紀錄（不會刪除架構圖）"
+          >
+            清空對話
+          </button>
+          <button
+            onClick={onFullReset}
+            className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-3 py-2 rounded-full border border-gray-200 transition-all duration-300"
+            title="清空畫布與對話（全部重置）"
+          >
+            全部重置
+          </button>
+        </div>
       </div>
 
       {/* Chat History Area */}

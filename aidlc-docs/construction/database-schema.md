@@ -1,14 +1,19 @@
-# Cloud-360 資料庫 Schema 設計文件 (A2 共同編輯與分享)
+# Cloud-360 Database Schema (A2 Collaboration + A4 Chat Persistence)
 
-本文件紀錄為了達成 A2 (AI + draw.io 畫布協同編輯) 中「多份草稿儲存」與「精準權限分享」功能所設計的資料庫 Schema。
+## 中文版
 
-## 1. 核心關聯圖 (ERD)
+本文件紀錄 A2（多份草稿儲存、精準權限分享）與 A4（user × diagram 聊天持久化、上次開啟圖）的資料庫 Schema。
+
+### 1. 核心關聯圖 (ERD)
 
 ```mermaid
 erDiagram
     users ||--o{ user_diagrams : "owns"
     users }|--|{ diagram_shares : "shared_with"
     user_diagrams }|--|{ diagram_shares : "is_shared_to"
+    users ||--o{ user_diagram_chats : "has_chat"
+    user_diagrams ||--o{ user_diagram_chats : "chat_on"
+    users }o--o| user_diagrams : "last_opened"
 
     users {
         int id PK
@@ -16,65 +21,79 @@ erDiagram
         string password_hash
         string role
         boolean is_active
+        int last_opened_diagram_id FK "nullable"
     }
 
     user_diagrams {
         int id PK
-        int user_id FK "Owner of the diagram"
-        string title "Diagram Title"
-        text xml_data "Draw.io XML state"
+        int user_id FK
+        string title
+        text xml_data
         datetime updated_at
     }
 
     diagram_shares {
-        int user_id PK, FK
-        int diagram_id PK, FK
+        int user_id PK_FK
+        int diagram_id PK_FK
+    }
+
+    user_diagram_chats {
+        int user_id PK_FK
+        int diagram_id PK_FK
+        text messages_json
+        datetime updated_at
     }
 ```
 
-## 2. 資料表詳細說明
+### 2. 資料表詳細說明
 
-### 2.1 `users` (使用者表)
-系統原本的使用者資料表，用於身分驗證與角色權限管控。
+#### 2.1 `users`
+身分驗證與角色；A4 新增 `last_opened_diagram_id`（可空 FK → `user_diagrams.id`，`ON DELETE SET NULL`）。
 
-### 2.2 `user_diagrams` (使用者架構圖表)
-負責儲存每一張架構草稿的核心表。
-- **id** `(Integer)`: 主鍵 (Primary Key)。
-- **user_id** `(Integer)`: 外部鍵 (Foreign Key)，關聯至 `users.id`，代表此圖表的擁有者 (Owner)。只有 Owner 可以執行覆寫與權限分享。
-- **title** `(String)`: 架構圖名稱，預設為「未命名架構圖」。
-- **xml_data** `(Text)`: 存放 Draw.io 產出的原始 XML 資料，為畫布的完整狀態。
-- **updated_at** `(DateTime)`: 最後修改時間，用於在前端列表排序。
+#### 2.2 `user_diagrams`
+每張架構草稿：`id`、`user_id`（Owner）、`title`、`xml_data`、`updated_at`。僅 Owner 可覆寫與分享。
 
-### 2.3 `diagram_shares` (圖表分享權限關聯表)
-用於實作多對多 (Many-to-Many) 分享機制的關聯表 (Association Table)。
-- **user_id** `(Integer)`: 外部鍵 (Foreign Key)，關聯至 `users.id`，代表「被分享」的對象。
-- **diagram_id** `(Integer)`: 外部鍵 (Foreign Key)，關聯至 `user_diagrams.id`，代表「被分享」的圖表。
-- 複合主鍵 (`user_id`, `diagram_id`) 確保同一位使用者不會被重複分享同一張圖表。
+#### 2.3 `diagram_shares`
+多對多分享：複合 PK `(user_id, diagram_id)`。
 
-## 3. SQLAlchemy 模型定義對照 (`backend/models.py`)
+#### 2.4 `user_diagram_chats`（A4）
+每位使用者在每張圖上的獨立聊天：複合 PK `(user_id, diagram_id)`；`messages_json` 存 `[{role, content}, ...]`；`updated_at`。
 
-```python
-diagram_shares = Table(
-    "diagram_shares",
-    Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("diagram_id", Integer, ForeignKey("user_diagrams.id"), primary_key=True)
-)
+### 3. 權限與 API 重點
 
-class UserDiagram(Base):
-    __tablename__ = "user_diagrams"
+- 唯有 Owner 可分享：`POST /api/collab/diagrams/{id}/share`
+- 讀寫圖／聊天：Owner 或 `diagram_shares` 成員，否則 403
+- Bootstrap：`GET /api/collab/workspace/bootstrap` 還原 last_opened + 該圖 messages
+- 清空聊天：`DELETE /api/collab/diagrams/{id}/chat`（不刪 XML）
+- WebSocket：`/api/collab/ws/{diagramId}` 僅同步 XML
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title = Column(String, nullable=False, default="未命名架構圖")
-    xml_data = Column(Text, nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+### 4. 對照實作
 
-    owner = relationship("User")
-    shared_users = relationship("User", secondary=diagram_shares, backref="shared_diagrams")
-```
+- ORM：`backend/models.py`（`User`、`UserDiagram`、`UserDiagramChat`）
+- 啟動補 schema：`backend/database.py` → `_ensure_a4_schema()`
+- 靜態 SQL：`schema.sql`
 
-## 4. 權限與 API 邏輯重點
-- **唯有 Owner 可分享**：`/api/collab/diagrams/{id}/share` 限制只有 `diagram.user_id == current_user.id` 時才能新增 `shared_users`。
-- **讀取與寫入權限**：在 `GET` 與 `PUT` 存取特定圖表時，檢查邏輯為 `if diagram.user_id != current_user.id and diagram not in current_user.shared_diagrams: raise 403`。
-- **WebSocket 頻道隔離**：協作連線使用 `/api/collab/ws/{diagramId}` 作為 Channel ID，只有取得圖表讀寫權限並進入同一畫布的使用者，才會在 WebSocket 收到 XML 同步事件。
+---
+
+## English Version
+
+Documents A2 (draft storage, share ACL) and A4 (chat keyed by user × diagram, last-opened diagram).
+
+### 1. ERD
+
+Same Mermaid diagram as Chinese §1.
+
+### 2. Tables
+
+- **users**: auth/roles; A4 adds nullable `last_opened_diagram_id` FK.
+- **user_diagrams**: draft XML owned by `user_id`.
+- **diagram_shares**: M2M share ACL.
+- **user_diagram_chats**: per-user-per-diagram `messages_json` + `updated_at`.
+
+### 3. Permissions / API
+
+Owner-only share; owner or sharee for diagram/chat (else 403); bootstrap restores last-opened + messages; DELETE chat clears messages only; WebSocket syncs XML only.
+
+### 4. Implementation
+
+`backend/models.py`, `backend/database.py` (`_ensure_a4_schema`), `schema.sql`.
