@@ -1,52 +1,88 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute, AdminRoute } from './components/RouteGuard';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProtectedRoute, CapabilityRoute } from './components/RouteGuard';
 import { Layout } from './components/Layout';
 
-// Pages
 import { LoginPage } from './pages/LoginPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { AdminPage } from './pages/AdminPage';
+import { RolePermissionsPage } from './pages/RolePermissionsPage';
 import { ForbiddenPage } from './pages/ForbiddenPage';
+
+/** 依權限導向第一個可用頁；皆無則 403 */
+const DefaultRedirect: React.FC = () => {
+  const { canArch, can, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (canArch('view')) return <Navigate to="/workspace" replace />;
+  if (can('J3a', 'view')) return <Navigate to="/admin/users" replace />;
+  if (can('J3b', 'view')) return <Navigate to="/admin/role-permissions" replace />;
+  return <Navigate to="/403" replace />;
+};
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* 1. 公開路由 */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/403" element={<ForbiddenPage />} />
 
-          {/* 2. 受保護路由 (Workspace Page) */}
-          <Route 
-            path="/workspace" 
+          <Route
+            path="/workspace"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <WorkspacePage />
-                </Layout>
+                <CapabilityRoute storyId="A1" action="view">
+                  <Layout>
+                    <WorkspacePage />
+                  </Layout>
+                </CapabilityRoute>
               </ProtectedRoute>
-            } 
+            }
           />
 
-          {/* 3. 受保護路由 (Admin Panel) */}
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin/users"
             element={
               <ProtectedRoute>
-                <AdminRoute>
+                <CapabilityRoute storyId="J3a" action="view">
                   <Layout>
                     <AdminPage />
                   </Layout>
-                </AdminRoute>
+                </CapabilityRoute>
               </ProtectedRoute>
-            } 
+            }
           />
 
-          {/* 4. 根目錄自動轉向 */}
-          <Route path="/" element={<Navigate to="/workspace" replace />} />
-          <Route path="*" element={<Navigate to="/workspace" replace />} />
+          <Route
+            path="/admin/role-permissions"
+            element={
+              <ProtectedRoute>
+                <CapabilityRoute storyId="J3b" action="view">
+                  <Layout>
+                    <RolePermissionsPage />
+                  </Layout>
+                </CapabilityRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DefaultRedirect />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute>
+                <DefaultRedirect />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

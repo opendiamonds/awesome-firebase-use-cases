@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api';
 
 interface User {
   id: number;
@@ -21,7 +22,7 @@ export const ShareModal = ({ isOpen, onClose, diagramId, token }: ShareModalProp
   useEffect(() => {
     if (isOpen && diagramId && token) {
       // 1. 取得所有可分享的使用者
-      fetch('http://localhost:8000/api/collab/users', {
+      fetch(apiUrl('/api/collab/users'), {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
@@ -29,7 +30,7 @@ export const ShareModal = ({ isOpen, onClose, diagramId, token }: ShareModalProp
       .catch(err => console.error(err));
 
       // 2. 取得此圖表已經分享的使用者
-      fetch(`http://localhost:8000/api/collab/diagrams/${diagramId}`, {
+      fetch(apiUrl(`/api/collab/diagrams/${diagramId}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.json())
@@ -54,7 +55,7 @@ export const ShareModal = ({ isOpen, onClose, diagramId, token }: ShareModalProp
     if (!diagramId) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/collab/diagrams/${diagramId}/share`, {
+      const res = await fetch(apiUrl(`/api/collab/diagrams/${diagramId}/share`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

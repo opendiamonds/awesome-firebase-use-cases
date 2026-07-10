@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiUrl } from '../config/api';
 
 interface DbUser {
   id: number;
@@ -23,7 +24,8 @@ const AVAILABLE_ROLES = [
 ];
 
 export const AdminPage: React.FC = () => {
-  const { token, user: currentUser } = useAuth();
+  const { token, user: currentUser, can } = useAuth();
+  const canEdit = can('J3a', 'edit');
   const [users, setUsers] = useState<DbUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export const AdminPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:8000/api/auth/list', {
+      const res = await fetch(apiUrl('/api/auth/list'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -64,7 +66,7 @@ export const AdminPage: React.FC = () => {
 
   const handleRoleChange = async (userId: number, newRole: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/auth/${userId}/role`, {
+      const res = await fetch(apiUrl(`/api/auth/${userId}/role`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -90,10 +92,10 @@ export const AdminPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 p-6 md:p-10 text-white font-sans w-full">
+    <div className="relative min-h-full bg-slate-950 p-6 md:p-10 pb-16 text-white font-sans w-full">
       {/* Toast Alert */}
       {toast && (
-        <div className={`absolute top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-xl backdrop-blur-xl border flex items-center gap-3 animate-[slideInDown_0.3s_ease-out] ${
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-xl backdrop-blur-xl border flex items-center gap-3 animate-[slideInDown_0.3s_ease-out] ${
           toast.type === 'success' 
             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
             : 'bg-red-500/10 border-red-500/20 text-red-300'
@@ -108,9 +110,11 @@ export const AdminPage: React.FC = () => {
           <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
-          使用者權限管理面板 (RBAC)
+          使用者角色指派
         </h1>
-        <p className="text-slate-400 text-sm font-medium">作為管理員，您可以動態修改平台內所有使用者的角色與權限範圍。</p>
+        <p className="text-slate-400 text-sm font-medium">
+          指定哪個使用者對應哪個平台角色（J3a）。細項權限請至「角色細項權限」頁調整。列表可用滾輪捲動。
+        </p>
       </div>
 
       {/* Main Table Card (Glassmorphism) */}
@@ -132,10 +136,10 @@ export const AdminPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[min(70vh,720px)] overscroll-contain">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/5 border-b border-white/10 text-xs font-bold text-slate-400 tracking-wider uppercase">
+              <thead className="sticky top-0 z-20">
+                <tr className="bg-slate-950 border-b border-white/10 text-xs font-bold text-slate-400 tracking-wider uppercase">
                   <th className="px-8 py-5">使用者帳號 (Username)</th>
                   <th className="px-8 py-5">目前角色 (Current Role)</th>
                   <th className="px-8 py-5">操作指派 (Assign New Role)</th>
@@ -176,8 +180,9 @@ export const AdminPage: React.FC = () => {
                     <td className="px-8 py-5">
                       <select 
                         value={u.role}
+                        disabled={!canEdit}
                         onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        className="bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 cursor-pointer"
+                        className="bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {AVAILABLE_ROLES.map((roleOpt) => (
                           <option key={roleOpt} value={roleOpt}>

@@ -14,6 +14,10 @@ interface ChatBoxProps {
   onFullReset: () => void;
   isGenerating: boolean;
   progress: string;
+  /** 無編輯權時唯讀（可看對話、不可送出） */
+  canEdit?: boolean;
+  /** 有審核權時顯示審核提示（不可編輯時） */
+  canReview?: boolean;
 }
 
 export const ChatBox = ({
@@ -23,6 +27,8 @@ export const ChatBox = ({
   onFullReset,
   isGenerating,
   progress,
+  canEdit = true,
+  canReview = false,
 }: ChatBoxProps) => {
   const [prompt, setPrompt] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -30,7 +36,7 @@ export const ChatBox = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
+    if (!canEdit || !prompt.trim() || isGenerating) return;
     onGenerate(prompt);
     setPrompt('');
   };
@@ -57,20 +63,24 @@ export const ChatBox = ({
           <p className="text-xs text-gray-500 mt-0.5 font-medium">多角色協同設計與自然語言建模</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onClearChat}
-            className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-3 py-2 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
-            title="清空此架構圖的對話紀錄（不會刪除架構圖）"
-          >
-            清空對話
-          </button>
-          <button
-            onClick={onFullReset}
-            className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-3 py-2 rounded-full border border-gray-200 transition-all duration-300"
-            title="清空畫布與對話（全部重置）"
-          >
-            全部重置
-          </button>
+          {canEdit && (
+            <>
+              <button
+                onClick={onClearChat}
+                className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-3 py-2 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
+                title="清空此架構圖的對話紀錄（不會刪除架構圖）"
+              >
+                清空對話
+              </button>
+              <button
+                onClick={onFullReset}
+                className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-3 py-2 rounded-full border border-gray-200 transition-all duration-300"
+                title="清空畫布與對話（全部重置）"
+              >
+                全部重置
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -135,6 +145,13 @@ export const ChatBox = ({
 
       {/* Input Area */}
       <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.02)]">
+        {!canEdit && (
+          <div className="mb-3 text-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+            {canReview
+              ? '審核模式：可檢視對話紀錄，無法與 AI 對話或修改架構圖'
+              : '僅檢視：無法與 AI 對話或編輯架構圖'}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-brand-500 to-indigo-500 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500 blur"></div>
           <div className="relative flex items-end bg-white border border-gray-200/80 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all duration-300 p-2">
@@ -143,16 +160,20 @@ export const ChatBox = ({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit(e); } }}
-              placeholder="輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)"
+              placeholder={
+                canEdit
+                  ? '輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)'
+                  : '唯讀模式：無法送出產圖請求'
+              }
               className="w-full max-h-[120px] pl-3 pr-2 py-2 bg-transparent text-gray-900 text-[14px] resize-none focus:outline-none placeholder:text-gray-400 min-h-[44px]"
               rows={1}
-              disabled={isGenerating}
+              disabled={isGenerating || !canEdit}
             />
             <button
               type="submit"
-              disabled={!prompt.trim() || isGenerating}
+              disabled={!canEdit || !prompt.trim() || isGenerating}
               className={`p-2.5 shrink-0 rounded-xl transition-all duration-300 ${
-                !prompt.trim() || isGenerating 
+                !canEdit || !prompt.trim() || isGenerating 
                   ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
                   : 'bg-gradient-to-br from-brand-600 to-indigo-600 text-white shadow-md shadow-brand-500/30 hover:shadow-lg hover:shadow-brand-500/40 hover:-translate-y-0.5'
               }`}

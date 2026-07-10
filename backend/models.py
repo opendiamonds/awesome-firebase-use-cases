@@ -73,3 +73,22 @@ class UserDiagramChat(Base):
     updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class RolePermission(Base):
+    """
+    RBAC：角色 × User Story 細項權限（檢視／編輯／審核）。
+    預設資料見 schema_rbac.sql；可由 Admin 頁②調整。
+    """
+
+    __tablename__ = "role_permissions"
+
+    role = Column(String(64), primary_key=True)
+    story_id = Column(String(16), primary_key=True)
+    can_view = Column(Boolean, nullable=False, default=False)
+    can_edit = Column(Boolean, nullable=False, default=False)
+    can_review = Column(Boolean, nullable=False, default=False)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    updated_by = Column(String(128), nullable=True)

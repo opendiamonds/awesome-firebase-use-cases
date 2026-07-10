@@ -1,10 +1,23 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { apiUrl } from '../config/api';
+
+export type StoryAction = 'view' | 'edit' | 'review';
+
+export interface StoryPermission {
+  view: boolean;
+  edit: boolean;
+  review: boolean;
+  can_view?: boolean;
+  can_edit?: boolean;
+  can_review?: boolean;
+}
 
 export interface User {
   id?: number;
   username: string;
   role: string;
   is_active?: boolean;
+  permissions?: Record<string, StoryPermission>;
 }
 
 interface AuthContextType {
@@ -12,90 +25,142 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, token: string, role: string) => void;
+  login: (username: string, token: string, role: string) => Promise<void>;
   logout: () => void;
   checkAuthSession: () => Promise<boolean>;
+  can: (storyId: string, action?: StoryAction) => boolean;
+  /** 架構圖生成（A1／A2／A4 同一功能） */
+  canArch: (action?: StoryAction) => boolean;
+  refreshMe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/** A1／A2／A4 視為同一「架構圖生成」能力，以 A1 為準 */
+const ARCH_STORIES = new Set(['A1', 'A2', 'A4']);
+const ARCH_CANONICAL = 'A1';
+
+async function fetchMe(tokenVal: string): Promise<User> {
+  const res = await fetch(apiUrl('/api/auth/me'), {
+    headers: { Authorization: `Bearer ${tokenVal}` },
+  });
+  if (!res.ok) {
+    throw new Error('session_invalid');
+  }
+  const data = await res.json();
+  return {
+    id: data.id,
+    username: data.username,
+    role: data.role,
+    is_active: data.is_active,
+    permissions: data.permissions || {},
+  };
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. 初始化時從 localStorage 讀取狀態
-  useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUsername = localStorage.getItem('username');
-    const savedRole = localStorage.getItem('role');
-
-    if (savedToken && savedUsername && savedRole) {
-      setToken(savedToken);
-      setUser({ username: savedUsername, role: savedRole });
-    }
-    setIsLoading(false);
-  }, []);
-
-  // 2. 登入成功寫入狀態
-  const login = (username: string, tokenVal: string, roleVal: string) => {
+  const applyUser = (u: User, tokenVal: string) => {
     localStorage.setItem('token', tokenVal);
-    localStorage.setItem('username', username);
-    localStorage.setItem('role', roleVal);
+    localStorage.setItem('username', u.username);
+    localStorage.setItem('role', u.role);
     setToken(tokenVal);
-    setUser({ username, role: roleVal });
+    setUser(u);
   };
 
-  // 3. 登出清除狀態
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
     setToken(null);
     setUser(null);
+  }, []);
+
+  const refreshMe = useCallback(async () => {
+    const activeToken = token || localStorage.getItem('token');
+    if (!activeToken) return;
+    const me = await fetchMe(activeToken);
+    applyUser(me, activeToken);
+  }, [token]);
+
+  // 初始化：有 token 則打 /me 取得最新 role + permissions
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    if (!savedToken) {
+      setIsLoading(false);
+      return;
+    }
+    fetchMe(savedToken)
+      .then((me) => applyUser(me, savedToken))
+      .catch(() => logout())
+      .finally(() => setIsLoading(false));
+  }, [logout]);
+
+  const login = async (username: string, tokenVal: string, roleVal: string) => {
+    // 先寫入基本資料，再以 /me 覆寫 permissions（避免舊 localStorage role）
+    localStorage.setItem('token', tokenVal);
+    localStorage.setItem('username', username);
+    localStorage.setItem('role', roleVal);
+    setToken(tokenVal);
+    setUser({ username, role: roleVal, permissions: {} });
+    try {
+      const me = await fetchMe(tokenVal);
+      applyUser(me, tokenVal);
+    } catch {
+      // /me 失敗仍保留登入 token，permissions 稍後再補
+    }
   };
 
-  // 4. 校驗 Session (從後端獲取最新資訊)
   const checkAuthSession = async (): Promise<boolean> => {
     const activeToken = token || localStorage.getItem('token');
     if (!activeToken) {
       logout();
       return false;
     }
-
     try {
-      const res = await fetch('http://localhost:8000/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${activeToken}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser({ username: data.username, role: data.role });
-        localStorage.setItem('role', data.role); // 更新快取角色
-        return true;
-      } else {
-        logout();
-        return false;
-      }
-    } catch (err) {
-      // 網路連線錯誤暫不登出，保留快取狀態
-      return !!user;
+      const me = await fetchMe(activeToken);
+      applyUser(me, activeToken);
+      return true;
+    } catch {
+      logout();
+      return false;
     }
   };
+
+  const can = (storyId: string, action: StoryAction = 'view'): boolean => {
+    const key = ARCH_STORIES.has(storyId) ? ARCH_CANONICAL : storyId;
+    const p = user?.permissions?.[key];
+    if (!p) return false;
+    const hasView = !!(p.view || p.can_view || p.edit || p.can_edit || p.review || p.can_review);
+    const hasEdit = !!(p.edit || p.can_edit);
+    const hasReview = !!(p.review || p.can_review);
+    if (action === 'view') return hasView;
+    if (action === 'edit') return hasEdit;
+    if (action === 'review') return hasReview;
+    return false;
+  };
+
+  const canArch = (action: StoryAction = 'view') => can(ARCH_CANONICAL, action);
 
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      token,
-      isAuthenticated,
-      isLoading,
-      login,
-      logout,
-      checkAuthSession
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        login,
+        logout,
+        checkAuthSession,
+        can,
+        canArch,
+        refreshMe,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -8,10 +8,14 @@ interface DrawioCanvasProps {
   diagramTitle?: string;
   /** 儲存狀態徽章（修正先前寫死「未儲存」） */
   saveStatus?: DiagramSaveStatus;
+  /** 僅檢視／審核：禁止操作畫布與儲存 */
+  readOnly?: boolean;
   onLoadComplete?: () => void;
   onAutosave?: (xml: string) => void;
   onSaveClick?: (xml: string) => void;
   onShareClick?: () => void;
+  /** 有審核權時顯示（功能 stub） */
+  onReviewClick?: () => void;
 }
 
 export interface DrawioCanvasRef {
@@ -46,10 +50,12 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
       xml,
       diagramTitle = '未命名架構圖',
       saveStatus = 'unsaved',
+      readOnly = false,
       onLoadComplete,
       onAutosave,
       onSaveClick,
       onShareClick,
+      onReviewClick,
     },
     ref
   ) => {
@@ -196,32 +202,52 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={onShareClick}
-              className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all duration-200"
-              title="與團隊分享"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            {onReviewClick && (
+              <button
+                onClick={onReviewClick}
+                className="px-4 py-2.5 bg-violet-50 hover:bg-violet-100 text-violet-700 text-sm font-semibold rounded-xl border border-violet-200/80 transition-all"
+                title="審核架構圖"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                />
-              </svg>
-            </button>
-            <div className="w-px h-6 bg-gray-200 mx-2"></div>
-            <button
-              onClick={() => onSaveClick && onSaveClick(latestXmlRef.current)}
-              className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
-            >
-              儲存架構圖
-            </button>
+                審核
+              </button>
+            )}
+            {onShareClick && (
+              <button
+                onClick={onShareClick}
+                className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all duration-200"
+                title="與團隊分享"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
+                </svg>
+              </button>
+            )}
+            {onSaveClick && (
+              <>
+                <div className="w-px h-6 bg-gray-200 mx-2"></div>
+                <button
+                  onClick={() => onSaveClick(latestXmlRef.current)}
+                  className="px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  儲存架構圖
+                </button>
+              </>
+            )}
+            {readOnly && !onReviewClick && (
+              <span className="px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl border border-slate-200">
+                唯讀
+              </span>
+            )}
           </div>
         </div>
 
@@ -255,10 +281,15 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
 
             <iframe
               ref={iframeRef}
-              className="w-full h-full border-0 absolute inset-0 z-10"
+              className={`w-full h-full border-0 absolute inset-0 z-10 ${readOnly ? 'pointer-events-none' : ''}`}
               src="https://embed.diagrams.net/?embed=1&ui=min&spin=1&modified=unsaved&proto=json"
               title="draw.io diagram"
             />
+            {readOnly && xml && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-slate-900/70 text-white text-[11px] font-semibold pointer-events-none">
+                唯讀預覽（無法編輯畫布）
+              </div>
+            )}
           </div>
         </div>
       </div>

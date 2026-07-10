@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { wsUrl } from '../config/api';
 
 interface UseCollaborationProps {
   workspaceId: string;
@@ -18,7 +19,7 @@ export const useCollaboration = ({ workspaceId, onReceiveXml }: UseCollaboration
   useEffect(() => {
     if (!workspaceId) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/api/collab/ws/${workspaceId}`);
+    const ws = new WebSocket(wsUrl(`/api/collab/ws/${workspaceId}`));
     wsRef.current = ws;
 
     ws.onopen = () => {

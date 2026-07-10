@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import logging
+import os
 from services.agent_router import router as agent_router
 from services.user_router import router as user_router
 from services.collab_router import router as collab_router
@@ -20,10 +21,15 @@ configure_openrouter_env()
 
 app = FastAPI(title="Cloud-360 API")
 
-# Setup CORS
+# CORS：前後端分服務時以環境變數注入允許來源（逗號分隔）
+# 例：CORS_ORIGINS=https://app.example.com,https://www.example.com
+_default_cors = "http://localhost:5173,http://127.0.0.1:5173"
+_cors_raw = os.environ.get("CORS_ORIGINS", _default_cors)
+CORS_ORIGINS = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

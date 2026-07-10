@@ -6,6 +6,7 @@ import type { DiagramSaveStatus, DrawioCanvasRef } from '../components/DrawioCan
 import { ShareModal } from '../components/ShareModal';
 import { useAuth } from '../context/AuthContext';
 import { useCollaboration } from '../hooks/useCollaboration';
+import { apiUrl } from '../config/api';
 
 type ToastType = 'success' | 'error';
 
@@ -18,7 +19,7 @@ type ToastState = {
   showCtas?: boolean;
 } | null;
 
-const API_COLLAB = 'http://localhost:8000/api/collab';
+const API_COLLAB = apiUrl('/api/collab');
 
 /** 全部重置寫回 DB 用的空白畫布 */
 const EMPTY_DIAGRAM_XML =
@@ -39,7 +40,10 @@ function formatGenerateError(raw: string): string {
 }
 
 export const WorkspacePage = () => {
-  const { token } = useAuth();
+  const { token, canArch } = useAuth();
+  const canEditArch = canArch('edit');
+  const canReviewArch = canArch('review');
+  const canViewOnly = canArch('view') && !canEditArch;
   const canvasRef = useRef<DrawioCanvasRef>(null);
 
   const [xml, setXml] = useState<string>('');
@@ -173,6 +177,7 @@ export const WorkspacePage = () => {
 
   /** draw.io iframe autosave → 廣播 WS；有 diagram_id 時 debounce 寫 DB */
   const handleCanvasAutosave = (savedXml: string) => {
+    if (!canEditArch) return;
     setXml(savedXml);
     broadcastXml(savedXml);
 
@@ -260,6 +265,10 @@ export const WorkspacePage = () => {
   };
 
   const handleNewDiagram = async () => {
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法建立架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
     setXml('');
     setCurrentDiagramId(null);
     setIsShared(false);
@@ -286,6 +295,12 @@ export const WorkspacePage = () => {
   };
 
   const handleGenerate = async (prompt: string) => {
+    if (!canArch('edit')) {
+      showToast('權限不足：需要架構圖「編輯」權限才能與 AI 對話產圖', 'error', {
+        autoDismissMs: 4000,
+      });
+      return;
+    }
     setIsGenerating(true);
     setToast(null);
     setProgress('');
@@ -302,7 +317,7 @@ export const WorkspacePage = () => {
     let streamError: string | null = null;
 
     try {
-      const response = await fetch('http://localhost:8000/api/architecture/generate', {
+      const response = await fetch(apiUrl('/api/architecture/generate'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -315,7 +330,14 @@ export const WorkspacePage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('生成失敗');
+        let detail = '生成失敗';
+        try {
+          const errBody = await response.json();
+          if (typeof errBody.detail === 'string') detail = errBody.detail;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(detail);
       }
 
       setMessages(finalMessages);
@@ -501,6 +523,10 @@ export const WorkspacePage = () => {
   };
 
   const handleSaveDiagram = async (currentXml: string) => {
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法儲存架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
     if (!currentXml) {
       showToast('沒有可儲存的架構圖', 'error', { autoDismissMs: 4000 });
       return;
@@ -554,6 +580,14 @@ export const WorkspacePage = () => {
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
+      {canViewOnly && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[min(92vw,28rem)] px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold text-center shadow-sm">
+          {canReviewArch
+            ? '審核模式：可開啟他人分享的架構圖並審核；無法編輯畫布或與 AI 對話'
+            : '僅檢視：只能開啟他人分享給您的架構圖；無法編輯或與 AI 對話'}
+        </div>
+      )}
+
       {/* Diagram Selector (Top Center) */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-gray-100">
         <select
@@ -562,7 +596,11 @@ export const WorkspacePage = () => {
           onChange={(e) => handleLoadDiagram(Number(e.target.value))}
         >
           <option value="" disabled>
-            {bootstrapDone ? '-- 請選擇歷史架構圖 --' : '載入中…'}
+            {bootstrapDone
+              ? canViewOnly
+                ? '-- 請選擇分享給您的架構圖 --'
+                : '-- 請選擇歷史架構圖 --'
+              : '載入中…'}
           </option>
           {diagrams.map((d) => (
             <option key={d.id} value={d.id}>
@@ -574,8 +612,9 @@ export const WorkspacePage = () => {
         <div className="w-px h-4 bg-gray-200 mx-1"></div>
         <button
           onClick={handleNewDiagram}
-          className="text-gray-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-brand-50 transition-colors flex items-center justify-center"
-          title="建立新架構圖"
+          disabled={!canEditArch}
+          className="text-gray-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-brand-50 transition-colors flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
+          title={canEditArch ? '建立新架構圖' : '僅檢視／審核無法新建'}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -722,10 +761,13 @@ export const WorkspacePage = () => {
         onFullReset={handleFullReset}
         isGenerating={isGenerating}
         progress={progress}
+        canEdit={canEditArch}
+        canReview={canReviewArch}
       />
       <DrawioCanvas
         ref={canvasRef}
         xml={xml}
+        readOnly={!canEditArch}
         diagramTitle={
           currentDiagramId
             ? diagrams.find((d) => d.id === currentDiagramId)?.title || '未命名架構圖'
@@ -733,15 +775,24 @@ export const WorkspacePage = () => {
         }
         saveStatus={saveStatus}
         onLoadComplete={handleLoadComplete}
-        onAutosave={handleCanvasAutosave}
-        onSaveClick={handleSaveDiagram}
-        onShareClick={() => {
-          if (!currentDiagramId) {
-            showToast('請先儲存圖表後再分享', 'error', { autoDismissMs: 4000 });
-            return;
-          }
-          setIsShareModalOpen(true);
-        }}
+        onAutosave={canEditArch ? handleCanvasAutosave : undefined}
+        onSaveClick={canEditArch ? handleSaveDiagram : undefined}
+        onShareClick={
+          canEditArch
+            ? () => {
+                if (!currentDiagramId) {
+                  showToast('請先儲存圖表後再分享', 'error', { autoDismissMs: 4000 });
+                  return;
+                }
+                setIsShareModalOpen(true);
+              }
+            : undefined
+        }
+        onReviewClick={
+          canReviewArch
+            ? () => showComingSoon('架構圖審核')
+            : undefined
+        }
       />
 
       <ShareModal

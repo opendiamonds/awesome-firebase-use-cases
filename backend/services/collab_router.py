@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User, UserDiagram, UserDiagramChat
 from services.auth import get_current_user
+from services.rbac import require_arch_action, user_can_arch
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,16 @@ DEFAULT_WELCOME = (
     "請描述您想建立的雲端架構，例如：\n"
     "✨ 我要做一個電商網站\n"
     "✨ 我要一個包含 WAF 與 Aurora 的高可用架構"
+)
+
+VIEW_ONLY_WELCOME = (
+    "您目前為「僅檢視」權限。\n"
+    "可開啟他人分享給您的架構圖，但無法編輯畫布或與 AI 對話。"
+)
+
+REVIEW_ONLY_WELCOME = (
+    "您目前為「審核」權限（可檢視＋審核，不可編輯）。\n"
+    "可開啟他人分享的架構圖進行審核，但無法修改畫布或與 AI 對話。"
 )
 
 
@@ -80,21 +91,70 @@ manager = ConnectionManager()
 
 
 def _user_can_access_diagram(user: User, diagram: UserDiagram) -> bool:
-    """擁有者或被分享者可存取。"""
+    """擁有者或被分享者可存取（尚需搭配架構圖 RBAC 語意）。"""
     if diagram.user_id == user.id:
         return True
     return diagram in (user.shared_diagrams or [])
 
 
+def _arch_can_edit(db: Session, user: User) -> bool:
+    return user_can_arch(db, user.role, "edit")
+
+
+def _arch_can_view(db: Session, user: User) -> bool:
+    return user_can_arch(db, user.role, "view")
+
+
+def _arch_can_review(db: Session, user: User) -> bool:
+    return user_can_arch(db, user.role, "review")
+
+
+def _visible_diagrams(user: User, db: Session) -> List[UserDiagram]:
+    """
+    架構圖可見範圍：
+    - 有編輯：自己的圖 + 被分享的圖
+    - 僅檢視／僅審核（無編輯）：只能看別人分享給自己的圖
+    """
+    if not _arch_can_view(db, user):
+        return []
+    shared = list(user.shared_diagrams or [])
+    if _arch_can_edit(db, user):
+        owned = db.query(UserDiagram).filter(UserDiagram.user_id == user.id).all()
+        all_diagrams = list({d.id: d for d in (owned + shared)}.values())
+    else:
+        all_diagrams = shared
+    all_diagrams.sort(key=lambda x: x.updated_at, reverse=True)
+    return all_diagrams
+
+
 def _get_accessible_diagram(
     diagram_id: int, user: User, db: Session
 ) -> UserDiagram:
+    if not _arch_can_view(db, user):
+        raise HTTPException(status_code=403, detail="權限不足：無法檢視架構圖")
     diagram = db.query(UserDiagram).filter(UserDiagram.id == diagram_id).first()
     if not diagram:
         raise HTTPException(status_code=404, detail="Diagram not found")
+    # 無編輯時：僅允許被分享的圖（不可開自己擁有的圖）
+    if not _arch_can_edit(db, user):
+        shared_ids = {d.id for d in (user.shared_diagrams or [])}
+        if diagram.id not in shared_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="僅檢視／審核權限只能開啟他人分享的架構圖",
+            )
+        return diagram
     if not _user_can_access_diagram(user, diagram):
         raise HTTPException(status_code=403, detail="Access denied")
     return diagram
+
+
+def _welcome_for_user(db: Session, user: User) -> str:
+    if _arch_can_edit(db, user):
+        return DEFAULT_WELCOME
+    if _arch_can_review(db, user):
+        return REVIEW_ONLY_WELCOME
+    return VIEW_ONLY_WELCOME
 
 
 def _parse_messages(raw: str) -> List[dict[str, str]]:
@@ -160,8 +220,10 @@ async def websocket_endpoint(websocket: WebSocket, workspace_id: str):
 
 @router.get("/users")
 def get_users(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: User = Depends(require_arch_action("edit")),
+    db: Session = Depends(get_db),
 ):
+    """分享對象列表：需架構圖編輯權。"""
     users = db.query(User).filter(User.id != current_user.id).all()
     return [{"id": u.id, "username": u.username, "role": u.role} for u in users]
 
@@ -185,13 +247,10 @@ class LastOpenedRequest(BaseModel):
 
 @router.get("/diagrams")
 def list_my_diagrams(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: User = Depends(require_arch_action("view")),
+    db: Session = Depends(get_db),
 ):
-    owned = db.query(UserDiagram).filter(UserDiagram.user_id == current_user.id).all()
-    shared = current_user.shared_diagrams
-    all_diagrams = list(set(owned + shared))
-    all_diagrams.sort(key=lambda x: x.updated_at, reverse=True)
-
+    all_diagrams = _visible_diagrams(current_user, db)
     return [
         {
             "id": d.id,
@@ -205,32 +264,24 @@ def list_my_diagrams(
 
 @router.get("/workspace/bootstrap")
 def workspace_bootstrap(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: User = Depends(require_arch_action("view")),
+    db: Session = Depends(get_db),
 ):
     """
     A4：進入工作區時一次取得上次開啟圖 + XML + 聊天。
-    若 last_opened 無效或無權限，回傳 null diagram 與預設歡迎訊息。
+    僅檢視／審核時只還原「被分享」且仍可見的圖。
     """
+    welcome = _welcome_for_user(db, current_user)
     last_id = current_user.last_opened_diagram_id
     diagram_payload = None
     messages: List[dict[str, str]] = [
-        {"role": "assistant", "content": DEFAULT_WELCOME}
+        {"role": "assistant", "content": welcome}
     ]
 
-    if last_id:
-        diagram = db.query(UserDiagram).filter(UserDiagram.id == last_id).first()
-        if diagram and _user_can_access_diagram(current_user, diagram):
-            chat = (
-                db.query(UserDiagramChat)
-                .filter(
-                    UserDiagramChat.user_id == current_user.id,
-                    UserDiagramChat.diagram_id == diagram.id,
-                )
-                .first()
-            )
-            stored = _parse_messages(chat.messages_json) if chat else []
-            if stored:
-                messages = stored
+    visible_ids = {d.id for d in _visible_diagrams(current_user, db)}
+    if last_id and last_id in visible_ids:
+        try:
+            diagram = _get_accessible_diagram(last_id, current_user, db)
             diagram_payload = {
                 "id": diagram.id,
                 "title": diagram.title,
@@ -243,23 +294,34 @@ def workspace_bootstrap(
                     else []
                 ),
             }
-        else:
-            # 無效指標：清掉，避免下次再踩
-            current_user.last_opened_diagram_id = None
-            db.commit()
-            last_id = None
+            # 僅編輯者還原個人聊天；檢視／審核用說明訊息
+            if _arch_can_edit(db, current_user):
+                chat = (
+                    db.query(UserDiagramChat)
+                    .filter(
+                        UserDiagramChat.user_id == current_user.id,
+                        UserDiagramChat.diagram_id == last_id,
+                    )
+                    .first()
+                )
+                parsed = _parse_messages(chat.messages_json) if chat else []
+                if parsed:
+                    messages = parsed
+        except HTTPException:
+            diagram_payload = None
 
     return {
-        "last_opened_diagram_id": last_id,
         "diagram": diagram_payload,
         "messages": messages,
+        "can_edit": _arch_can_edit(db, current_user),
+        "can_review": _arch_can_review(db, current_user),
     }
 
 
 @router.put("/workspace/last-opened")
 def set_last_opened(
     request: LastOpenedRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("view")),
     db: Session = Depends(get_db),
 ):
     """更新使用者上次開啟的架構圖。"""
@@ -277,10 +339,18 @@ def set_last_opened(
 @router.get("/diagrams/{diagram_id}/chat")
 def get_diagram_chat(
     diagram_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("view")),
     db: Session = Depends(get_db),
 ):
     _get_accessible_diagram(diagram_id, current_user, db)
+    # 無編輯權：不回傳可繼續對話的歷史，改回權限說明
+    if not _arch_can_edit(db, current_user):
+        return {
+            "diagram_id": diagram_id,
+            "messages": [
+                {"role": "assistant", "content": _welcome_for_user(db, current_user)}
+            ],
+        }
     chat = (
         db.query(UserDiagramChat)
         .filter(
@@ -299,7 +369,7 @@ def get_diagram_chat(
 def save_diagram_chat(
     diagram_id: int,
     request: SaveChatRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("edit")),
     db: Session = Depends(get_db),
 ):
     _get_accessible_diagram(diagram_id, current_user, db)
@@ -313,7 +383,7 @@ def save_diagram_chat(
 @router.delete("/diagrams/{diagram_id}/chat")
 def clear_diagram_chat(
     diagram_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("edit")),
     db: Session = Depends(get_db),
 ):
     """清空該使用者在此架構圖的對話；不刪除圖表 XML。"""
@@ -339,7 +409,7 @@ def clear_diagram_chat(
 @router.get("/diagrams/{diagram_id}")
 def get_diagram(
     diagram_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("view")),
     db: Session = Depends(get_db),
 ):
     diagram = _get_accessible_diagram(diagram_id, current_user, db)
@@ -354,13 +424,15 @@ def get_diagram(
             if diagram.user_id == current_user.id
             else []
         ),
+        "can_edit": _arch_can_edit(db, current_user),
+        "can_review": _arch_can_review(db, current_user),
     }
 
 
 @router.post("/diagrams")
 def create_diagram(
     request: SaveDiagramRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("edit")),
     db: Session = Depends(get_db),
 ):
     diagram = UserDiagram(
@@ -382,10 +454,11 @@ def create_diagram(
 def update_diagram(
     diagram_id: int,
     request: SaveDiagramRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("edit")),
     db: Session = Depends(get_db),
 ):
     diagram = _get_accessible_diagram(diagram_id, current_user, db)
+    # 僅擁有者可改 XML（被分享者若有 edit 仍可協作寫入）
     diagram.xml_data = request.xml_data
     diagram.title = request.title
     current_user.last_opened_diagram_id = diagram_id
@@ -397,7 +470,7 @@ def update_diagram(
 def share_diagram(
     diagram_id: int,
     request: ShareDiagramRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_arch_action("edit")),
     db: Session = Depends(get_db),
 ):
     diagram = db.query(UserDiagram).filter(UserDiagram.id == diagram_id).first()

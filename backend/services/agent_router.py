@@ -24,8 +24,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from models import User
-from services.auth import get_current_user
 from services.design_agent import configure_openrouter_env, run_design_agent
+from services.rbac import require_arch_action
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +44,12 @@ class ChatRequest(BaseModel):
 
 @router.post("/generate")
 async def chat_and_generate(
-    request: ChatRequest, current_user: User = Depends(get_current_user)
+    request: ChatRequest,
+    current_user: User = Depends(require_arch_action("edit")),
 ):
     """
     A1 入口：轉發至 Design Agent，以 SSE 串流回傳。
-    current_user 僅用於鉴權；產圖邏輯不依角色分支（RBAC 細化不在本次範圍）。
+    需具備架構圖生成編輯權（A1／A2／A4）。
     """
     messages = request.messages
     if not messages:
