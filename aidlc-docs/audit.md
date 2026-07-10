@@ -835,7 +835,54 @@ Each entry uses the following format:
 
 ---
 
-#### 2026-07-11T02:43:00+08:00 — A1 Phase 2 Approved & Implemented
+#### 2026-07-11T03:07:00+08:00 — Role Permission Design Draft
+
+**User request (raw)**: "幫我依照 persona跟user story有提到的角色設計我的使用者角色權限"
+**Stage**: Construction / Inception → Application Design (RBAC)
+**Branch**: `luojingting/feat/role-permission-redesign`
+**Outcome**: 產出 `aidlc-docs/construction/plans/role-permission-design.md`（11 canonical roles、capability 矩陣、與 diagram ACL 分離、命名對齊、實作順序）
+**Approval prompt**: A) 批准並進 plan／實作 / B) 改矩陣 / C) 取消
+
+---
+
+#### 2026-07-11T03:09:00+08:00 — RBAC: Per-Feature View/Edit/Review
+
+**User request (raw)**: "針對每個功能 我要細分 編輯 檢視 審核"
+**Stage**: Application Design (RBAC) — model revision
+**AI Response**: 已將設計改為每個功能獨立三旗標：檢視 (view)／編輯 (edit)／審核 (review)；更新矩陣（V／VE／VR／VER）與檢查契約。
+**Artifact**: `aidlc-docs/construction/plans/role-permission-design.md`
+**Approval prompt**: A) 批准 / B) 再改某格 / C) 取消
+
+---
+
+#### 2026-07-11T03:11:00+08:00 — RBAC: A–H Per-Story Matrix
+
+**User request (raw)**: "那你把a-h列出每個功能每個角色有哪些權限"
+**Stage**: Application Design (RBAC) — story-level matrix
+**AI Response**: 已將矩陣細到 Pillar A–H 每個 User Story（A1–H3＋A4）× 11 角色 × V/VE/VR/VER；J 另表。
+**Artifact**: `aidlc-docs/construction/plans/role-permission-design.md`
+
+---
+
+#### 2026-07-11T03:14:00+08:00 — RBAC: Two Admin Pages
+
+**User request (raw)**: "那admin 需養兩個頁面，一個控管使用者是哪個角色 一個控管哪個角色有哪些係巷的權限"
+**Stage**: Application Design (RBAC) — Admin UX
+**AI Response**: 設計改為 Admin 兩頁：① `/admin/users` 使用者↔角色；② `/admin/role-permissions` 角色↔A–H 細項（檢視／編輯／審核）。§4–§11 作為 DB seed；執行期讀 `role_permissions`。
+**Artifact**: `role-permission-design.md` §12
+
+---
+
+#### 2026-07-11T03:17:00+08:00 — RBAC: schema_rbac.sql Seed
+
+**User request (raw)**: "需要產生對應的shema sql 檔案...預設的角色細項權限...預設的admin帳號"
+**Stage**: Construction — Schema / Seed
+**Outcome**:
+- 新增 `schema_rbac.sql`（`role_permissions` + 308 列預設矩陣 + `admin`/`admin123`/`Platform_Admin`）
+- ORM：`RolePermission`；`schema.sql` 加執行指引；`schema-rbac-notes.md`
+**Run**: `psql "$DATABASE_URL" -f schema_rbac.sql`
+
+---
 
 **User request (raw)**: "Ａ"
 **Stage**: Construction → Code Generation Part 2 — A1 Phase 2 (User Story Core)
@@ -845,5 +892,137 @@ Each entry uses the following format:
 - Docs：`a1-core-gap-summary.md`；plan Step 7 勾選；state／audit
 - Step 8 手動驗收待使用者
 **Approver**: luojingting
+
+---
+
+#### 2026-07-11 03:25 +08:00 — RBAC Implementation Start
+
+**User request (raw)**: "那可以開始實作了"
+**Stage**: Construction → Code Generation — Role & Permission Redesign
+**Outcome**:
+- 設計標記 APPROVED；新增 `role-permission-construction-plan.md`
+- Backend：`services/rbac.py`、`rbac_seed_data.py`；`/me` permissions；J3a/J3b APIs；A1.generate / A4.chat 檢查；init seed
+- Frontend：`/admin/users`、`/admin/role-permissions`；`can()` + CapabilityRoute；Sidebar 依權限；Workspace 無 A1.edit 唯讀
+- 待辦：WebSocket JWT、手動 E2E
+**Approver**: luojingting
+
+---
+
+#### 2026-07-11 03:36:57 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 3 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:39:00 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 3 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:39:27 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 4 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:39:47 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 4 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:42 +08:00 — RBAC Plan Sync (Sidebar / no Pillar J)
+
+**User request (raw)**: "幫我把這些調整也更新回plan"
+**Stage**: Construction → Plan update — Role & Permission
+**Outcome**:
+- 更新 `role-permission-construction-plan.md`：A1/A2/A4 語意、細項無 J、三旗標全空則 Sidebar 隱藏、API env、狀態 CORE DONE
+- 同步 `aidlc-state.md` RBAC 為 Core done
+**Approver**: luojingting
+
+---
+
+#### 2026-07-11 03:42:54 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 3 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:43:10 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 1 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:43:31 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 3 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:44:01 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 1 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:45:05 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 4 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:46:48 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 4 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:47:07 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 4 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
+
+---
+
+#### 2026-07-11 03:54:28 +08:00 — Role Permission Matrix Update
+
+**User request (raw)**: "更新 2 列 role_permissions"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已更新角色細項權限矩陣。
+**Approver**: catherine
 
 ---

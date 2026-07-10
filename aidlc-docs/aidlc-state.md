@@ -10,7 +10,7 @@
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
 - **AIDLC Version**: 0.1.8（見 `.aidlc-rule-details/VERSION`）
 - **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1）→ `feat/aidlc-docs-migration`（PR2）→ `Doreen`（目錄重組）
-- **Current Stage**: CONSTRUCTION — A1 Agent SDK 完成（待手動 E2E）；A4 Chat Persistence **Code Generation 完成**（待手動驗收）；A2 核心完成、部分 AC 待補
+- **Current Stage**: CONSTRUCTION — A1/A4 待手動 E2E；**RBAC 角色權限重設計實作中**（見 `construction/plans/role-permission-construction-plan.md`）
 
 ### Workspace State
 
@@ -54,6 +54,7 @@
   - A1 Code Generation: ✅（舊版 httpx；已由 Agent SDK 路徑取代）
   - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — 待手動驗收 Step 6／8（見 `construction/plans/a1-agent-sdk-code-generation-plan.md`、`construction/a1/code/a1-core-gap-summary.md`）
   - A4 Chat Persistence: ✅ Code done — 待手動驗收（見 `construction/plans/a4-chat-persistence-plan.md`、`construction/a4/code/chat-persistence-summary.md`）
+  - Role & Permission Redesign: ✅ Core done — A1/A2/A4 語意、Sidebar 隱藏、細項無 J；待 WebSocket JWT／手動 E2E（見 `construction/plans/role-permission-design.md`、`role-permission-construction-plan.md`）
   - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照）
   - Build and Test: ⏳
 - 🟡 Operations: ⏳
@@ -83,7 +84,7 @@
 - **Project Type**: Brownfield (existing SRS / architecture / user stories / ADR baseline)
 - **AIDLC Version**: 0.1.8 (see `.aidlc-rule-details/VERSION`)
 - **AIDLC Adoption Branch**: `Doreen` (restructuring: .agents/ → AIDLC three-layer architecture + docs/ → aidlc-docs/inception/ migration completed)
-- **Current Stage**: CONSTRUCTION — A1 Agent SDK done (pending manual E2E); A4 Chat Persistence **code generation complete** (pending manual acceptance); A2 core done with partial AC gaps
+- **Current Stage**: CONSTRUCTION — A1/A4 pending manual E2E; **RBAC redesign in progress** (see `construction/plans/role-permission-construction-plan.md`)
 
 ### Workspace State
 
@@ -127,6 +128,7 @@
   - A1 Code Generation: ✅ (legacy httpx superseded by Agent SDK path)
   - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — pending manual Steps 6/8 (see `construction/plans/a1-agent-sdk-code-generation-plan.md`, `construction/a1/code/a1-core-gap-summary.md`)
   - A4 Chat Persistence: ✅ Code done — pending manual acceptance (see `construction/plans/a4-chat-persistence-plan.md`, `construction/a4/code/chat-persistence-summary.md`)
+  - Role & Permission Redesign: ✅ Core done — A1/A2/A4 semantics, Sidebar hide-when-empty, no Pillar J in matrix UI; pending WebSocket JWT / manual E2E (see `construction/plans/role-permission-design.md`, `role-permission-construction-plan.md`)
   - A2 Code Generation: 🔄 (core features done; partial AC gaps — see acceptance table below)
   - Build and Test: ⏳
 - 🟡 Operations: ⏳

@@ -76,11 +76,11 @@ class RoleChecker:
             )
         return current_user
 
-# 快捷權限防護 Guard
+# 快捷權限防護 Guard（角色 allowlist；細項請用 services.rbac.require_story_action）
 require_admin = RoleChecker(["Project_Admin", "Platform_Admin"])
 require_architect = RoleChecker(["Project_Admin", "Platform_Admin", "Project_Architect"])
 require_any_user = RoleChecker([
-    "Project_Admin", "Platform_Admin", "Project_Architect", 
-    "SRE", "FinOps_Analyst", "Platform_Engineer", 
-    "Security_Reviewer", "Ops_Lead", "Project_Editor", "Developer", "Platform_Owner"
+    "Project_Admin", "Platform_Admin", "Project_Architect",
+    "SRE", "FinOps_Analyst", "Platform_Engineer",
+    "Security_Reviewer", "Ops_Lead", "Project_Editor", "Developer", "Platform_Owner",
 ])

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiUrl } from '../config/api';
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -50,7 +51,7 @@ export const LoginPage: React.FC = () => {
     const endpoint = isRegisterMode ? 'register' : 'login';
 
     try {
-      const response = await fetch(`http://localhost:8000/api/auth/${endpoint}`, {
+      const response = await fetch(apiUrl(`/api/auth/${endpoint}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,8 +65,8 @@ export const LoginPage: React.FC = () => {
         throw new Error(data.detail || (isRegisterMode ? '註冊失敗' : '登入失敗'));
       }
 
-      // 寫入 AuthContext 狀態
-      login(data.username, data.access_token, data.role);
+      // 寫入 AuthContext 狀態（含 /me permissions）
+      await login(data.username, data.access_token, data.role);
       
       // 成功跳轉至架構畫布工作區
       navigate('/workspace');

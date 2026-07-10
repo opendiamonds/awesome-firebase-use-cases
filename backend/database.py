@@ -47,8 +47,7 @@ def init_db():
         user_count = db.query(User).count()
         if user_count == 0:
             logger.info("資料庫為空，開始從 personas.md 初始化 11 位預設使用者...")
-            
-            # 定義 11 位 Persona 的資料
+
             default_personas = [
                 {"username": "catherine", "role": "Project_Admin", "password": "catherine123"},
                 {"username": "jack", "role": "Platform_Admin", "password": "jack123"},
@@ -62,22 +61,49 @@ def init_db():
                 {"username": "ian", "role": "Developer", "password": "ian123"},
                 {"username": "karen", "role": "Platform_Owner", "password": "karen123"},
             ]
-            
+
             for persona in default_personas:
                 hashed_pw = hash_password(persona["password"])
                 db_user = User(
                     username=persona["username"],
                     password_hash=hashed_pw,
                     role=persona["role"],
-                    is_active=True
+                    is_active=True,
                 )
                 db.add(db_user)
 
-            
             db.commit()
             logger.info("預設使用者初始化完成！")
         else:
             logger.info(f"資料庫已存在 {user_count} 位使用者，跳過初始化。")
+
+        # 確保預設 admin 帳號存在（與 schema_rbac.sql 對齊）
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin is None:
+            db.add(
+                User(
+                    username="admin",
+                    password_hash=hash_password("admin123"),
+                    role="Platform_Admin",
+                    is_active=True,
+                )
+            )
+            db.commit()
+            logger.info("已建立預設帳號 admin / Platform_Admin")
+
+        # RBAC 矩陣：空表時 seed（不覆寫 Admin UI 已調過的資料）
+        from services.rbac import ensure_role_permissions_seeded
+
+        seeded = ensure_role_permissions_seeded(db, force=False)
+        if seeded:
+            logger.info("role_permissions 已 seed %d 列", seeded)
+        else:
+            from models import RolePermission
+
+            logger.info(
+                "role_permissions 已有 %d 列，略過 seed",
+                db.query(RolePermission).count(),
+            )
     except Exception as e:
         logger.error(f"初始化資料庫時發生錯誤: {e}")
         db.rollback()
