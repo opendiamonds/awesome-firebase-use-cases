@@ -691,3 +691,159 @@ Each entry uses the following format:
 3. 前端實作 `ShareModal` 元件，點擊分享 Icon 即可勾選團隊成員；下拉選單支援顯示「👥 被分享的圖表」。
 4. WebSocket 連線從固定的 default 頻道改為綁定 `diagramId` (`/api/collab/ws/{diagramId}`)，真正落實了針對特定檔案的多人共編。
 **Approver**: luojingting
+
+#### 2026-07-05 22:10:28 +08:00 — User Privilege Re-assignment
+
+**User request (raw)**: "變更使用者 catherine 角色為 Platform_Admin"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 角色成功從 Project_Admin 變更為 Platform_Admin，下次重新整理時生效。
+**Approver**: catherine
+
+---
+
+#### 2026-07-10 15:37 +08:00 — A2 Status Reconciliation & aidlc-state Update
+
+**User request (raw)**: "A2是不是也完成？" / "好"
+**Stage**: Construction → Status Review (A2)
+**Outcome**: 對照 `stories.md` A2 驗收標準與程式碼（`collab_router.py`、`useCollaboration.ts`、`ShareModal.tsx`、`agent_router.py`）後，確認 A2 核心 Construction 已完成（2026-07-05 audit 四筆紀錄），但 AC3（修改歷史/Undo）、多人游標、框選抽取、自動載入最新草稿尚未完整。已更新 `aidlc-docs/aidlc-state.md`：Construction 標記 A1 ✅、A2 🔄，並新增 A2 驗收對照表。
+**Approver**: luojingting
+
+---
+
+#### 2026-07-11T01:48:00+08:00 — A1 Agent SDK Code Generation Plan (Approval Prompt)
+
+**User request (raw)**: "幫我寫plan 我這次要改成 Anthropic Agent SDK 的框架"
+**Stage**: Construction → Code Generation Part 1 (Planning) — Unit A1
+**AI Response**: 已建立 `aidlc-docs/construction/plans/a1-agent-sdk-code-generation-plan.md`。目標：以 Anthropic Agent SDK + OpenRouter（官方 env 接法）重構 A1；產圖邏輯改為 in-process MCP custom tool；前端 SSE 契約不變。Plan 含 checkbox steps、affected files、test strategy、risk、rollback。**等待使用者批准後才可改 application code。**
+**Context**: Branch `luojingting/refactor/a1-agent-sdk-openrouter`
+**Approval prompt**: 請選擇 A) 批准整份 plan 並執行 / B) 修改 plan / C) 取消
+
+---
+
+#### 2026-07-11T01:58:00+08:00 — A1 Plan Revised (Preserve Drawing Logic)
+
+**User request (raw)**: "那請依照原有的方式，改成我要的框架，並補好plan" （前序確認：無參考假圖 XML；現況為文字座標指南 + current_xml + 後端組 XML）
+**Stage**: Construction → Code Generation Part 1 (Planning) — Unit A1 Plan Revision
+**AI Response**: 已補強 plan：原則改為「只換 Agent SDK 迴圈，不換畫圖邏輯」。明確鎖定 (1) system prompt 原文抽出 (2) tool schema 一致 (3) diagram_builder 僅搬移 (4) 不新增參考假圖 XML (5) Feature Parity Checklist P1–P11。仍等待批准後才可改 code。
+**Plan file**: `aidlc-docs/construction/plans/a1-agent-sdk-code-generation-plan.md`
+**Approval prompt**: A) 批准執行 / B) 再改 plan / C) 取消
+
+---
+
+#### 2026-07-11T02:00:00+08:00 — A1 Plan Slimmed to Target Result Only
+
+**User request (raw)**: "plan 只保留改動後的結果"
+**Stage**: Construction → Code Generation Part 1 (Planning) — Plan trim
+**AI Response**: 已精簡 `a1-agent-sdk-code-generation-plan.md`：刪除 before/after 對照與冗長說明，只保留改動後目標架構、產出檔案、執行步驟、驗收、風險/rollback、批准選項。
+**Approval prompt**: A) 批准執行 / B) 再改 / C) 取消
+
+---
+
+#### 2026-07-11T02:03:00+08:00 — A1 Plan Target Architecture Expanded with Diagrams
+
+**User request (raw)**: "B" / "A) 詳細一點，可以加流程圖示意"
+**Stage**: Construction → Code Generation Part 1 (Planning) — Plan revision
+**AI Response**: 已擴充 plan §1：新增系統元件 Mermaid、產圖時序 sequence、兩條執行路徑 flowchart，並附文字版 fallback；補模組職責、tool/SSE 契約表。Steps 2–6 維持精簡。
+**Plan file**: `aidlc-docs/construction/plans/a1-agent-sdk-code-generation-plan.md`
+**Approval prompt**: A) 批准執行 / B) 再改 / C) 取消
+
+---
+
+#### 2026-07-11T02:05:00+08:00 — A1 Plan: Mandatory Code Comments
+
+**User request (raw)**: "記得在寫程式時要加註解"
+**Stage**: Construction → Code Generation Part 1 (Planning) — Plan constraint
+**AI Response**: 已將「程式註解（強制）」寫入 plan §1.6，並在 Step 2.3 / 3.7 / 4.2 要求新增模組加繁中註解（職責、流程、env/安全）；code/API 維持英文。執行時會遵守。
+**Approval prompt**: A) 批准執行 / B) 再改 / C) 取消
+
+---
+
+#### 2026-07-11T02:06:00+08:00 — A1 Agent SDK Plan Approved
+
+**User request (raw)**: "A"
+**Stage**: Construction → Code Generation Part 2 (Generation) — Unit A1
+**AI Response**: 使用者批准 plan，開始執行 Step 1–6（Anthropic Agent SDK + OpenRouter；保留原畫圖邏輯；強制繁中註解）。
+**Approver**: luojingting
+
+---
+
+#### 2026-07-11T02:20:00+08:00 — A1 Agent SDK Code Generation Complete
+
+**User request (raw)**: "A"（批准執行）
+**Stage**: Construction → Code Generation Part 2 (Generation) — Unit A1 Complete
+**Outcome**:
+- Created: `backend/prompts/aws_architecture_system_prompt.md`, `backend/services/diagram_builder.py`, `backend/services/design_agent.py`, `aidlc-docs/construction/a1/code/agent-sdk-summary.md`
+- Modified: `backend/services/agent_router.py`（SSE 適配層）, `backend/main.py`, `backend/requirements.txt`, `backend/.env.example`
+- Verified: module import + `diagram_builder` 單元組 XML 成功；FastAPI app 載入成功
+- Step 6 手動 E2E 待使用者驗收
+**Approver**: pending user review
+
+---
+
+#### 2026-07-11T02:15:00+08:00 — A4 Chat Persistence Requirement Captured
+
+**User request (raw)**: "那我要加一個 重整後仍記得 的需求" / "[Answer]: 1.D 2.c 3.A"
+**Stage**: Inception → User Stories + Construction Planning (A4)
+**Outcome**:
+- 決策：後端 DB 鍵值 = user × diagram；重整還原聊天 + 自動選上次開啟圖；先寫 Story/plan 再實作
+- 新增 User Story **A4**（中英）於 `aidlc-docs/inception/user-stories/stories.md`
+- 新增 plan：`aidlc-docs/construction/plans/a4-chat-persistence-plan.md`
+- **等待批准後才可改 application code**
+**Approval prompt**: A) 批准執行 A4 plan / B) 改 plan / C) 取消
+
+---
+
+#### 2026-07-11T02:18:00+08:00 — A4 Plan: Clear Chat Button
+
+**User request (raw)**: "幫我再加個功能在a4 可以有個按鈕清空該架構圖的對話紀錄"
+**Stage**: Inception / Construction Planning — A4 amendment
+**AI Response**: 已更新 Story A4 AC#5 與 `a4-chat-persistence-plan.md`：新增「清空對話」按鈕、`DELETE /api/collab/diagrams/{id}/chat`（只清聊天、不改 XML）、前端確認流程與驗收項。仍等待批准後才可改 code。
+**Approval prompt**: A) 批准執行 / B) 再改 / C) 取消
+
+---
+
+#### 2026-07-11T02:25:00+08:00 — A4 Chat Persistence Plan Approved & Implemented
+
+**User request (raw)**: "A"
+**Stage**: Construction → Code Generation Part 2 (Generation) — Unit A4
+**Outcome**:
+- DB：`UserDiagramChat`、`users.last_opened_diagram_id`；`schema.sql` + `_ensure_a4_schema()`
+- API：`GET /workspace/bootstrap`、`GET/PUT/DELETE /diagrams/{id}/chat`、`PUT /workspace/last-opened`
+- Frontend：`WorkspacePage` bootstrap／切圖載入／對話後寫回／清空確認；`ChatBox`「清空對話」
+- Docs：`construction/a4/code/chat-persistence-summary.md`、雙語 `database-schema.md`、plan checkboxes、state
+- Step 5 手動驗收待使用者執行
+**Approver**: luojingting
+
+---
+
+#### 2026-07-11T02:39:00+08:00 — A1 Core Gap Fill: Answers + Plan
+
+**User request (raw)**: "可以幫我補足 User Story A1 核心 嗎" / "[Answer]: 1.A 2.B 3.A 4.A 5.B"
+**Stage**: Construction → Code Generation Part 1 (Planning) — A1 Core Gap
+**Decisions**: 全套核心；僅有 diagram_id 才自動存；兩顆按鈕（清空對話／全部重置）；CTA stub；先 plan 再批准
+**Artifacts**: `a1-core-gap-questions.md`、`a1-core-gap-fill-plan.md`
+**Approval prompt**: A) 批准執行 / B) 改 plan / C) 取消
+
+---
+
+#### 2026-07-11T02:41:00+08:00 — A1 Plans Merged
+
+**User request (raw)**: "把 aidlc-docs/construction/plans/a1-core-gap-fill-plan 合併到 a1-agent-sdk-code-generation-plan"
+**Stage**: Construction → Planning — Plan merge
+**AI Response**: 已將 User Story 核心補齊併入 `a1-agent-sdk-code-generation-plan.md` 為 Phase 2（Step 7–8）；刪除獨立 `a1-core-gap-fill-plan.md`；更新 questions／state／audit 引用。
+**Approval prompt（Phase 2）**: A) 批准執行 Step 7–8 / B) 改 plan / C) 取消
+
+---
+
+#### 2026-07-11T02:43:00+08:00 — A1 Phase 2 Approved & Implemented
+
+**User request (raw)**: "Ａ"
+**Stage**: Construction → Code Generation Part 2 — A1 Phase 2 (User Story Core)
+**Outcome**:
+- Prompt：關鍵字／HA／VPC-AZ／edges／區域衝突語意
+- Frontend：有 diagram_id 自動存；無 id 手動存提示；清空對話 vs 全部重置；成功／失敗 CTA stub
+- Docs：`a1-core-gap-summary.md`；plan Step 7 勾選；state／audit
+- Step 8 手動驗收待使用者
+**Approver**: luojingting
+
+---

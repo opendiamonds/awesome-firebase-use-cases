@@ -38,7 +38,9 @@ def get_db():
 def init_db():
     logger.info("正在初始化資料庫與資料表...")
     Base.metadata.create_all(bind=engine)
-    
+    # A4：既有 DB 補欄位／新表（create_all 不會 ALTER 舊表）
+    _ensure_a4_schema()
+
     db = SessionLocal()
     try:
         # 檢查是否已存在使用者
@@ -81,3 +83,31 @@ def init_db():
         db.rollback()
     finally:
         db.close()
+
+
+def _ensure_a4_schema():
+    """為既有資料庫補上 A4 欄位與 user_diagram_chats 表。"""
+    from sqlalchemy import text
+
+    statements = [
+        """
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS last_opened_diagram_id INTEGER
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS user_diagram_chats (
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            diagram_id INTEGER NOT NULL REFERENCES user_diagrams(id) ON DELETE CASCADE,
+            messages_json TEXT NOT NULL DEFAULT '[]',
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            PRIMARY KEY (user_id, diagram_id)
+        )
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning("A4 schema 補丁略過/失敗: %s — %s", sql[:60], e)
+    logger.info("A4 schema 檢查完成")

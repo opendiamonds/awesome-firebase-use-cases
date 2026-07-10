@@ -9,18 +9,16 @@
 - **Project Name**: Cloud-360
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
 - **AIDLC Version**: 0.1.8（見 `.aidlc-rule-details/VERSION`）
-- **AIDLC 啟用 PRs**: `Doreen`（目錄重組：.agents/ → AIDLC 三層架構 + docs/ → aidlc-docs/inception/ 完成）
-- **Current Stage**: INCEPTION — 已完成 framework adoption + artifact migration，可進入正式 AIDLC stage
-- **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1：rules + CLAUDE.md）→ `feat/aidlc-docs-migration`（PR2：docs/ → aidlc-docs/inception/ 完成）
-- **Current Stage**: INCEPTION — 已完成 framework adoption + artifact migration，可進入正式 AIDLC stage（reverse-engineering / requirements analysis）
+- **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1）→ `feat/aidlc-docs-migration`（PR2）→ `Doreen`（目錄重組）
+- **Current Stage**: CONSTRUCTION — A1 Agent SDK 完成（待手動 E2E）；A4 Chat Persistence **Code Generation 完成**（待手動驗收）；A2 核心完成、部分 AC 待補
 
 ### Workspace State
 
-- **Existing Code**: Yes（`firebase_templates/`、`scripts/`、`tools/`、`workflows/`，但主要為 spec / template / validator）
-- **Programming Languages**: Python（validate script），Markdown / Mermaid / draw.io（specs）
-- **Build System**: 尚無 application build；CI 僅跑 validation。
-- **Project Structure**: Spec-Driven repo（尚未產製 application code）
-- **Workspace Root**: `/Users/jiangzhengdao/User/Developer/Opendiamonds/cloud-360`
+- **Existing Code**: Yes（`backend/`、`frontend/`、`firebase_templates/`、`scripts/`、`tools/`、`workflows/`）
+- **Programming Languages**: Python（FastAPI backend）、TypeScript（React frontend）、Markdown / Mermaid / draw.io（specs）
+- **Build System**: Frontend Vite build + Backend FastAPI；CI 跑 validation。
+- **Project Structure**: Spec-Driven repo + A1/A2 application code（Architecture Design 模組）
+- **Workspace Root**: `/Users/luojingting/Documents/opendimand/cloud`
 
 ### Extension Configuration
 
@@ -52,8 +50,28 @@
   - Workflow Planning: ⏳
   - Application Design: 🔄（已有 baseline）
   - Units Generation: ⏳
-- 🟢 Construction: ⏳
+- 🟢 Construction
+  - A1 Code Generation: ✅（舊版 httpx；已由 Agent SDK 路徑取代）
+  - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — 待手動驗收 Step 6／8（見 `construction/plans/a1-agent-sdk-code-generation-plan.md`、`construction/a1/code/a1-core-gap-summary.md`）
+  - A4 Chat Persistence: ✅ Code done — 待手動驗收（見 `construction/plans/a4-chat-persistence-plan.md`、`construction/a4/code/chat-persistence-summary.md`）
+  - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照）
+  - Build and Test: ⏳
 - 🟡 Operations: ⏳
+
+### Construction Unit 驗收（A2）
+
+| AC / 場景 | 狀態 | 備註 |
+|---|---|---|
+| AI 局部編輯（基於現有 XML） | ✅ | `agent_router.py` Partial Updates + `current_xml` |
+| 框選節點群組後送 AI | ⚠️ 部分 | 依賴 draw.io 手動框選 + 文字描述，未抽取 selection |
+| 連線保留 | ✅ | system prompt + merge 邏輯 |
+| 修改歷史 + 一鍵 Undo | ❌ | 未實作 AI 變更追蹤；僅 draw.io 內建 undo |
+| 儲存架構圖至 DB | ✅ | `UserDiagram` + POST/PUT API |
+| 多檔案管理 + 下拉切換 | ✅ | `WorkspacePage` diagram selector |
+| 分享給其他使用者 | ✅ | `ShareModal` + `diagram_shares` |
+| 多人即時共編（XML 同步） | ✅ | WebSocket `/api/collab/ws/{diagramId}` |
+| 多人游標可見 | ❌ | WebSocket 僅廣播 XML，未實作 cursor |
+| 進入工作區自動載入最新草稿 | ✅（A4） | bootstrap 還原 `last_opened_diagram_id` + 該圖聊天 |
 
 ---
 
@@ -65,15 +83,15 @@
 - **Project Type**: Brownfield (existing SRS / architecture / user stories / ADR baseline)
 - **AIDLC Version**: 0.1.8 (see `.aidlc-rule-details/VERSION`)
 - **AIDLC Adoption Branch**: `Doreen` (restructuring: .agents/ → AIDLC three-layer architecture + docs/ → aidlc-docs/inception/ migration completed)
-- **Current Stage**: INCEPTION — Framework adoption and artifact migration complete; ready to enter formal AIDLC stages
+- **Current Stage**: CONSTRUCTION — A1 Agent SDK done (pending manual E2E); A4 Chat Persistence **code generation complete** (pending manual acceptance); A2 core done with partial AC gaps
 
 ### Workspace State
 
-- **Existing Code**: Yes (`firebase_templates/`, `scripts/`, `tools/`, `workflows/` — mostly specs / templates / validators)
-- **Programming Languages**: Python (validate script), Markdown / Mermaid / draw.io (specs)
-- **Build System**: No application build yet; CI only runs validation.
-- **Project Structure**: Spec-Driven repo (no application code yet)
-- **Workspace Root**: `/Users/houguanyu/Desktop/Work/Cathaybk/Opendiamonds/cloud-360`
+- **Existing Code**: Yes (`backend/`, `frontend/`, `firebase_templates/`, `scripts/`, `tools/`, `workflows/`)
+- **Programming Languages**: Python (FastAPI backend), TypeScript (React frontend), Markdown / Mermaid / draw.io (specs)
+- **Build System**: Frontend Vite build + Backend FastAPI; CI runs validation.
+- **Project Structure**: Spec-Driven repo + A1/A2 application code (Architecture Design module)
+- **Workspace Root**: `/Users/luojingting/Documents/opendimand/cloud`
 
 ### Extension Configuration
 
@@ -105,5 +123,25 @@
   - Workflow Planning: ⏳
   - Application Design: 🔄 (baseline exists)
   - Units Generation: ⏳
-- 🟢 Construction: ✅ (A1 Code Generation)
+- 🟢 Construction
+  - A1 Code Generation: ✅ (legacy httpx superseded by Agent SDK path)
+  - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — pending manual Steps 6/8 (see `construction/plans/a1-agent-sdk-code-generation-plan.md`, `construction/a1/code/a1-core-gap-summary.md`)
+  - A4 Chat Persistence: ✅ Code done — pending manual acceptance (see `construction/plans/a4-chat-persistence-plan.md`, `construction/a4/code/chat-persistence-summary.md`)
+  - A2 Code Generation: 🔄 (core features done; partial AC gaps — see acceptance table below)
+  - Build and Test: ⏳
 - 🟡 Operations: ⏳
+
+### Construction Unit Acceptance (A2)
+
+| AC / Scenario | Status | Notes |
+|---|---|---|
+| AI partial edit (based on existing XML) | ✅ | `agent_router.py` Partial Updates + `current_xml` |
+| Box-select node group then send to AI | ⚠️ Partial | Relies on manual draw.io selection + text prompt; no selection extraction |
+| Preserve connections | ✅ | system prompt + merge logic |
+| Modification history + one-click Undo | ❌ | No AI change tracking; draw.io native undo only |
+| Save diagram to DB | ✅ | `UserDiagram` + POST/PUT API |
+| Multi-file management + dropdown switch | ✅ | `WorkspacePage` diagram selector |
+| Share with other users | ✅ | `ShareModal` + `diagram_shares` |
+| Multi-user real-time co-edit (XML sync) | ✅ | WebSocket `/api/collab/ws/{diagramId}` |
+| Multi-user cursor visibility | ❌ | WebSocket broadcasts XML only; no cursor protocol |
+| Auto-load latest draft on workspace entry | ✅ (A4) | Bootstrap restores `last_opened_diagram_id` + that diagram's chat |
