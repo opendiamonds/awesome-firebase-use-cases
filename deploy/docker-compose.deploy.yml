@@ -61,6 +61,11 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
+    # The credentials JSON on the host is 0400, owned by uid 1000. This image
+    # defaults to the nonroot user (uid 65532), which cannot read it — hence
+    # "permission denied" and a restart loop. Run as the file's owner so the
+    # credentials stay locked to 0400 instead of being loosened to world-read.
+    user: "1000:1000"
     command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
     volumes:
       - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
