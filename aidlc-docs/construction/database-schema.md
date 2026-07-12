@@ -81,7 +81,44 @@ Documents A2 (draft storage, share ACL) and A4 (chat keyed by user × diagram, l
 
 ### 1. ERD
 
-Same Mermaid diagram as Chinese §1.
+```mermaid
+erDiagram
+    users ||--o{ user_diagrams : "owns"
+    users }|--|{ diagram_shares : "shared_with"
+    user_diagrams }|--|{ diagram_shares : "is_shared_to"
+    users ||--o{ user_diagram_chats : "has_chat"
+    user_diagrams ||--o{ user_diagram_chats : "chat_on"
+    users }o--o| user_diagrams : "last_opened"
+
+    users {
+        int id PK
+        string username
+        string password_hash
+        string role
+        boolean is_active
+        int last_opened_diagram_id FK "nullable"
+    }
+
+    user_diagrams {
+        int id PK
+        int user_id FK
+        string title
+        text xml_data
+        datetime updated_at
+    }
+
+    diagram_shares {
+        int user_id PK_FK
+        int diagram_id PK_FK
+    }
+
+    user_diagram_chats {
+        int user_id PK_FK
+        int diagram_id PK_FK
+        text messages_json
+        datetime updated_at
+    }
+```
 
 ### 2. Tables
 

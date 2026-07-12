@@ -56,8 +56,11 @@
   - A4 Chat Persistence: ✅ Code done — 待手動驗收（見 `construction/plans/a4-chat-persistence-plan.md`、`construction/a4/code/chat-persistence-summary.md`）
   - Role & Permission Redesign: ✅ Core done — A1/A2/A4 語意、Sidebar 隱藏、細項無 J；待 WebSocket JWT／手動 E2E（見 `construction/plans/role-permission-design.md`、`role-permission-construction-plan.md`）
   - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照）
-  - Build and Test: ⏳
-- 🟡 Operations: ⏳
+  - Build and Test: 🔄（`.github/workflows/ci.yml`：repo contract、frontend lint/typecheck/build、backend import check、Docker build。**尚無測試套件** — backend job 只做 import check）
+- 🟡 Operations: 🔄
+  - Deployment: ✅ `.github/workflows/deploy.yml` — push 至 `ut` 觸發，於 192.168.10.10 的 self-hosted runner（`cloud360-10-10`）執行 `docker compose up -d --build`；對外經 Cloudflare Tunnel 開放 `cloud360.danniel.cc`（見 ADR-0007）
+  - Agentic Automation: ✅ 六支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、doc-sync、release-watch、daily-digest）
+  - Observability / Incident Playbooks: ⏳
 
 ### Construction Unit 驗收（A2）
 
@@ -130,8 +133,11 @@
   - A4 Chat Persistence: ✅ Code done — pending manual acceptance (see `construction/plans/a4-chat-persistence-plan.md`, `construction/a4/code/chat-persistence-summary.md`)
   - Role & Permission Redesign: ✅ Core done — A1/A2/A4 semantics, Sidebar hide-when-empty, no Pillar J in matrix UI; pending WebSocket JWT / manual E2E (see `construction/plans/role-permission-design.md`, `role-permission-construction-plan.md`)
   - A2 Code Generation: 🔄 (core features done; partial AC gaps — see acceptance table below)
-  - Build and Test: ⏳
-- 🟡 Operations: ⏳
+  - Build and Test: 🔄 (`.github/workflows/ci.yml`: repo contract, frontend lint/typecheck/build, backend import check, Docker build. **No test suite exists yet** — the backend job performs an import check only)
+- 🟡 Operations: 🔄
+  - Deployment: ✅ `.github/workflows/deploy.yml` — triggered by push to `ut`, runs `docker compose up -d --build` on the self-hosted runner at 192.168.10.10 (`cloud360-10-10`); exposed publicly at `cloud360.danniel.cc` through a Cloudflare Tunnel (see ADR-0007)
+  - Agentic Automation: ✅ six gh-aw workflows (contract-guard, pr-reviewer, issue-triage, doc-sync, release-watch, daily-digest)
+  - Observability / Incident Playbooks: ⏳
 
 ### Construction Unit Acceptance (A2)
 
