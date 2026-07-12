@@ -4,8 +4,12 @@ name: Deploy (ut → 192.168.10.10)
 # runners cannot reach a private LAN address, so the job goes to the machine
 # instead of the machine being reachable from the job.
 
+# Deploy only on a MERGED pull request into ut, never on a raw push. A merge is
+# a reviewed change; a direct push is not, and this job runs commands on a
+# machine on the private network. workflow_dispatch stays for manual redeploys.
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - ut
   workflow_dispatch:
@@ -22,9 +26,20 @@ jobs:
     name: docker compose up
     runs-on: [self-hosted, linux, x64, cloud360]
     timeout-minutes: 30
+    # pull_request:closed fires on close-without-merge too; only a real merge
+    # (or a manual dispatch) should deploy. Fork PRs must never reach this
+    # self-hosted runner — see ADR-0007.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.head.repo.full_name == github.repository)
 
     steps:
+      # Check out the merge result on ut, not the PR head, so we deploy what
+      # actually landed on the branch.
       - uses: actions/checkout@v4
+        with:
+          ref: ut
 
       # Fail loudly rather than deploying an insecure default. backend/services/
       # auth.py falls back to a hard-coded JWT signing key that is public in this
