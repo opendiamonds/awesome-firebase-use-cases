@@ -36,10 +36,15 @@ jobs:
 
     steps:
       # Check out the merge result on ut, not the PR head, so we deploy what
-      # actually landed on the branch.
+      # actually landed on the branch. Full history so rollback can revert.
       - uses: actions/checkout@v4
         with:
           ref: ut
+          fetch-depth: 0
+
+      - name: Record the commit being deployed
+        id: sha
+        run: echo "deployed=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # Fail loudly rather than deploying an insecure default. backend/services/
       # auth.py falls back to a hard-coded JWT signing key that is public in this
@@ -97,7 +102,7 @@ jobs:
       - name: Wait for the frontend to answer locally
         run: |
           set -euo pipefail
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -fsS -o /dev/null http://127.0.0.1:8090/; then
               echo "frontend up on 8090"
               exit 0
@@ -112,7 +117,7 @@ jobs:
       - name: Wait for the public hostname to answer through the tunnel
         run: |
           set -euo pipefail
-          for i in $(seq 1 24); do
+          for _ in $(seq 1 24); do
             if curl -fsS -o /dev/null https://cloud360.danniel.cc/; then
               echo "public: https://cloud360.danniel.cc"
               exit 0
@@ -122,6 +127,15 @@ jobs:
           echo "tunnel did not serve cloud360.danniel.cc" >&2
           docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env logs cloudflared --tail=60
           exit 1
+
+      # Only reached when both health checks passed. This commit is now the
+      # known-good the rollback job falls back to next time a deploy breaks.
+      - name: Record this commit as the last-good deployment
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.cloud360"
+          echo "${{ steps.sha.outputs.deployed }}" > "${HOME}/.cloud360/last-good-sha"
 
       - name: Remove the generated env file
         if: always()
@@ -133,7 +147,118 @@ jobs:
           {
             echo "### Deployed"
             echo ""
-            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- commit: \`${{ steps.sha.outputs.deployed }}\`"
             echo "- public: https://cloud360.danniel.cc"
             echo "- internal: http://192.168.10.10:8090"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Self-healing: when the deploy job fails, restore the last-good version to
+  # keep the site up, open a revert PR for the bad change, and hand the failure
+  # to the Deploy Doctor agent for root-cause analysis. Runs only for a real
+  # merged PR (a manual dispatch has no PR to revert).
+  rollback:
+    name: Roll back and diagnose
+    needs: deploy
+    if: >-
+      failure() && needs.deploy.result == 'failure' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true
+    runs-on: [self-hosted, linux, x64, cloud360]
+    timeout-minutes: 20
+    permissions:
+      contents: write        # push the revert branch
+      pull-requests: write   # open the revert PR
+      actions: write         # dispatch the Deploy Doctor workflow
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ut
+          fetch-depth: 0
+
+      - name: Restore the last-good deployment
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          set -euo pipefail
+          LAST=$(cat "${HOME}/.cloud360/last-good-sha" 2>/dev/null || true)
+          if [ -z "${LAST}" ]; then
+            echo "::warning::no last-good commit recorded — cannot roll back the running service" >&2
+            exit 0
+          fi
+          echo "rolling the running stack back to ${LAST}"
+          git checkout --quiet "${LAST}"
+          umask 077
+          cat > deploy/.env <<EOF
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          POSTGRES_DB=cloud360
+          JWT_SECRET=${JWT_SECRET}
+          OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+          ANTHROPIC_BASE_URL=https://openrouter.ai/api
+          ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6
+          LLM_MODEL=anthropic/claude-sonnet-4.6
+          N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+          APP_ENV=${APP_ENV:-staging}
+          PUBLIC_URL=https://cloud360.danniel.cc
+          FRONTEND_HOST_PORT=8090
+          CLOUDFLARED_CREDENTIALS_FILE=${HOME}/.cloudflared/b460a579-9e0d-42f1-a31d-c84d35bef065.json
+          EOF
+          docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env up -d --build --remove-orphans
+          rm -f deploy/.env
+          for _ in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8090/; then
+              echo "rolled back and healthy on 8090"; break
+            fi
+            sleep 5
+          done
+
+      - name: Capture the failing deploy log
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Trim to the tail so it fits in a workflow_dispatch input.
+          gh run view "${{ github.run_id }}" --log-failed 2>/dev/null | tail -c 8000 > /tmp/deploy-fail.log || true
+          echo "captured $(wc -c < /tmp/deploy-fail.log) bytes of failure log"
+
+      - name: Open a revert PR for the bad merge
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          PR="${{ github.event.pull_request.number }}"
+          BR="revert/deploy-fail-pr-${PR}-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B ut origin/ut
+          git checkout -b "${BR}"
+          if git revert -m 1 --no-edit "${MERGE_SHA}"; then
+            git push origin "${BR}"
+            gh pr create --base ut --head "${BR}" \
+              --title "Revert PR #${PR}: deploy to 192.168.10.10 failed" \
+              --body "Automated revert. The deploy triggered by merging #${PR} failed (run ${{ github.run_id }}); the running service was rolled back to the last-good commit. Merging this restores \`ut\` to match. See the Deploy Doctor issue for the root cause." \
+              || echo "::warning::revert branch pushed but PR create failed"
+          else
+            echo "::warning::automatic revert hit a conflict; a human must revert PR #${PR} manually" >&2
+            git revert --abort || true
+          fi
+
+      - name: Hand the failure to the Deploy Doctor agent
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LOG=$(cat /tmp/deploy-fail.log 2>/dev/null || true)
+          gh workflow run deploy-doctor.lock.yml \
+            -f run_id="${{ github.run_id }}" \
+            -f pr_number="${{ github.event.pull_request.number }}" \
+            -f failure_log="${LOG}" \
+            || echo "::warning::could not dispatch Deploy Doctor"

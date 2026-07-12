@@ -54,10 +54,13 @@ test.describe('Role-based access control', () => {
   });
 
   test('a Developer does not see the admin section', async ({ page }) => {
-    // Register a throwaway user; register assigns role Developer. Username must
-    // be unique on this DB and match ^[a-z0-9_]{3,20}$ — derive it from the
-    // worker + timestamp so parallel/retried runs never collide.
-    const uniq = `dev_${process.env.PW_RUN_ID || 't'}${Date.now().toString().slice(-8)}`;
+    // Register a throwaway user; register assigns role Developer. The backend
+    // enforces ^[a-z0-9_]$ and length 3–20, so the name must stay short: a
+    // base36 timestamp plus a few digits of the run id keeps it unique across
+    // parallel/retried runs while staying well under 20 chars (github.run_id
+    // alone is ~11 digits, which is why the naive run_id+timestamp overflowed).
+    const rid = (process.env.PW_RUN_ID || '0').replace(/\D/g, '').slice(-4);
+    const uniq = `dev_${rid}${Date.now().toString(36)}`.slice(0, 20);
     await page.goto('/');
     await page.getByRole('button', { name: /立即註冊新帳號/ }).click();
     await page.getByPlaceholder('請輸入您的帳號').fill(uniq);
