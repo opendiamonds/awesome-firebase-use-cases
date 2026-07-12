@@ -5,8 +5,9 @@
 
 ## 中文版
 
-- Status: Draft（規劃中，待選定工具後定案）
+- Status: Decided（工具已定：Kiwi TCMS 自架；實作進行中）
 - Date: 2026-07-13
+- Decision: 2026-07-13 選定 **Kiwi TCMS（自架）**，理由見第 3 節；SaaS 方案（Qase）與 TestLink 已否決。
 - 關聯：[[ui-regression]] workflow、`frontend/tests/e2e/regression.spec.ts`、user stories（A1/A2/A4/Pillar J）
 
 ### 1. 目標與現況
@@ -46,9 +47,14 @@
 - 上手最快、`qase-playwright` reporter 自動回寫每次 run、儀表板與趨勢開箱即用。
 - 代價：資料進外部 SaaS、免費方案有額度上限、多一個外部帳號與 API token。
 
-**建議**：方案 A（Kiwi TCMS 自架）。理由：你已自架整套服務並重視資料自主，Kiwi 可用同一條部署管線上線；手動測案量還小，維運負擔可控。若後續發現維運成本過高、或需要更順的自動化整合，再評估切換 Qase。
+**決定（2026-07-13）**：採方案 A（Kiwi TCMS 自架）。
 
-⚠️ 選定後需一筆記錄：自架走 ADR（新服務納入 scope）；選 Qase 則因引入外部 SaaS，建議開新 ADR 評估資料外送。
+**Repo 邊界（重要）**：Kiwi TCMS 屬**共用基礎設施**，不是 Cloud-360 產品碼，因此**在 `opendiamonds/dc-infra` repo 佈建與維運**（該 repo 是 danniel.cc 所有 staging 服務的 Cloudflare Tunnel IaC）。Cloud-360 這邊**只保留**：
+- 本測試策略文件；
+- 自動化測試 code（Playwright）；
+- 未來在 `ui-regression` workflow 中「把結果回寫到 Kiwi API」的整合步驟與 API token secret。
+
+TCMS 服務本身的 compose、tunnel（`dc-tcms` → `tcms.danniel.cc`）、DNS、以及「新增此對外服務」的 ADR/決策記錄，**都在 dc-infra**，不在 Cloud-360。
 
 ### 4. 整合架構
 
@@ -87,8 +93,9 @@
 
 ## English Version
 
-- Status: Draft (planning; finalised once the tool is chosen)
+- Status: Decided (tool chosen: self-hosted Kiwi TCMS; implementation in progress)
 - Date: 2026-07-13
+- Decision: on 2026-07-13, **Kiwi TCMS (self-hosted)** was chosen; see §3. The SaaS option (Qase) and TestLink were rejected.
 - Related: the [[ui-regression]] workflow, `frontend/tests/e2e/regression.spec.ts`, user stories (A1/A2/A4/Pillar J)
 
 ### 1. Goal and Current State
@@ -128,9 +135,14 @@ We need a TCM that holds manual + automated cases, dashboards, and traceability.
 - Fastest to adopt; the `qase-playwright` reporter auto-pushes every run; dashboards and trends out of the box.
 - Cost: data goes to an external SaaS, the free tier has quotas, and it adds an external account and API token.
 
-**Recommendation**: Option A (self-hosted Kiwi TCMS). You already self-host the whole stack and value data ownership; Kiwi can go live on the same pipeline, and the manual-case volume is small enough to keep operations manageable. If operating it proves costly, or smoother automated integration is needed, reassess Qase.
+**Decision (2026-07-13)**: Option A (self-hosted Kiwi TCMS).
 
-⚠️ Either way, record the decision: self-hosting warrants an ADR (a new service enters scope); choosing Qase warrants an ADR to weigh sending data to an external SaaS.
+**Repo boundary (important)**: Kiwi TCMS is **shared infrastructure**, not Cloud-360 product code, so it is **provisioned and operated in the `opendiamonds/dc-infra` repo** (the Cloudflare Tunnel IaC for every staging service on danniel.cc). Cloud-360 keeps **only**:
+- this test-strategy document;
+- the automated test code (Playwright);
+- the future integration step in the `ui-regression` workflow that writes results back to the Kiwi API, plus its API-token secret.
+
+The TCMS service compose, the tunnel (`dc-tcms` → `tcms.danniel.cc`), the DNS, and the ADR/decision record for adding this public service all live **in dc-infra**, not in Cloud-360.
 
 ### 4. Integration Architecture
 
