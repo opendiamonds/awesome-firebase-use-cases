@@ -10,6 +10,15 @@ import { apiUrl } from '../config/api';
 
 type ToastType = 'success' | 'error';
 
+interface Diagram {
+  id: number;
+  title: string;
+  xml_data?: string;
+  is_owner: boolean;
+  shared_user_ids?: number[];
+  updated_at: string;
+}
+
 type ToastState = {
   message: string;
   type: ToastType;
@@ -47,7 +56,7 @@ export const WorkspacePage = () => {
   const canvasRef = useRef<DrawioCanvasRef>(null);
 
   const [xml, setXml] = useState<string>('');
-  const [diagrams, setDiagrams] = useState<any[]>([]);
+  const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [currentDiagramId, setCurrentDiagramId] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isShared, setIsShared] = useState(false);
@@ -70,7 +79,7 @@ export const WorkspacePage = () => {
 
   /** 避免 generate 閉包讀到過期的 diagram id */
   const currentDiagramIdRef = useRef<number | null>(null);
-  const diagramsRef = useRef<any[]>([]);
+  const diagramsRef = useRef<Diagram[]>([]);
   const canvasAutosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
