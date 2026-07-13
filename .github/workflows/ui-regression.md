@@ -99,10 +99,14 @@ pre-agent-steps:
       export TCMS_PRODUCT_VERSION="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
       export TCMS_BUILD="${GITHUB_RUN_ID}-$(echo "${GITHUB_SHA}" | cut -c1-7)"
       pip install --quiet kiwitcms-junit.xml-plugin
-      tcms-junit.xml-plugin junit.kiwi.xml
-      # This Kiwi instance is shared across projects. Product "Cloud-360" is the
-      # structural separator; additionally tag every case so it stays
-      # identifiable in cross-project views. Idempotent.
+      # --summary-template '${name}' drops the "regression.spec.ts." classname
+      # prefix so the Kiwi case name is just the test title. Single-quoted so
+      # bash does not expand it. The template must stay stable — it is the key
+      # the plugin reuses cases by; changing it orphans the old cases.
+      tcms-junit.xml-plugin --summary-template '${name}' junit.kiwi.xml
+      # This Kiwi instance is shared across projects. Tag every case "Cloud-360"
+      # (Product is the structural separator; the tag aids cross-project views)
+      # and mark it is_automated so manual cases stay distinguishable. Idempotent.
       python3 -c "
       from tcms_api import TCMS
       rpc = TCMS().exec
@@ -110,7 +114,8 @@ pre-agent-steps:
       cases = rpc.TestCase.filter({'category__product': prod[0]['id']}) if prod else []
       for c in cases:
           rpc.TestCase.add_tag(c['id'], 'Cloud-360')
-      print('tagged', len(cases), 'Cloud-360 cases')
+          rpc.TestCase.update(c['id'], {'is_automated': True})
+      print('processed', len(cases), 'Cloud-360 cases')
       "
       rm -f "$HOME/.tcms.conf"
 
