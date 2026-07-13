@@ -70,7 +70,7 @@ export const ShareModal = ({ isOpen, onClose, diagramId, token }: ShareModalProp
         const data = await res.json();
         alert(data.detail || '分享失敗，可能權限不足。');
       }
-    } catch (_err) {
+    } catch {
       alert('分享失敗');
     } finally {
       setIsLoading(false);
