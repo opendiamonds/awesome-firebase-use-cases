@@ -10,3 +10,5 @@ playwright.config.ts
 pw-report.json
 playwright-report/
 test-results/
+junit.xml
+junit.kiwi.xml

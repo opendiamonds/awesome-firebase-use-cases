@@ -16,10 +16,13 @@ export default defineConfig({
   // One retry absorbs cold-start flake without hiding a genuine regression.
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  // The agent reads this JSON to report which cases failed; keep the path stable.
+  // The agent reads pw-report.json to report which cases failed; the junit.xml
+  // is consumed by the Kiwi TCMS plugin to record a test run for trend
+  // dashboards. Keep both paths stable — the workflow references them.
   reporter: [
     ['list'],
     ['json', { outputFile: 'pw-report.json' }],
+    ['junit', { outputFile: 'junit.xml' }],
   ],
   use: {
     baseURL: BASE_URL,

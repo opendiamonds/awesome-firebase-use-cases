@@ -65,6 +65,43 @@ pre-agent-steps:
       PW_RUN_ID: ${{ github.run_id }}
     run: npx playwright test
 
+  # Record this run in Kiwi TCMS for the trend dashboard. Best-effort: a Kiwi
+  # outage must never block a PR, so continue-on-error, and it runs whether the
+  # suite passed or failed (the dashboard needs the failures too). GITHUB_* are
+  # read from the runner env rather than ${{ }} to stay clear of gh-aw's
+  # expression allow-list.
+  - name: Report results to Kiwi TCMS
+    if: always()
+    continue-on-error: true
+    working-directory: frontend
+    env:
+      KIWI_TCMS_URL: ${{ secrets.KIWI_TCMS_URL }}
+      KIWI_TCMS_USERNAME: ${{ secrets.KIWI_TCMS_USERNAME }}
+      KIWI_TCMS_PASSWORD: ${{ secrets.KIWI_TCMS_PASSWORD }}
+      TCMS_PRODUCT: Cloud-360
+    run: |
+      if [ ! -f junit.xml ]; then
+        echo "no junit.xml produced — skipping Kiwi report"
+        exit 0
+      fi
+      # tcms-api reads connection settings from ~/.tcms.conf, not env vars.
+      umask 077
+      cat > "$HOME/.tcms.conf" <<EOF
+      [tcms]
+      url = ${KIWI_TCMS_URL}
+      username = ${KIWI_TCMS_USERNAME}
+      password = ${KIWI_TCMS_PASSWORD}
+      EOF
+      # Playwright's junit timestamps carry milliseconds and a trailing Z
+      # (2026-07-13T00:57:57.203Z) which the plugin's parser rejects; trim to
+      # whole seconds.
+      sed -E 's/(timestamp="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})\.[0-9]+Z?"/\1"/g' junit.xml > junit.kiwi.xml
+      export TCMS_PRODUCT_VERSION="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+      export TCMS_BUILD="${GITHUB_RUN_ID}-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+      pip install --quiet kiwitcms-junit.xml-plugin
+      tcms-junit.xml-plugin junit.kiwi.xml
+      rm -f "$HOME/.tcms.conf"
+
 # The report lives at frontend/pw-report.json (see playwright.config.ts). Let
 # the agent read it with these bash tools; it needs nothing else.
 tools:
