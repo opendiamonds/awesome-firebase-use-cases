@@ -66,7 +66,7 @@ Read `eslint-report.json`. It is the authoritative list — do not go hunting fo
 
 Only these rule categories, and only when the fix is unambiguous:
 
-- **`@typescript-eslint/no-unused-vars`** — remove the unused binding, or, when it is a required callback/catch parameter that cannot be dropped, rename it with a leading underscore.
+- **`@typescript-eslint/no-unused-vars`** — remove the unused binding. For an unused `catch` error, use optional catch binding — `} catch {` with no parameter — rather than renaming to `_err`: this repo's ESLint config has no underscore-ignore pattern, so `_err` still counts as unused. Only rename to a leading underscore when the binding cannot be dropped (e.g. a positional callback argument before one that is used) AND you have confirmed the config ignores it.
 - **`@typescript-eslint/no-explicit-any`** — replace `any` with the concrete type **only when the correct type is obvious from the surrounding code** (the shape is built a few lines away, or an existing interface fits). If the right type is not obvious, do NOT guess `unknown` or invent a type — leave it and report it.
 - Other purely-syntactic rules where the fix cannot change behaviour.
 
