@@ -17,27 +17,27 @@ async function login(page: Page, username: string, password: string) {
   await page.getByRole('button', { name: '登入系統' }).click();
 }
 
-test.describe('Authentication', () => {
-  test('login page renders', async ({ page }) => {
+test.describe('身分驗證', () => {
+  test('登入頁正常顯示', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Cloud-360' })).toBeVisible();
     await expect(page.getByRole('button', { name: '登入系統' })).toBeVisible();
   });
 
-  test('rejects wrong credentials and stays on login', async ({ page }) => {
+  test('錯誤密碼被拒並停留在登入頁', async ({ page }) => {
     await login(page, ADMIN.username, 'definitely-wrong-password');
     // Backend returns 401 "帳號或密碼錯誤"; the page shows it and does not navigate.
     await expect(page.getByText('帳號或密碼錯誤')).toBeVisible();
     await expect(page).not.toHaveURL(/\/workspace/);
   });
 
-  test('admin logs in and reaches the workspace', async ({ page }) => {
+  test('管理員登入後進入工作區', async ({ page }) => {
     await login(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/workspace/);
     await expect(page.getByText('核心工作區')).toBeVisible();
   });
 
-  test('logout returns to the login screen', async ({ page }) => {
+  test('登出後返回登入頁', async ({ page }) => {
     await login(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/workspace/);
     await page.getByTitle('登出系統').click();
@@ -45,15 +45,15 @@ test.describe('Authentication', () => {
   });
 });
 
-test.describe('Role-based access control', () => {
-  test('Platform_Admin sees the admin section', async ({ page }) => {
+test.describe('角色權限存取控制 (RBAC)', () => {
+  test('Platform_Admin 看得到系統管理區', async ({ page }) => {
     await login(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/workspace/);
     await expect(page.getByText('系統管理')).toBeVisible();
     await expect(page.getByRole('link', { name: '使用者角色' })).toBeVisible();
   });
 
-  test('a Developer does not see the admin section', async ({ page }) => {
+  test('Developer 看不到系統管理區', async ({ page }) => {
     // Register a throwaway user; register assigns role Developer. The backend
     // enforces ^[a-z0-9_]$ and length 3–20, so the name must stay short: a
     // base36 timestamp plus a few digits of the run id keeps it unique across

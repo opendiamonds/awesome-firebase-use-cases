@@ -100,6 +100,18 @@ pre-agent-steps:
       export TCMS_BUILD="${GITHUB_RUN_ID}-$(echo "${GITHUB_SHA}" | cut -c1-7)"
       pip install --quiet kiwitcms-junit.xml-plugin
       tcms-junit.xml-plugin junit.kiwi.xml
+      # This Kiwi instance is shared across projects. Product "Cloud-360" is the
+      # structural separator; additionally tag every case so it stays
+      # identifiable in cross-project views. Idempotent.
+      python3 -c "
+      from tcms_api import TCMS
+      rpc = TCMS().exec
+      prod = rpc.Product.filter({'name': 'Cloud-360'})
+      cases = rpc.TestCase.filter({'category__product': prod[0]['id']}) if prod else []
+      for c in cases:
+          rpc.TestCase.add_tag(c['id'], 'Cloud-360')
+      print('tagged', len(cases), 'Cloud-360 cases')
+      "
       rm -f "$HOME/.tcms.conf"
 
 # The report lives at frontend/pw-report.json (see playwright.config.ts). Let
