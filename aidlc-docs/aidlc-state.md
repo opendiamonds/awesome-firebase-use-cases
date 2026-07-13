@@ -59,7 +59,7 @@
   - Build and Test: 🔄（`.github/workflows/ci.yml`：repo contract、frontend lint/typecheck/build、backend import check、Docker build。**尚無測試套件** — backend job 只做 import check）
 - 🟡 Operations: 🔄
   - Deployment: ✅ `.github/workflows/deploy.yml` — push 至 `ut` 觸發，於 192.168.10.10 的 self-hosted runner（`cloud360-10-10`）執行 `docker compose up -d --build`；對外經 Cloudflare Tunnel 開放 `cloud360.danniel.cc`（見 ADR-0007）
-  - Agentic Automation: ✅ 六支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、doc-sync、release-watch、daily-digest）
+  - Agentic Automation: ✅ 九支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、spec-sync、release-watch、daily-digest、lint-fix、deploy-doctor、ui-regression）
   - Observability / Incident Playbooks: ⏳
 
 ### Construction Unit 驗收（A2）
@@ -136,7 +136,7 @@
   - Build and Test: 🔄 (`.github/workflows/ci.yml`: repo contract, frontend lint/typecheck/build, backend import check, Docker build. **No test suite exists yet** — the backend job performs an import check only)
 - 🟡 Operations: 🔄
   - Deployment: ✅ `.github/workflows/deploy.yml` — triggered by push to `ut`, runs `docker compose up -d --build` on the self-hosted runner at 192.168.10.10 (`cloud360-10-10`); exposed publicly at `cloud360.danniel.cc` through a Cloudflare Tunnel (see ADR-0007)
-  - Agentic Automation: ✅ six gh-aw workflows (contract-guard, pr-reviewer, issue-triage, doc-sync, release-watch, daily-digest)
+  - Agentic Automation: ✅ nine gh-aw workflows (contract-guard, pr-reviewer, issue-triage, spec-sync, release-watch, daily-digest, lint-fix, deploy-doctor, ui-regression)
   - Observability / Incident Playbooks: ⏳
 
 ### Construction Unit Acceptance (A2)
