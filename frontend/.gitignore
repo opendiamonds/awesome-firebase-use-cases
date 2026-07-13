@@ -28,3 +28,4 @@ dist-ssr
 *.sw?
 junit.xml
 junit.kiwi.xml
+eslint-report.json

@@ -12,3 +12,4 @@ playwright-report/
 test-results/
 junit.xml
 junit.kiwi.xml
+eslint-report.json
