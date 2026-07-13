@@ -12,43 +12,23 @@ permissions:
 
 engine: copilot
 
-timeout-minutes: 20
+timeout-minutes: 25
 
 network: defaults
 
-# Deterministic first: apply any auto-fixable rules with eslint --fix, then
-# capture what remains as JSON for the agent. The agent only handles what
-# --fix cannot.
-pre-agent-steps:
-  - uses: actions/checkout@v4
-
-  - uses: actions/setup-node@v4
-    with:
-      node-version: '22'
-      cache: npm
-      cache-dependency-path: frontend/package-lock.json
-
-  - name: Install dependencies
-    working-directory: frontend
-    run: npm ci
-
-  - name: Apply auto-fixable lint rules
-    working-directory: frontend
-    continue-on-error: true
-    run: npx eslint . --fix
-
-  - name: Capture remaining lint problems as JSON
-    working-directory: frontend
-    continue-on-error: true
-    run: npx eslint . -f json -o eslint-report.json
-
+# No pre-agent-steps: a second checkout there fights gh-aw's own PR-branch
+# checkout and makes push-to-pull-request-branch compute a patch against the
+# base, which then trips the protected-files guard. The agent runs eslint
+# itself in gh-aw's checkout, so the pushed patch is only what it actually
+# changed (registry.npmjs.org is on the firewall allow-list).
 tools:
   edit:
   bash:
-    - "npm run lint"
-    - "npm run build"
-    - "npx eslint"
+    - "npm"
+    - "npx"
+    - "cd"
     - "git diff"
+    - "git status"
     - "cat"
     - "head"
     - "tail"
@@ -67,41 +47,54 @@ safe-outputs:
 
 # Lint Fixer
 
-You fix the **safe, mechanical** ESLint errors in the Cloud-360 frontend (`frontend/`) on this pull request, and you leave the risky ones alone. The point is to clear the trivial noise automatically without ever touching logic a human must review.
+You fix the **safe, mechanical** ESLint errors in the Cloud-360 frontend (`frontend/`) on this pull request, and you leave the risky ones alone. The point is to clear trivial noise automatically without ever touching logic a human must review.
 
-The remaining problems (after `eslint --fix` already ran) are in `frontend/eslint-report.json`. Read it. It is the authoritative list — do not go hunting for other things to change.
+## Find the problems
+
+Work in `frontend/`:
+
+```
+cd frontend
+npm ci
+npx eslint . --fix                # apply anything auto-fixable first
+npx eslint . -f json -o eslint-report.json   # capture what remains
+```
+
+Read `eslint-report.json`. It is the authoritative list — do not go hunting for other things to change.
 
 ## What you MAY fix
 
 Only these rule categories, and only when the fix is unambiguous:
 
-- **`@typescript-eslint/no-unused-vars`** — remove the unused binding, or, when it is a required callback/catch parameter that genuinely cannot be dropped, rename it with a leading underscore.
-- **`@typescript-eslint/no-explicit-any`** — replace `any` with the concrete type **only when the correct type is obvious from the surrounding code** (e.g. the shape is constructed a few lines away, or an existing interface fits). If the right type is not obvious, do NOT guess `unknown` or invent a type — leave it and report it.
+- **`@typescript-eslint/no-unused-vars`** — remove the unused binding, or, when it is a required callback/catch parameter that cannot be dropped, rename it with a leading underscore.
+- **`@typescript-eslint/no-explicit-any`** — replace `any` with the concrete type **only when the correct type is obvious from the surrounding code** (the shape is built a few lines away, or an existing interface fits). If the right type is not obvious, do NOT guess `unknown` or invent a type — leave it and report it.
 - Other purely-syntactic rules where the fix cannot change behaviour.
 
 ## What you MUST NOT touch
 
-These are off limits no matter what the report says. They change runtime behaviour or component structure and a frontend owner must review them:
+Off limits no matter what the report says — they change runtime behaviour or component structure and a frontend owner must review them:
 
-- **`react-hooks/set-state-in-effect`** — do not rewrite `useEffect` bodies. One of these is the auth bootstrap that reads the token from `localStorage`; a wrong "fix" silently breaks login.
-- **`react-hooks/exhaustive-deps`** — do not edit hook dependency arrays. Changing them changes when effects run.
-- **`react-refresh/only-export-components`** — do not split files or move exports (e.g. pulling `useAuth` out of the context module). That ripples through every import.
-- Anything in `backend/`, tests, config, or CI. This workflow is frontend lint only.
+- **`react-hooks/set-state-in-effect`** — do not rewrite `useEffect` bodies. One is the auth bootstrap that reads the token from `localStorage`; a wrong "fix" silently breaks login.
+- **`react-hooks/exhaustive-deps`** — do not edit hook dependency arrays.
+- **`react-refresh/only-export-components`** — do not split files or move exports (e.g. pulling `useAuth` out of the context module).
+- Anything outside `frontend/src/`. No `backend/`, no tests, no config, no CI, no docs. If your change would touch a file outside `frontend/src/`, do not make it.
 
 If you are unsure whether a fix is safe, it is not. Leave it.
 
 ## After fixing
 
 1. Run `npm run build` in `frontend/` (that is `tsc -b && vite build`). If your change does not compile, it is wrong — revert it. Never push code that fails to build.
-2. Re-run `npm run lint` to confirm the mechanical errors you targeted are gone.
+2. Re-run `npx eslint .` to confirm the errors you targeted are gone.
 3. If you changed nothing, push nothing.
+
+Delete `eslint-report.json` before you finish so it is not part of the pushed change.
 
 ## Deliver
 
-- If you fixed anything, push it to this PR's branch.
+- If you fixed anything, push it to this PR's branch. The push must contain only your `frontend/src/` edits — nothing else.
 - Post exactly one comment, bilingual (Traditional Chinese first, then English):
-  1. **Auto-fixed** — each error you fixed: the file, the rule, and what you changed, in one line.
-  2. **Needs a human** — each error you deliberately left, with the rule and why it needs review (touches auth/effects/exports). Point at issue #427 if it tracks them.
-  3. If the build or a re-run of lint still shows errors you could not safely fix, say so plainly — do not imply the PR is now green when it is not.
+  1. **Auto-fixed** — each error you fixed: file, rule, and what you changed, one line each.
+  2. **Needs a human** — each error you deliberately left, with the rule and why (touches auth/effects/exports, or the type is not locally obvious). Reference issue #427 if it tracks them.
+  3. If lint still shows errors you could not safely fix, say so plainly — do not imply the PR is green when it is not.
 
 No preamble, no restating these instructions. If there were no fixable errors, say so in one line per language and stop.
