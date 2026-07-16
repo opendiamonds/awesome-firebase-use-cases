@@ -30,7 +30,12 @@
 - **CI 關卡**：每 PR 的 contract / lint / build / docker / UI 回歸。
 - **每日彙整**：Daily Digest agentic workflow 彙整 CI/deploy/agent 狀態（進 main 後啟用）。
 
-**尚缺（待補）**：主動式外部探測 + 告警（服務掛掉時主動通知，而非等人發現）。工具選型見 Telegram 討論；決定後在此補上 §2 的 monitor 章節與告警去向。
+**指標與儀表板（已建，於 dc-infra 維運）**：Prometheus + Grafana + blackbox + cAdvisor + node-exporter，中心在 192.168.10.10，儀表板在 `https://grafana.danniel.cc`（見 dc-infra `services/monitoring/`）。
+- 主機指標：10.10 與 20.8（複用 20.8 現有 node-exporter）
+- 容器指標：cAdvisor
+- **主動外部探測**：blackbox 定時探 `cloud360.danniel.cc` / `tcms.danniel.cc` 的存活、延遲、TLS 到期 —— 這就是第 1 節可用性 SLO 的量測來源。
+
+**尚缺**：主動告警（服務掛掉主動 push 通知）。Grafana 已備妥 Telegram 告警管道的接線，只差一把 bot token；設定後在第 4 節補上實際告警規則與路由。
 
 ### 3. Incident Playbooks
 
@@ -139,7 +144,12 @@ This fills the Operations to-dos named in ADR-0008: **SLOs**, **observability st
 - **CI gates**: per-PR contract / lint / build / docker / UI regression.
 - **Daily summary**: the Daily Digest agentic workflow rolls up CI/deploy/agent status (active once on main).
 
-**Still missing (to build):** active external probing + alerting (be told when a service is down instead of finding out). Tool choice is under discussion on Telegram; once decided, add the monitor section and alert routing here.
+**Metrics and dashboards (built, operated in dc-infra):** Prometheus + Grafana + blackbox + cAdvisor + node-exporter, centred on 192.168.10.10, dashboards at `https://grafana.danniel.cc` (see dc-infra `services/monitoring/`).
+- Host metrics: 10.10 and 20.8 (reusing the existing node-exporter on 20.8)
+- Container metrics: cAdvisor
+- **Active external probing**: blackbox probes `cloud360.danniel.cc` / `tcms.danniel.cc` for uptime, latency, and TLS expiry — this is the measurement source for the availability SLO in §1.
+
+**Still missing:** active alerting (be pushed a notification when a service is down). Grafana's Telegram contact-point wiring is in place; it needs only a bot token. Once set, add the actual alert rules and routing in §4.
 
 ### 3. Incident Playbooks
 

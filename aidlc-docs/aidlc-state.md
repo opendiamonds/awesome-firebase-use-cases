@@ -61,7 +61,7 @@
   - Deployment: ✅ `.github/workflows/deploy.yml` — push 至 `ut` 觸發，於 192.168.10.10 的 self-hosted runner（`cloud360-10-10`）執行 `docker compose up -d --build`；對外經 Cloudflare Tunnel 開放 `cloud360.danniel.cc`（見 ADR-0007）
   - Agentic Automation: ✅ 十支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、spec-sync、code-drift-alert、release-watch、daily-digest、lint-fix、deploy-doctor、ui-regression）
   - Incident Playbooks: ✅ `aidlc-docs/operations/runbooks.md`（SLO + 7 則 playbook）
-  - Observability: 🔄（現有健康檢查/CI/deploy 探測；主動告警工具待選型）
+  - Observability: 🔄 Prometheus + Grafana + blackbox 已建（`grafana.danniel.cc`，於 dc-infra 維運）；主動告警待 Telegram bot token
 
 ### Construction Unit 驗收（A2）
 
@@ -139,7 +139,7 @@
   - Deployment: ✅ `.github/workflows/deploy.yml` — triggered by push to `ut`, runs `docker compose up -d --build` on the self-hosted runner at 192.168.10.10 (`cloud360-10-10`); exposed publicly at `cloud360.danniel.cc` through a Cloudflare Tunnel (see ADR-0007)
   - Agentic Automation: ✅ ten gh-aw workflows (contract-guard, pr-reviewer, issue-triage, spec-sync, code-drift-alert, release-watch, daily-digest, lint-fix, deploy-doctor, ui-regression)
   - Incident Playbooks: ✅ `aidlc-docs/operations/runbooks.md`（SLO + 7 則 playbook）
-  - Observability: 🔄（現有健康檢查/CI/deploy 探測；主動告警工具待選型）
+  - Observability: 🔄 Prometheus + Grafana + blackbox 已建（`grafana.danniel.cc`，於 dc-infra 維運）；主動告警待 Telegram bot token
 
 ### Construction Unit Acceptance (A2)
 
