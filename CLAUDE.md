@@ -17,15 +17,17 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 本專案採用 [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) 作為主要 AI-SDLC 開發方法論。
 
 **啟動口令**：當 user 以 `Using AI-DLC, ...` 起頭，或要求做需求分析、設計、實作、IaC 產製、運維時，**必須**遵循 AIDLC 工作流程，而非預設工作流程。
+當使用者啟用 AI-DLC 時，請閱讀並遵循 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` 來啟動工作流程。
+同時，請閱讀並遵循 `.aidlc-overrides/` 目錄中的三個 Markdown 規則檔（包含 `README.md`、`branch-naming.md` 與 `decisions-log.md`）。
 
 **Entry point 與 rule loading 順序**：
-1. 載入 `.aidlc-rules/aws-aidlc-rules/core-workflow.md`（總入口）
-2. 依 core-workflow.md 指示，從 `.aidlc-rule-details/` 載入 common 規則：
+1. 載入 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`（總入口）
+2. 依 core-workflow.md 指示，從 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 載入 common 規則：
    - `common/process-overview.md`
    - `common/session-continuity.md`
    - `common/content-validation.md`
    - `common/question-format-guide.md`
-3. 掃描 `.aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`（lightweight），完整 rules 在使用者 opt-in 後再載入
+3. 掃描 `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`（lightweight），完整 rules 在使用者 opt-in 後再載入
 4. 對於**無 opt-in 檔案**的 extension（例如 `bilingual-docs/`），**永遠強制套用**，立即載入完整規則
 5. **最後**載入 `.aidlc-overrides/**/*.md`（專案 override 層）。當 override 與 upstream 規則衝突時，**override 永遠勝出**。詳見 [`.aidlc-overrides/README.md`](.aidlc-overrides/README.md)。
 
@@ -75,9 +77,9 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 
 ### 7. AIDLC 升級
 
-- 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，更新 `.aidlc-rule-details/VERSION` 並重新複製 `aws-aidlc-rule-details/` 內容。
-- 客製檔案（`.aidlc-rule-details/extensions/bilingual-docs/`）在覆蓋前要先備份、覆蓋後再放回（位置在 upstream 樹內，會被整批替換）。
-- `.aidlc-overrides/` 目錄**整個保留**，永不被 upstream 覆蓋（與 upstream 路徑分離）。新增的專案規則一律放在這裡，不要再加到 `.aidlc-rule-details/` 內。
+- 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，更新 `.aidlc/aidlc-rules/VERSION` 並重新複製 `aws-aidlc-rule-details/` 內容至 `.aidlc/aidlc-rules/aws-aidlc-rule-details/`。
+- 客製檔案（`.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/bilingual-docs/`）在覆蓋前要先備份、覆蓋後再放回（位置在 upstream 樹內，會被整批替換）。
+- `.aidlc-overrides/` 目錄**整個保留**，永不被 upstream 覆蓋（與 upstream 路徑分離）。新增的專案規則一律放在這裡，不要再加到 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 內。
 - 升級記錄寫入新 ADR。
 
 ---
@@ -94,15 +96,17 @@ The repository is currently at the **Spec-Driven Development (SDD) baseline** st
 This project adopts [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) as its primary AI-SDLC methodology.
 
 **Activation phrase**: When the user starts a request with `Using AI-DLC, ...`, or asks for requirements analysis, design, implementation, IaC generation, or operations work, **you MUST** follow the AIDLC workflow rather than the default one.
+When the user invokes AI-DLC, read and follow `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` to start the workflow.
+Also, read and follow all markdown rule files in the `.aidlc-overrides/` directory (including `README.md`, `branch-naming.md`, and `decisions-log.md`).
 
 **Entry point and rule-loading order**:
-1. Load `.aidlc-rules/aws-aidlc-rules/core-workflow.md` (top-level entry).
-2. Per core-workflow.md, load common rules from `.aidlc-rule-details/`:
+1. Load `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` (top-level entry).
+2. Per core-workflow.md, load common rules from `.aidlc/aidlc-rules/aws-aidlc-rule-details/`:
    - `common/process-overview.md`
    - `common/session-continuity.md`
    - `common/content-validation.md`
    - `common/question-format-guide.md`
-3. Scan `.aidlc-rule-details/extensions/` and load **only** `*.opt-in.md` (lightweight). Full rule files are loaded after the user opts in.
+3. Scan `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/` and load **only** `*.opt-in.md` (lightweight). Full rule files are loaded after the user opts in.
 4. Extensions **without** an opt-in file (e.g. `bilingual-docs/`) are **always enforced** — load their full rule files immediately.
 5. **Finally**, load `.aidlc-overrides/**/*.md` (the project override layer). When an override conflicts with an upstream rule, **the override always wins**. See [`.aidlc-overrides/README.md`](.aidlc-overrides/README.md).
 
@@ -152,7 +156,7 @@ This repo is governed by `scripts/validate_repo_contract.py` (executed in CI):
 
 ### 7. Upgrading AIDLC
 
-- When upgrading, compare against `https://github.com/awslabs/aidlc-workflows/releases`, bump `.aidlc-rule-details/VERSION`, and re-copy the contents of `aws-aidlc-rule-details/`.
-- Custom files inside the upstream tree (`.aidlc-rule-details/extensions/bilingual-docs/`) must be backed up before the copy and restored afterwards (they live inside the upstream tree and would otherwise be wiped by a wholesale replace).
-- The `.aidlc-overrides/` directory is **never** overwritten by upstream (it lives outside the upstream path). New project-specific rules must go here, not under `.aidlc-rule-details/`.
+- When upgrading, compare against `https://github.com/awslabs/aidlc-workflows/releases`, bump `.aidlc/aidlc-rules/VERSION`, and re-copy the contents of `aws-aidlc-rule-details/` into `.aidlc/aidlc-rules/aws-aidlc-rule-details/`.
+- Custom files inside the upstream tree (`.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/bilingual-docs/`) must be backed up before the copy and restored afterwards (they live inside the upstream tree and would otherwise be wiped by a wholesale replace).
+- The `.aidlc-overrides/` directory is **never** overwritten by upstream (it lives outside the upstream path). New project-specific rules must go here, not under `.aidlc/aidlc-rules/aws-aidlc-rule-details/`.
 - Record the upgrade in a new ADR.

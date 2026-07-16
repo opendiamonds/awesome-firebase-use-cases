@@ -231,6 +231,42 @@
 
 ---
 
+#### 2026-07-12 11:56 +08:00 — AIDLC 生命週期重新初始化
+
+**User request (raw)**: "/aidlc-init"
+**Stage**: Inception → Workspace Detection / Session Resumption
+**Outcome**: 重新載入所有 rules、extension opt-in 提示與 overrides。驗證並確認 `aidlc-docs/audit.md` 與 `aidlc-docs/aidlc-state.md` 存在。分析目前 brownfield workspace 架構。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-12 11:58 +08:00 — 切換工作分支
+
+**User request (raw)**: "切到 ut 分支"
+**Stage**: Operations → Branch Switch
+**Outcome**: 成功從工作分支 `doreen/docs/frontend-backend-spec` 切換至目標開發分支 `ut`。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-16 15:06 +08:00 — 建立重構分支
+
+**User request (raw)**: "幫我新增一個分支 我要重構 名字是 Doreen"
+**Stage**: Operations → Branch Creation
+**Outcome**: 因檔案系統不區分大小寫導致 `Doreen` 與現有 `doreen/...` 分支目錄衝突，與使用者確認後，成功建立並切換至 `doreen/refactor` 分支。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-16 15:07 +08:00 — 刪除範本目錄
+
+**User request (raw)**: "幫我刪除 firebase_templates"
+**Stage**: Operations → Cleanup
+**Outcome**: 成功刪除專案根目錄下未使用的 `firebase_templates/` 目錄與其內容。
+**Approver**: houguanyu
+
+---
+
 ## English Version
 
 ### Log Format
@@ -1060,6 +1096,42 @@ Each entry uses the following format:
 **Outcome**: 
 1. **建立新分支**：成功建立並切換至符合 [branch-naming.md](file:///Users/houguanyu/Desktop/Work/Cathaybk/Opendiamonds/cloud-360/.aidlc-overrides/branch-naming.md) 規範的新分支 `doreen/docs/frontend-backend-spec`。
 2. **撰寫規格文件**：在 [frontend-backend-specification.md](file:///Users/houguanyu/Desktop/Work/Cathaybk/Opendiamonds/cloud-360/aidlc-docs/inception/application-design/frontend-backend-specification.md) 撰寫了完整的前後端技術規格文件，涵蓋前端與後端之技術選型、目錄結構、狀態管理、RBAC 權限控管、Agent SDK 機制以及詳細的 API/WebSocket/SSE 介面合約定義。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-12 11:56 +08:00 — AIDLC Lifecycle Re-Initialization
+
+**User request (raw)**: "/aidlc-init"
+**Stage**: Inception → Workspace Detection / Session Resumption
+**Outcome**: Reloaded all rules, extension opt-in prompts, and overrides. Verified existence of `aidlc-docs/audit.md` and `aidlc-docs/aidlc-state.md`. Analyzed current brownfield workspace architecture.
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-12 11:58 +08:00 — Checkout Target Branch
+
+**User request (raw)**: "切到 ut 分支"
+**Stage**: Operations → Branch Switch
+**Outcome**: Successfully switched checkout from branch `doreen/docs/frontend-backend-spec` to target branch `ut`.
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-16 15:06 +08:00 — Refactor Branch Creation
+
+**User request (raw)**: "幫我新增一個分支 我要重構 名字是 Doreen"
+**Stage**: Operations → Branch Creation
+**Outcome**: Due to case-insensitive file system constraints creating a conflict between `Doreen` and the existing `doreen/...` directory branch prefix, successfully created and switched to `doreen/refactor` branch after consultation.
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-16 15:07 +08:00 — Template Directory Deletion
+
+**User request (raw)**: "幫我刪除 firebase_templates"
+**Stage**: Operations → Cleanup
+**Outcome**: Successfully deleted the unused `firebase_templates/` directory and its contents from the workspace root.
 **Approver**: houguanyu
 
 ---

@@ -71,6 +71,22 @@
 - **BDD**: `Given` Alex 在 diagram#12 已與 AI 對話三輪並重整頁面 `When` 再次進入工作區 `Then` 系統自動開啟 diagram#12 且聊天區顯示原先三輪訊息。  
   `Given` Alex 在 diagram#12 有歷史對話 `When` 點擊清空對話並確認 `Then` 該圖聊天被刪除、顯示歡迎訊息，且 diagram#12 的 XML 仍在。
 
+#### A5. 跨使用者架構圖分享與即時協同連線
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`), Ian (開發者, `Developer`)
+  - **協作細節**: Alex 發起架構圖分享，在彈出視窗勾選 Hannah（擁有編輯權限）與 Ian（僅檢視權限）。當 Hannah 進入工作區時，系統透過 WebSocket 自動建立協同編輯連線，其畫布操作與游標即時同步予 Alex。而當僅有檢視權限的 Ian 登入時，畫布自動鎖定且 AI 聊天區顯示「您目前為僅檢視權限，無法編輯或與 AI 對話」，同時其能即時看見 Alex 與 Hannah 的編輯進度。
+- **使用者需求/目標 (User Goal)**: 能便捷地將所設計的架構圖分享予專案相關角色，實現多人在畫布上的即時共同編輯，或依其角色權限進行唯讀檢視與審核。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 提供「分享架構圖」設定彈窗 (ShareModal), 擁有編輯權限的使用者或圖表擁有者可在此勾選並授權其他協作者。
+  2. 當多名具備編輯權限的使用者同時開啟此分享圖表時，前端應能自動連線 WebSocket (`/api/collab/ws/{workspace_id}`), 使協作畫布操作能實時進行雙向廣播。
+  3. 狀態列需能動態感應連線狀態，顯示「協作中」或「單機模式」標籤。
+  4. 實施細粒度權限隔離與聊天室歡迎詞：編輯者 (can_edit) 聊天室呈現 `DEFAULT_WELCOME`；審核者 (can_review) 聊天室唯讀並呈現 `REVIEW_ONLY_WELCOME`；檢視者 (can_view) 聊天室唯讀並呈現 `VIEW_ONLY_WELCOME`。
+- **操作流程**: 1. 從工作區點擊畫布右上角的「分享」按鈕。 2. 勾選欲分享之協作者角色，點擊「確定分享」儲存設定。 3. 被分享的使用者在其工作區開啟該圖表，WebSocket 連線成功建立。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 彈窗顯示「✔ 權限分享成功」，畫布右上角狀態轉變為綠色「協作中」。**後續引導**：提供「複製分享連結」按鈕。
+  - **失敗 (Failure)**: 連線中斷時右上角標籤轉變為灰色「單機模式」。**後續引導**：提供「重試連線」或「點擊查看連線指南」按鈕。
+- **BDD**: `Given` Alex 分享 diagram#12 給擁有編輯權限的 Hannah 與僅檢視權限的 Ian `When` 兩者登入並開啟 diagram#12 `Then` Hannah 能看見協同編輯游標且畫布可寫，Ian 畫布唯讀且聊天區渲染「僅檢視」警告，雙方皆可看見 WebSocket 連線狀態。
+
 ---
 
 ### B. 跨雲選型 (Cross-Cloud Component Selection)
@@ -461,6 +477,22 @@
   - **失敗 (Failure)**: 紅色提示「✘ 更新失敗：不能將最後一位管理員降級」。**後續引導**：提示「請先指派其他管理員後重試」。
 - **BDD**: `Given` 管理員 Catherine 登入權限管理面板 `When` 將 Ian 的角色改為 SRE 並點擊儲存 `Then` 使用者狀態更新，且 Audit Log 生成對應變更紀錄。
 
+#### J4. 細粒度角色-故事權限矩陣編輯與預設還原
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Catherine (管理員, `Project_Admin`), Fiona (資安審查員, `Security_Reviewer`)
+  - **協作細節**: Catherine 進入角色權限設定頁面，編輯各個角色在各個 User Story（A1~H3）下的檢視/編輯/審核權限勾選狀況。變更提交後，系統動態重配置角色權限，且此動作將自動記錄至稽核日誌 (Audit Log) 以供 Fiona 審查。
+- **使用者需求/目標 (User Goal)**: 能靈活微調與管控不同角色在各功能故事下的檢視、編輯、審核細項權限，並能在配置失誤時一鍵恢復系統初始預設值。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 提供一個角色與故事細粒度權限勾選矩陣頁面 (`RolePermissionsPage`)。
+  2. 管理員可在該頁面任意勾選並提交修改各角色對各 User Story 的 can_view、can_edit 與 can_review 的權限限制。
+  3. 當前使用者的權限會隨著管理員變更即時重新計算，並於重新整理後立即生效。
+  4. 提供「還原為系統預設值」按鈕，調用後端接口 `/api/auth/role-permissions/reset-defaults` 以恢復出廠種子資料。
+- **操作流程**: 1. 管理員進入「細粒度權限對應面板」。 2. 修改各個角色對於故事細項的權限勾選後點擊「儲存權限」。 3. 如有需要，點擊「還原預設」恢復配置。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 彈出綠色提示「✔ 角色權限保存成功」或「✔ 權限已重置為預設值」。**後續引導**：引導至「成員列表確認角色權限」。
+  - **失敗 (Failure)**: 紅色提示「✘ 儲存失敗，請檢查網路連線」。**後續引導**：提供「重試」或「聯絡系統管理員」按鈕。
+- **BDD**: `Given` 管理員 Catherine 進入 Fine-Grained Permissions 面板 `When` 將 Developer 對 Well-Architected 評估的 review 權限修改為可審核並儲存 `Then` 該變更立即記錄於 `role_permissions` 資料庫，並在重新整理後生效。
+
 ---
 
 ## English Version (Translation)
@@ -529,6 +561,22 @@
   - **Failure**: Falls back to welcome message with "Could not restore chat; please restate your needs" without blocking diagram generation. Clear failure: red "Could not clear chat; please retry."
 - **BDD**: `Given` Alex chatted three turns on diagram#12 and refreshed `When` he re-enters the workspace `Then` diagram#12 opens and the chat shows the original three turns.  
   `Given` Alex has chat history on diagram#12 `When` he clears chat and confirms `Then` that diagram's chat is deleted, welcome message shows, and diagram#12 XML remains.
+
+#### A5. Multi-User Diagram Sharing and Real-Time Collaboration
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), Hannah (Engineering Manager, `Project_Editor`), Ian (Developer, `Developer`)
+  - **Collaboration Details**: Alex shares the diagram, selecting Hannah (with edit permissions) and Ian (with view-only permissions). When Hannah enters the workspace, a WebSocket connection is auto-established, syncing cursors and edits to Alex. When Ian enters, the canvas locks, and the chat displays a warning stating "You have view-only access; editing or chatting with AI is disabled," while syncing all live edits.
+- **User Goal**: Seamlessly share architecture diagrams with team members, enabling real-time editing or read-only auditing according to their roles.
+- **Acceptance Criteria**:
+  1. Provides a "Share Diagram" modal (ShareModal) where users with edit permissions or owners can select and authorize other collaborators.
+  2. Establishes a WebSocket connection (`/api/collab/ws/{workspace_id}`) when multiple editors open the diagram, broadcasting edits and cursors.
+  3. Displays a dynamic connection badge, toggling between "Collaborating" and "Single Mode".
+  4. Enforces fine-grained workspace restrictions: editors (can_edit) see `DEFAULT_WELCOME`; reviewers (can_review) see `REVIEW_ONLY_WELCOME` (read-only); viewers (can_view) see `VIEW_ONLY_WELCOME` (read-only).
+- **Operational Flow**: 1. Click "Share" on the canvas toolbar. 2. Select collaborators in the ShareModal and save. 3. Collaborators Hannah and Ian open the shared diagram.
+- **System Feedback**:
+  - **Success**: A green toast shows "✔ Permissions shared successfully", and the badge turns to green "Collaborating". **Next Step**: Offers a "Copy Link" button.
+  - **Failure**: On connection drop, the badge turns to gray "Single Mode". **Next Step**: Prompts "Reconnect" or "View troubleshooting guide."
+- **BDD**: `Given` Alex shares diagram#12 with Hannah (editor) and Ian (viewer) `When` both log in and open diagram#12 `Then` Hannah's canvas is editable and cursor visible, while Ian's canvas is read-only with a "view-only" warning, and WebSocket status is updated.
 
 ---
 
@@ -919,4 +967,20 @@
   - **Success**: A green toast prompts "✔ User role updated to SRE," updating the table state. **Next Step**: Prompts "Check audit log to confirm changes."
   - **Failure**: A red alert prompts "✘ Update failed: Cannot downgrade the last administrator." **Next Step**: Prompts "Assign another admin first."
 - **BDD**: `Given` Administrator Catherine is logged into the console `When` she changes Ian's role to SRE and saves `Then` The user state updates, and a corresponding audit entry is logged.
+
+#### J4. Fine-Grained Role-to-Story Permission Matrix & Default Reset
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: Catherine (Admin, `Project_Admin`), Fiona (Security Reviewer, `Security_Reviewer`)
+  - **Collaboration Details**: Catherine edits the permission checkboxes for system roles against each User Story (A1-H3). Upon saving, privileges are updated system-wide and automatically logged to the Audit Log for Fiona's review.
+- **User Goal**: Allow administrators to fine-tune can_view, can_edit, and can_review permissions for system roles per story, and reset to defaults easily on misconfiguration.
+- **Acceptance Criteria**:
+  1. Provides a role-to-story matrix screen (`RolePermissionsPage`).
+  2. Allows administrators to toggle and save can_view, can_edit, and can_review permissions per role for each User Story.
+  3. Updates session scopes in real-time, immediately enforcing new rules on browser refresh.
+  4. Provides a "Reset to Defaults" button invoking `/api/auth/role-permissions/reset-defaults` to restore seed data.
+- **Operational Flow**: 1. Admin accesses "Fine-Grained Permission Panel". 2. Modifies checkboxes in the role-story matrix and clicks "Save Permissions". 3. Reverts configuration by clicking "Reset Defaults" if necessary.
+- **System Feedback**:
+  - **Success**: A green toast prompts "✔ Permissions saved successfully" or "✔ Permissions reset to defaults." **Next Step**: Prompts "Review changes in Member list."
+  - **Failure**: A red alert prompts "✘ Save failed: Check network connection." **Next Step**: Prompts "Retry" or "Contact System Admin."
+- **BDD**: `Given` Catherine is on the Fine-Grained Permissions page `When` she enables can_review for Developer on Well-Architected Review and saves `Then` database states update in `role_permissions` and apply immediately.
 
