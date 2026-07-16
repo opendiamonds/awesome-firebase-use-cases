@@ -10,8 +10,8 @@
 ### 1. 專案定位
 
 Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 AWS / GCP / Azure。
-專案以 **Spec-Driven Development (SDD)** 為方法論基礎（SRS、user stories、architecture、ADRs），並已進入 **Construction / Operations** 階段：
-- 具備可運行的 backend（FastAPI）與 frontend（React / Vite）實作；
+專案以 **Spec-Driven Development (SDD)** 為方法論基礎（SRS、user stories、architecture、ADRs），開發與運維以連續流程進行，目前具備：
+- 可運行的 backend（FastAPI）與 frontend（React / Vite）實作；
 - 有 CI pipeline（repo contract、lint、build、Docker build）與自動化部署至自有 staging 環境（`192.168.10.10`，經 Cloudflare Tunnel 對外開放 `cloud360.danniel.cc`，見 ADR-0007）；
 - 日常開發由一組 agentic workflows（gh-aw）輔助（contract 驗證、PR review、UI 回歸測試、部署失敗自癒、spec↔code 一致性等）；
 - 測案管理走自架 Kiwi TCMS（`tcms.danniel.cc`，於 `dc-infra` repo 維運）。
@@ -93,8 +93,8 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 ### 1. Project Positioning
 
 Cloud-360 is an AI-native multi-cloud architecture & operations platform supporting AWS / GCP / Azure.
-The project is grounded in **Spec-Driven Development (SDD)** (SRS, user stories, architecture, ADRs) and has moved into the **Construction / Operations** stage:
-- working backend (FastAPI) and frontend (React / Vite) implementations exist;
+The project is grounded in **Spec-Driven Development (SDD)** (SRS, user stories, architecture, ADRs), with development and operations running as one continuous flow. It currently has:
+- working backend (FastAPI) and frontend (React / Vite) implementations;
 - a CI pipeline (repo contract, lint, build, Docker build) and automated deployment to a self-hosted staging environment (`192.168.10.10`, exposed at `cloud360.danniel.cc` via a Cloudflare Tunnel — see ADR-0007);
 - day-to-day development is assisted by a set of agentic workflows (gh-aw): contract validation, PR review, UI regression testing, deploy-failure self-healing, spec↔code consistency, and more;
 - test-case management runs on self-hosted Kiwi TCMS (`tcms.danniel.cc`, operated in the `dc-infra` repo).
