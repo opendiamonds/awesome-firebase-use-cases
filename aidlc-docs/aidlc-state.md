@@ -14,7 +14,7 @@
 
 ### Workspace State
 
-- **Existing Code**: Yes（`backend/`、`frontend/`、`firebase_templates/`、`scripts/`、`tools/`、`workflows/`）
+- **Existing Code**: Yes（`backend/`、`frontend/`、`scripts/`、`tools/`、`workflows/`）
 - **Programming Languages**: Python（FastAPI backend）、TypeScript（React frontend）、Markdown / Mermaid / draw.io（specs）
 - **Build System**: Frontend Vite build + Backend FastAPI；CI 跑 validation。
 - **Project Structure**: Spec-Driven repo + A1/A2 application code（Architecture Design 模組）
@@ -88,7 +88,7 @@
 
 ### Workspace State
 
-- **Existing Code**: Yes (`backend/`, `frontend/`, `firebase_templates/`, `scripts/`, `tools/`, `workflows/`)
+- **Existing Code**: Yes (`backend/`, `frontend/`, `scripts/`, `tools/`, `workflows/`)
 - **Programming Languages**: Python (FastAPI backend), TypeScript (React frontend), Markdown / Mermaid / draw.io (specs)
 - **Build System**: Frontend Vite build + Backend FastAPI; CI runs validation.
 - **Project Structure**: Spec-Driven repo + A1/A2 application code (Architecture Design module)

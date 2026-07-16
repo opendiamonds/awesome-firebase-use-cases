@@ -258,6 +258,15 @@
 
 ---
 
+#### 2026-07-16 15:07 +08:00 — 刪除範本目錄
+
+**User request (raw)**: "幫我刪除 firebase_templates"
+**Stage**: Operations → Cleanup
+**Outcome**: 成功刪除專案根目錄下未使用的 `firebase_templates/` 目錄與其內容。
+**Approver**: houguanyu
+
+---
+
 ## English Version
 
 ### Log Format
@@ -1114,6 +1123,15 @@ Each entry uses the following format:
 **User request (raw)**: "幫我新增一個分支 我要重構 名字是 Doreen"
 **Stage**: Operations → Branch Creation
 **Outcome**: Due to case-insensitive file system constraints creating a conflict between `Doreen` and the existing `doreen/...` directory branch prefix, successfully created and switched to `doreen/refactor` branch after consultation.
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-16 15:07 +08:00 — Template Directory Deletion
+
+**User request (raw)**: "幫我刪除 firebase_templates"
+**Stage**: Operations → Cleanup
+**Outcome**: Successfully deleted the unused `firebase_templates/` directory and its contents from the workspace root.
 **Approver**: houguanyu
 
 ---
