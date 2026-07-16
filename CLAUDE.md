@@ -10,7 +10,13 @@
 ### 1. 專案定位
 
 Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 AWS / GCP / Azure。
-目前 repo 處於 **Spec-Driven Development (SDD) baseline** 階段：以 SRS、user stories、architecture diagram、ADRs 為主，尚未進入大規模 production code generation。
+專案以 **Spec-Driven Development (SDD)** 為方法論基礎（SRS、user stories、architecture、ADRs），並已進入 **Construction / Operations** 階段：
+- 具備可運行的 backend（FastAPI）與 frontend（React / Vite）實作；
+- 有 CI pipeline（repo contract、lint、build、Docker build）與自動化部署至自有 staging 環境（`192.168.10.10`，經 Cloudflare Tunnel 對外開放 `cloud360.danniel.cc`，見 ADR-0007）；
+- 日常開發由一組 agentic workflows（gh-aw）輔助（contract 驗證、PR review、UI 回歸測試、部署失敗自癒、spec↔code 一致性等）；
+- 測案管理走自架 Kiwi TCMS（`tcms.danniel.cc`，於 `dc-infra` repo 維運）。
+
+各階段的細部狀態以 `aidlc-docs/aidlc-state.md` 為準。**production**（雲端供應商正式環境）仍在範圍外，見第 5 章與 ADR-0007。
 
 ### 2. AI-SDLC 框架：AIDLC
 
@@ -87,7 +93,13 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 ### 1. Project Positioning
 
 Cloud-360 is an AI-native multi-cloud architecture & operations platform supporting AWS / GCP / Azure.
-The repository is currently at the **Spec-Driven Development (SDD) baseline** stage: SRS, user stories, architecture diagrams, and ADRs are the primary artifacts; large-scale production code generation has not yet started.
+The project is grounded in **Spec-Driven Development (SDD)** (SRS, user stories, architecture, ADRs) and has moved into the **Construction / Operations** stage:
+- working backend (FastAPI) and frontend (React / Vite) implementations exist;
+- a CI pipeline (repo contract, lint, build, Docker build) and automated deployment to a self-hosted staging environment (`192.168.10.10`, exposed at `cloud360.danniel.cc` via a Cloudflare Tunnel — see ADR-0007);
+- day-to-day development is assisted by a set of agentic workflows (gh-aw): contract validation, PR review, UI regression testing, deploy-failure self-healing, spec↔code consistency, and more;
+- test-case management runs on self-hosted Kiwi TCMS (`tcms.danniel.cc`, operated in the `dc-infra` repo).
+
+`aidlc-docs/aidlc-state.md` is the source of truth for detailed per-stage status. Cloud-provider **production** remains out of scope — see §5 and ADR-0007.
 
 ### 2. AI-SDLC Framework: AIDLC
 
