@@ -35,6 +35,5 @@ dist/
 build/
 coverage/
 
-# AI-DLC rules folder
-.aidlc/
+
 

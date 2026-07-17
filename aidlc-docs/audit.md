@@ -267,6 +267,18 @@
 
 ---
 
+#### 2026-07-17 16:50 +08:00 — 變更排除清單與規則目錄追蹤
+
+**User request (raw)**: "我把 .gitignore .aidlc 刪除 幫我重新 commit 推上遠端"
+**Stage**: Operations → Version Control
+**Outcome**: 
+1. 變更 `.gitignore`，不再忽略 `.aidlc/` 規則目錄。
+2. 修正 `aidlc-docs/inception/application-design/frontend-backend-specification.md` 文件使其符合雙語規範，順利通過 repository contract 驗證。
+3. 將 `.gitignore`、修改後的規格書與整包 `.aidlc/` 目錄 staged 並 commit 至 `doreen/refactor` 分支，成功推送（push）至 GitHub 遠端儲存庫。
+**Approver**: houguanyu
+
+---
+
 ## English Version
 
 ### Log Format
@@ -1132,6 +1144,18 @@ Each entry uses the following format:
 **User request (raw)**: "幫我刪除 firebase_templates"
 **Stage**: Operations → Cleanup
 **Outcome**: Successfully deleted the unused `firebase_templates/` directory and its contents from the workspace root.
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-17 16:50 +08:00 — Track Rules Folder & Version Control Update
+
+**User request (raw)**: "我把 .gitignore .aidlc 刪除 幫我重新 commit 推上遠端"
+**Stage**: Operations → Version Control
+**Outcome**: 
+1. Modified `.gitignore` to stop ignoring `.aidlc/` rules directory.
+2. Updated `aidlc-docs/inception/application-design/frontend-backend-specification.md` to be bilingual, satisfying repository contract constraints.
+3. Staged, committed, and pushed the updated `.gitignore`, specification document, and the entire `.aidlc/` folder to the remote `doreen/refactor` branch.
 **Approver**: houguanyu
 
 ---
