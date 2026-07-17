@@ -1,10 +1,11 @@
 # Cloud-360 前後端技術規格文件 (Frontend & Backend Technical Specification)
 
-## 中文版
-
-> 本文件為 Cloud-360 專案之前後端架構與介面規格定義，採用繁體中文撰寫，提供開發者與 Agent 遵循之規範。
+> 本文件為 Cloud-360 專案之前後端架構與介面規格定義，提供開發者與 Agent 遵循之規範。
+> This document defines the frontend and backend architecture and interface specifications for the Cloud-360 project, serving as the authoritative reference for developers and agents.
 
 ---
+
+## 中文版
 
 ## 1. 系統架構簡介
 

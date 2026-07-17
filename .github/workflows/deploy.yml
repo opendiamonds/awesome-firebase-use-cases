@@ -1,0 +1,124 @@
+name: Deploy (ut → 192.168.10.10)
+
+# Runs on the self-hosted runner that lives on 192.168.10.10. GitHub-hosted
+# runners cannot reach a private LAN address, so the job goes to the machine
+# instead of the machine being reachable from the job.
+
+on:
+  push:
+    branches:
+      - ut
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-10-10
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: docker compose up
+    runs-on: [self-hosted, linux, x64, cloud360]
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail loudly rather than deploying an insecure default. backend/services/
+      # auth.py falls back to a hard-coded JWT signing key that is public in this
+      # repository — anyone could mint an admin token against it. An empty
+      # POSTGRES_PASSWORD likewise leaves postgres refusing to start, but hours
+      # later and with a far more confusing error than this one.
+      - name: Require the secrets that must not default
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${POSTGRES_PASSWORD}" ] || missing="${missing} POSTGRES_PASSWORD"
+          [ -n "${JWT_SECRET}" ] || missing="${missing} JWT_SECRET"
+          if [ -n "${missing}" ]; then
+            echo "::error::Missing required repository secret(s):${missing}" >&2
+            echo "JWT_SECRET signs every login token. Without it auth.py uses the" >&2
+            echo "public fallback key and anyone can forge an admin session." >&2
+            echo "Generate one with: openssl rand -hex 32" >&2
+            exit 1
+          fi
+
+      - name: Write deploy/.env from secrets
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          set -euo pipefail
+          umask 077
+          cat > deploy/.env <<EOF
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          POSTGRES_DB=cloud360
+          JWT_SECRET=${JWT_SECRET}
+          OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+          ANTHROPIC_BASE_URL=https://openrouter.ai/api
+          ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6
+          LLM_MODEL=anthropic/claude-sonnet-4.6
+          N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+          APP_ENV=${APP_ENV:-staging}
+          PUBLIC_URL=https://cloud360.danniel.cc
+          FRONTEND_HOST_PORT=8090
+          CLOUDFLARED_CREDENTIALS_FILE=${HOME}/.cloudflared/b460a579-9e0d-42f1-a31d-c84d35bef065.json
+          EOF
+
+      - name: Build and start the stack
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env up -d --build --remove-orphans
+
+      - name: Wait for the frontend to answer locally
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8090/; then
+              echo "frontend up on 8090"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "frontend did not come up on 8090" >&2
+          docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env ps
+          docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env logs --tail=80
+          exit 1
+
+      - name: Wait for the public hostname to answer through the tunnel
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 24); do
+            if curl -fsS -o /dev/null https://cloud360.danniel.cc/; then
+              echo "public: https://cloud360.danniel.cc"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "tunnel did not serve cloud360.danniel.cc" >&2
+          docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env logs cloudflared --tail=60
+          exit 1
+
+      - name: Remove the generated env file
+        if: always()
+        run: rm -f deploy/.env
+
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "### Deployed"
+            echo ""
+            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- public: https://cloud360.danniel.cc"
+            echo "- internal: http://192.168.10.10:8090"
+          } >> "$GITHUB_STEP_SUMMARY"
