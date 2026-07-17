@@ -38,8 +38,9 @@ def get_db():
 def init_db():
     logger.info("正在初始化資料庫與資料表...")
     Base.metadata.create_all(bind=engine)
-    # A4：既有 DB 補欄位／新表（create_all 不會 ALTER 舊表）
+    # A4／J5：既有 DB 補欄位／新表（create_all 不會 ALTER 舊表）
     _ensure_a4_schema()
+    _ensure_j5_schema()
 
     db = SessionLocal()
     try:
@@ -69,6 +70,7 @@ def init_db():
                     password_hash=hashed_pw,
                     role=persona["role"],
                     is_active=True,
+                    authorization_status="approved",
                 )
                 db.add(db_user)
 
@@ -86,10 +88,16 @@ def init_db():
                     password_hash=hash_password("admin123"),
                     role="Platform_Admin",
                     is_active=True,
+                    authorization_status="approved",
                 )
             )
             db.commit()
             logger.info("已建立預設帳號 admin / Platform_Admin")
+        elif getattr(admin, "authorization_status", None) != "approved":
+            admin.authorization_status = "approved"
+            if not admin.role:
+                admin.role = "Platform_Admin"
+            db.commit()
 
         # RBAC 矩陣：空表時 seed（不覆寫 Admin UI 已調過的資料）
         from services.rbac import ensure_role_permissions_seeded
@@ -137,3 +145,50 @@ def _ensure_a4_schema():
             except Exception as e:
                 logger.warning("A4 schema 補丁略過/失敗: %s — %s", sql[:60], e)
     logger.info("A4 schema 檢查完成")
+
+
+def _ensure_j5_schema():
+    """為既有資料庫補上 J5 authorization_status 與 role_authorization_requests。"""
+    from sqlalchemy import text
+
+    statements = [
+        """
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS authorization_status VARCHAR(32) DEFAULT 'approved'
+        """,
+        """
+        UPDATE users SET authorization_status = 'approved'
+        WHERE authorization_status IS NULL OR authorization_status = ''
+        """,
+        """
+        ALTER TABLE users ALTER COLUMN role DROP NOT NULL
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS role_authorization_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            requested_role VARCHAR(64) NOT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            decided_by VARCHAR(128),
+            decided_at TIMESTAMP WITH TIME ZONE,
+            note TEXT
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_role_auth_req_user_id
+        ON role_authorization_requests (user_id)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_role_auth_req_status
+        ON role_authorization_requests (status)
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning("J5 schema 補丁略過/失敗: %s — %s", sql[:60], e)
+    logger.info("J5 schema 檢查完成")

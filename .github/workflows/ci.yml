@@ -59,7 +59,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend (import check)
+    name: Backend (import + unit tests)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -75,15 +75,18 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # There is no test suite and no linter config in this repo yet. Importing
-      # the app is the strongest honest check available: it catches syntax
-      # errors, bad imports, and router wiring mistakes at CI time rather than
-      # on the deploy host. Replace this with pytest once tests exist.
+      # Import smoke: catches syntax / bad imports / router wiring.
       - name: Import FastAPI app
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cloud360
           JWT_SECRET: ci_only_not_a_real_secret
         run: python -c "import main; print('app:', main.app.title)"
+
+      # Unit suite (SQLite in-memory; psycopg2 mocked in tests/helpers.py)
+      - name: Run unit tests
+        env:
+          JWT_SECRET: ci_only_not_a_real_secret
+        run: python -m unittest discover -s tests -v
 
   docker-build:
     name: Docker images build

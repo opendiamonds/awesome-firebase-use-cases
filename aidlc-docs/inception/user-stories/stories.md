@@ -432,66 +432,98 @@
 
 ### J. 身分認證與基於角色的權限管理 (Identity Authentication & Role-Based Access Control)
 
+> **實作狀態標註**（Q1＝擴充需求）：✅ 已做｜⏳ 部分｜❌ 未做／下期。下列 AC 保留產品目標，並標明現況。
+
 #### J1. 統一登入入口與安全憑證驗證
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: 平台內所有使用者 (如 Alex, Fiona, Ian 等), Jack (平台管理員, `Platform_Admin`)
-  - **協作細節**: 所有使用者必須通過統一登入入口完成身分認證以獲取 Session Token。Jack 負責設定密碼複雜度策略與 MFA 規則。
+  - **協作細節**: 所有使用者必須通過統一登入入口完成身分認證以獲取 JWT。Jack 負責平台身分政策（密碼複雜度、MFA 等屬下期強化）。
 - **使用者需求/目標 (User Goal)**: 擁有一個安全的登入頁面，驗證身分並開始系統工作，保障帳戶與系統資料的安全。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 提供獨立的 Desktop / Mobile Web 登入頁面，支援帳號與密碼欄位輸入。
-  2. 驗證失敗時必須回傳模糊之錯誤提示（如「帳號或密碼錯誤」），以防止暴力破解與使用者列舉攻擊。
-  3. 驗證成功後，在瀏覽器安全儲存加密的 Token，並隨附時效控制（Token Expiration），逾時自動登出。
-- **操作流程**: 1. 訪問平台首頁網址。 2. 輸入帳號密碼並點擊「登入」。 3. **AI重置/人工微調**: 登入失敗可點擊「重設密碼」，或手動修正輸入之憑證。
+  1. ✅ 提供獨立的 Desktop Web 登入頁面，支援帳號與密碼欄位輸入。
+  2. ✅ 驗證失敗時回傳模糊錯誤提示（如「帳號或密碼錯誤」），降低列舉攻擊風險。
+  3. ✅ 驗證成功後於瀏覽器儲存 JWT，並帶時效（Token Expiration）；逾時需重新登入。
+  4. ❌ **下期**：密碼複雜度策略、MFA、自助「重設密碼」流程。
+  5. ✅／⏳ 帳號被停用（`is_active=false`）時拒絕登入（403）；**待授權／無角色**帳號見 J5（可登入但功能全鎖或僅見「等待授權」頁——實作時二擇一，預設採「可登入＋等待授權畫面」）。
+- **操作流程**: 1. 訪問平台登入頁。 2. 輸入帳號密碼並點擊「登入」。 3. 失敗時修正憑證或聯絡管理員（重設密碼屬下期）。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 綠色 Toast 提示「✔ 登入成功，正在跳轉...」，隨後頁面跳轉至該角色對應之預設工作面板。**後續引導**：引導進入首頁控制台。
-  - **失敗 (Failure)**: 紅色警告「✘ 登入失敗：帳號或密碼錯誤」。**後續引導**：提示「請確認您的憑證後重試」，或提供「聯絡管理員」按鈕。
-- **BDD**: `Given` 使用者未登入 `When` 輸入正確憑證點擊登入 `Then` 派發 Token 並導向對應角色頁面。
+  - **成功 (Success)**: 綠色 Toast「✔ 登入成功，正在跳轉...」→ 有角色者進入工作區；無角色／待授權者進入「等待管理員授權」頁（J5）。
+  - **失敗 (Failure)**: 紅色警告「✘ 登入失敗：帳號或密碼錯誤」或「該帳號已被停用」。
+- **BDD**: `Given` 使用者未登入 `When` 輸入正確憑證點擊登入 `Then` 派發 JWT；若已有正式角色則導向工作區，若為待授權則導向等待授權頁。
 
-#### J2. 基於角色的權限頁面可見性控制
+#### J2. 基於角色細項權限的頁面可見性控制
 - **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Ian (開發者, `Developer`), David (FinOps 分析師, `FinOps_Analyst`), Fiona (資安審查員, `Security_Reviewer`)
-  - **協作細節**: 開發者 Ian 與 FinOps 分析師 David 在登入後，各自只能看到符合自己工作範疇的頁面。當 Ian 企圖越權查看 David 的成本面板時，系統將主動阻擋。
-- **使用者需求/目標 (User Goal)**: 確保平台內不同使用者僅能訪問與其職責相關的選單與工作區，落實職責分離 (SoD) 與最小權限原則。
+  - **參與角色**: Ian (`Developer`), David (`FinOps_Analyst`), Fiona (`Security_Reviewer`)
+  - **協作細節**: 登入後 Sidebar／路由依 **角色 × Story 細項**（檢視／編輯／審核）動態計算；三旗標皆空則隱藏該功能。Ian 企圖進入無權限的 Admin 頁時被擋。
+- **使用者需求/目標 (User Goal)**: 確保不同使用者僅能訪問與其職責相關的選單與工作區，落實 SoD 與最小權限。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 側邊導航欄與系統選單必須根據當前使用者的 Role 屬性動態隱藏或顯示對應的工作區連結。
-  2. 當使用者企圖手動修改瀏覽器 URL 路由（Bypass）訪問未授權頁面（如 `Developer` 訪問 `/admin`）時，前端路由守衛必須立刻攔截並將其導向 403 Forbidden 頁面。
-  3. 後端 API 接收請求時，必須同步比對 Token 中的 Role 範圍，確認無權限時回傳 403 HTTP code。
-- **操作流程**: 1. 使用者登入並進入主畫面。 2. 檢視左側選單，訪問授權模組。 3. **AI重置/人工微調**: 系統選單動態更新，若發生誤判，管理員可「局部重置」清除當前 Session 快取要求重配。
+  1. ✅ 側邊選單依 `/me` 回傳之 permissions map 動態顯示／隱藏（非僅硬編 Role 名稱）。
+  2. ✅ 手動改 URL 繞過時，前端 RouteGuard 攔截並導向 403。
+  3. ✅ 後端 API 以 `require_story_action`／`require_arch_action` 覆核，無權限回傳 403。
+  4. ✅ 架構圖生成（A1／A2／A4）以 A1 為準、三者同步（見 J4／role-permission-design）。
+  5. ❌ **下期**：待授權使用者（無正式角色）僅能看到「等待授權」與登出，不得進入任何業務模組。
+- **操作流程**: 1. 登入進入主畫面。 2. 檢視左側選單。 3. 管理員調整細項矩陣後，使用者重新整理即可更新可見範圍。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 介面順暢渲染授權的面板選單。**後續引導**：引導點擊進入相關分析工作區。
-  - **失敗 (Failure)**: 畫面轉為「403 拒絕存取」錯誤警告。**後續引導**：提示「您無此頁面的存取權限」，並提供「返回首頁」或「申請權限」按鈕。
-- **BDD**: `Given` Ian 的角色為 Developer `When` 嘗試修改瀏覽器 URL 訪問 `/admin` `Then` 路由守衛攔截並顯示 403 拒絕訪問。
+  - **成功**: 僅渲染授權選單。
+  - **失敗**: 「403 拒絕存取」；待授權則顯示等待授權說明。
+- **BDD**: `Given` Ian 為 Developer 且對 J3a 三旗標皆空 `When` 修改 URL 訪問 `/admin/users` `Then` RouteGuard 與後端皆回 403。
 
-#### J3. 管理員專屬的權限編輯與指派面板
+#### J3. 管理員專屬的使用者管理（角色指派／啟停用／刪除／授權申請核准）
 - **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Catherine (管理員, `Project_Admin`), Ian (開發者, `Developer`)
-  - **協作細節**: Catherine 進入權限面板，編輯 Ian 的角色。變更後，Ian 的系統權限將動態更新，且此動作將自動記錄至稽核日誌供 Fiona 審查。
-- **使用者需求/目標 (User Goal)**: 讓管理員可以方便地檢視所有帳戶，並根據項目職責即時調配或收回使用者權限。
+  - **參與角色**: Catherine (`Project_Admin`), Jack (`Platform_Admin`), Ian (`Developer`), 新註冊待授權使用者
+  - **協作細節**: 管理員於「使用者設定」頁檢視名單、指派／變更正式角色、啟停用、**刪除使用者**，並處理 J5 的角色授權申請；異動寫入稽核紀錄供 Fiona 審查。
+- **使用者需求/目標 (User Goal)**: 方便檢視所有帳戶，依職責調配權限，核准新註冊者之角色申請，並能移除不再需要的帳號。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 提供管理員專屬的 RBAC 管理面板，能完整列出系統內所有使用者名稱、角色與權限範圍。
-  2. 允許管理員點擊編輯並動態變更任一使用者的角色，變更必須存入後端資料庫且在目標使用者下次重新整理時立即生效。
-  3. 每次權限的變更（升級或降級）必須被強制記錄至平台稽核日誌 (Audit Log)，內容需包含執行管理員、受影響帳戶、以及權限異動詳情。
-- **操作流程**: 1. 管理員進入「權限管理面板」。 2. 選擇使用者並修改其角色屬性後存檔。 3. **AI重置/人工微調**: 點擊「重置此使用者」可還原至系統預設權限。
+  1. ✅ 管理員專屬面板列出使用者、目前角色、啟用狀態。
+  2. ✅ 可變更使用者角色（allowlist 11 角色）；目標使用者重新整理後生效。
+  3. ✅ 可啟用／停用帳號；停用後無法登入。
+  4. ✅ 防護：不可移除最後一位具 J3a.edit 的管理員。
+  5. ⏳ 稽核：後端已記錄角色變更等事件；❌ **下期** 完整 Audit Log 瀏覽 UI。
+  6. ❌ **下期／本迭代目標**：管理員於 **「授權申請」** 專頁（`/admin/authorization-requests`）檢視待處理列表，可核准或拒絕（見 J5）；核准後才寫入正式 `role`。
+  7. ❌ **下期／本迭代目標**：管理員可刪除使用者（須先停用、無擁有架構圖；見 `construction/j/functional-design/`）。
+- **操作流程**: 1. 進入「使用者設定」或「授權申請」。 2. 指派角色／啟停用／核准或拒絕申請／刪除。 3. 確認提示後生效。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 綠色彈窗提示「✔ 使用者角色已更新為 SRE」，該行狀態更新為最新角色。**後續引導**：引導「檢視稽核日誌確認變更已記錄」。
-  - **失敗 (Failure)**: 紅色提示「✘ 更新失敗：不能將最後一位管理員降級」。**後續引導**：提示「請先指派其他管理員後重試」。
-- **BDD**: `Given` 管理員 Catherine 登入權限管理面板 `When` 將 Ian 的角色改為 SRE 並點擊儲存 `Then` 使用者狀態更新，且 Audit Log 生成對應變更紀錄。
+  - **成功**: 「✔ 使用者角色已更新為 SRE」／「✔ 已核准授權申請」／「✔ 已刪除使用者」。
+  - **失敗**: 「✘ 不能將最後一位管理員降級或刪除」等。
+- **BDD**: `Given` Jack 在授權申請頁看到待處理申請（申請角色＝SRE）`When` 點擊核准 `Then` 該使用者 `role` 變為 `SRE`，重新整理後 Sidebar 依矩陣更新；`Given` Jack 刪除已停用且無擁有圖之帳號 `When` 確認刪除 `Then` 該使用者無法再登入且列表不再出現。
 
 #### J4. 細粒度角色-故事權限矩陣編輯與預設還原
 - **多角色協作 (Multi-Role Collaboration)**:
-  - **參與角色**: Catherine (管理員, `Project_Admin`), Fiona (資安審查員, `Security_Reviewer`)
-  - **協作細節**: Catherine 進入角色權限設定頁面，編輯各個角色在各個 User Story（A1~H3）下的檢視/編輯/審核權限勾選狀況。變更提交後，系統動態重配置角色權限，且此動作將自動記錄至稽核日誌 (Audit Log) 以供 Fiona 審查。
-- **使用者需求/目標 (User Goal)**: 能靈活微調與管控不同角色在各功能故事下的檢視、編輯、審核細項權限，並能在配置失誤時一鍵恢復系統初始預設值。
+  - **參與角色**: Catherine (`Project_Admin`), Fiona (`Security_Reviewer`), Jack (`Platform_Admin`)
+  - **協作細節**: 管理員編輯各角色對各 User Story 的檢視／編輯／審核；變更記錄稽核供 Fiona 審查。
+- **使用者需求/目標 (User Goal)**: 靈活管控角色×功能細項權限，並能一鍵恢復設計預設。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 提供一個角色與故事細粒度權限勾選矩陣頁面 (`RolePermissionsPage`)。
-  2. 管理員可在該頁面任意勾選並提交修改各角色對各 User Story 的 can_view、can_edit 與 can_review 的權限限制。
-  3. 當前使用者的權限會隨著管理員變更即時重新計算，並於重新整理後立即生效。
-  4. 提供「還原為系統預設值」按鈕，調用後端接口 `/api/auth/role-permissions/reset-defaults` 以恢復出廠種子資料。
-- **操作流程**: 1. 管理員進入「細粒度權限對應面板」。 2. 修改各個角色對於故事細項的權限勾選後點擊「儲存權限」。 3. 如有需要，點擊「還原預設」恢復配置。
+  1. ✅ 提供 `RolePermissionsPage` 矩陣 UI。
+  2. ✅ 可勾選並儲存 can_view／can_edit／can_review。
+  3. ✅ **A1＝A2＝A4** 在 UI 合併為一欄「架構圖生成」，儲存時三列同步。
+  4. ✅ Pillar J 在矩陣 UI **僅顯示 J3a（使用者設定）、J3b（細項設定）**；J1／J5 不進細項 UI（登入／申請流程另案）。
+  5. ✅ 「還原為系統預設值」呼叫 `/api/auth/role-permissions/reset-defaults`。
+  6. ✅ 儲存後使用者重新整理即依新矩陣生效。
+- **操作流程**: 1. 進入「細項設定」。 2. 修改勾選後儲存。 3. 需要時還原預設。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 彈出綠色提示「✔ 角色權限保存成功」或「✔ 權限已重置為預設值」。**後續引導**：引導至「成員列表確認角色權限」。
-  - **失敗 (Failure)**: 紅色提示「✘ 儲存失敗，請檢查網路連線」。**後續引導**：提供「重試」或「聯絡系統管理員」按鈕。
-- **BDD**: `Given` 管理員 Catherine 進入 Fine-Grained Permissions 面板 `When` 將 Developer 對 Well-Architected 評估的 review 權限修改為可審核並儲存 `Then` 該變更立即記錄於 `role_permissions` 資料庫，並在重新整理後生效。
+  - **成功**: 「✔ 角色權限保存成功」或「✔ 權限已重置為預設值」。
+  - **失敗**: 「✘ 儲存失敗，請檢查網路連線」。
+- **BDD**: `Given` Catherine 在細項設定將 Developer 對某功能的 review 開啟並儲存 `When` 該 Developer 重新整理 `Then` `/me` permissions 反映新值。
+
+#### J5. 自助註冊、角色介紹與授權申請（無預設角色）
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: 新註冊使用者, Jack (`Platform_Admin`), Catherine (`Project_Admin`)
+  - **協作細節**: 新使用者註冊時**不賦予任何正式角色**。註冊流程詢問申請角色並展示功能摘要；管理員於 **授權申請專頁** 核准後才生效；亦可刪除帳號。
+- **使用者需求/目標 (User Goal)**: 能自助開通帳號並清楚選擇目標角色；在獲准前不誤用權限；管理員可把關授權與清理帳號。
+- **驗收標準 (Acceptance Criteria)**:
+  1. ❌ **下期／本迭代目標**：註冊 API／UI **不得**預設指派 `Developer` 或其他正式角色；帳號狀態為「待授權」（例如 `role` 空值或 `Pending`，且不在 11 角色 allowlist 生效集）。
+  2. ❌ 註冊頁展示 11 個正式角色的**介紹**與**可使用功能摘要**（來源：personas + 預設矩陣摘要）。
+  3. ❌ 使用者必選一個「申請角色」後才能提交註冊；系統建立帳號 + **授權申請單**（申請人、申請角色、時間、狀態＝pending）。
+  4. ❌ 待授權使用者登入後僅見等待授權說明與登出；業務 API 一律 403。
+  5. ❌ 管理員於 **授權申請** 專頁檢視待處理列表，可核准（寫入正式 role）或拒絕（刪除帳號）；核准後走 J2 可見性。
+  6. ❌ Pending 期間可改選申請角色（見 Functional Design BR-03）。
+  7. ⏳ 現況對照：目前 `/register` **會直接指派 `Developer` 且立即生效**——與本故事衝突，實作時需改掉。
+- **操作流程**: 1. 開啟註冊頁 → 填帳密 → 選申請角色 → 送出。 2. 登入後「等待授權」頁。 3. Jack／Catherine 於 **授權申請** 頁核准或拒絕。
+- **系統回饋 (System Feedback)**:
+  - **成功（註冊）**: 「✔ 註冊成功，已送出角色授權申請，請等待管理員核准」。
+  - **成功（核准）**: 申請人下次進入可見對應選單。
+  - **失敗**: 「✘ 該帳號已存在」／「✘ 請選擇欲申請的角色」。
+- **BDD**: `Given` 新使用者完成註冊並申請 `SRE` `When` 其立即登入 `Then` 無業務選單且 role 非正式角色；`When` Jack 核准後該使用者重新整理 `Then` role=`SRE` 且 Sidebar 依矩陣顯示。
 
 ---
 
@@ -923,64 +955,89 @@
 
 ### J. Identity Authentication & Role-Based Access Control (RBAC)
 
+> **Implementation status** (expand requirements): ✅ done | ⏳ partial | ❌ not done / next. AC keep product intent and mark current state.
+
 #### J1. Unified Login Portal & Secure Credentials Validation
 - **Multi-Role Collaboration**:
-  - **Roles Involved**: All platform users (e.g., Alex, Fiona, Ian), Jack (Platform Admin, `Platform_Admin`)
-  - **Collaboration Details**: All users must verify their identities through the unified login portal to obtain a Session Token. Jack configures password complexity policies and MFA rules.
-- **User Goal**: Securely log into the platform, validating credentials to start a session and protecting accounts and system data.
+  - **Roles Involved**: All platform users (e.g., Alex, Fiona, Ian), Jack (`Platform_Admin`)
+  - **Collaboration Details**: Users authenticate via the unified login portal to obtain a JWT. Jack owns identity policy (password complexity, MFA — next phase).
+- **User Goal**: Securely log in, validate credentials, and protect accounts and system data.
 - **Acceptance Criteria**:
-  1. Provides a dedicated Desktop / Mobile Web login page with username and password input fields.
-  2. Returns a generic, obfuscated error message on verification failure (e.g., "Invalid username or password") to prevent brute-force and user enumeration attacks.
-  3. Securely stores the encrypted token in the browser upon successful validation, carrying a token expiration time to auto-logout on timeout.
-- **Operational Flow**: 1. Access the platform login URL. 2. Enter credentials and click "Login". 3. **AI Reset/Manual Adjust**: Reset password if failed, or manually correct the input credentials.
+  1. ✅ Dedicated Desktop Web login page with username and password fields.
+  2. ✅ Generic failure message (e.g., "Invalid username or password") to reduce enumeration risk.
+  3. ✅ JWT stored in the browser with expiration; re-login required after expiry.
+  4. ❌ **Next**: password complexity policy, MFA, self-service password reset.
+  5. ✅／⏳ Disabled accounts (`is_active=false`) cannot log in (403); pending/no-role accounts follow J5 (default: can log in but only see a waiting-for-approval screen).
+- **Operational Flow**: 1. Open login page. 2. Enter credentials and click Login. 3. On failure, correct credentials or contact admin (reset is next phase).
 - **System Feedback**:
-  - **Success**: A green toast shows "✔ Login successful, redirecting...", and the page redirects to the user role's default dashboard. **Next Step**: Enters dashboard homepage.
-  - **Failure**: A red warning shows "✘ Login failed: Invalid username or password." **Next Step**: Prompts "Please check your credentials and retry" or offers a "Contact Admin" button.
-- **BDD**: `Given` A user is unauthenticated `When` they enter valid credentials and click login `Then` A token is issued and they are redirected to their role's page.
+  - **Success**: Green toast "✔ Login successful..." → workspace if role assigned; waiting-for-approval page if pending (J5).
+  - **Failure**: "✘ Login failed: Invalid username or password" or "Account disabled."
+- **BDD**: `Given` unauthenticated user `When` valid credentials submitted `Then` JWT issued; redirect to workspace or waiting-for-approval per role state.
 
-#### J2. Role-Based Page Visibility Control
+#### J2. Story-Permission-Driven Page Visibility Control
 - **Multi-Role Collaboration**:
-  - **Roles Involved**: Ian (Developer, `Developer`), David (FinOps Analyst, `FinOps_Analyst`), Fiona (Security Reviewer, `Security_Reviewer`)
-  - **Collaboration Details**: Developer Ian and FinOps Analyst David each only see pages relevant to their duties post-login. When Ian attempts to access David's cost console, the system blocks him.
-- **User Goal**: Ensure users only access menus and workspaces relevant to their roles, enforcing Separation of Duties (SoD) and least privilege.
+  - **Roles Involved**: Ian (`Developer`), David (`FinOps_Analyst`), Fiona (`Security_Reviewer`)
+  - **Collaboration Details**: Sidebar/routes follow **role × story** flags (view/edit/review); all-empty hides the feature. Unauthorized admin URL access is blocked.
+- **User Goal**: Users only see menus and workspaces for their duties (SoD / least privilege).
 - **Acceptance Criteria**:
-  1. The sidebar navigation and system menus dynamically show or hide workspace links based on the user's role.
-  2. When a user manually modifies the browser URL to bypass restrictions (e.g., a Developer visiting `/admin`), the route guards intercept and redirect them to a 403 Forbidden page.
-  3. The back-end APIs must simultaneously validate the user's role in the token, returning a 403 HTTP code on unauthorized requests.
-- **Operational Flow**: 1. User logs in and enters dashboard. 2. Views the sidebar and accesses authorized modules. 3. **AI Reset/Manual Adjust**: Menus auto-update; if a misconfiguration occurs, administrators can "Partial Reset" the session cache.
-- **System Feedback**:
-  - **Success**: Smoothly renders authorized menus and widgets. **Next Step**: Click to enter the workspace.
-  - **Failure**: Redirects to a "403 Access Denied" page. **Next Step**: Prompts "You do not have permission to view this page" and provides "Return to Home" or "Request Access" buttons.
-- **BDD**: `Given` Ian's role is Developer `When` he manually alters the URL path to `/admin` `Then` The route guard intercepts and renders a 403 Access Denied page.
+  1. ✅ Menus driven by `/me` permissions map (not hard-coded role names alone).
+  2. ✅ RouteGuard returns 403 on URL bypass.
+  3. ✅ Backend `require_story_action` / `require_arch_action` return 403 when unauthorized.
+  4. ✅ Architecture generation (A1/A2/A4) keyed off A1 with synced flags.
+  5. ❌ **Next**: Pending users see only waiting-for-approval + logout; no business modules.
+- **Operational Flow**: 1. Log in. 2. View sidebar. 3. After matrix changes, refresh to update visibility.
+- **System Feedback**: Authorized menus only; 403 or waiting-for-approval otherwise.
+- **BDD**: `Given` Ian is Developer with empty J3a flags `When` he opens `/admin/users` `Then` RouteGuard and API both return 403.
 
-#### J3. Administrator's Permission Management & Assignment Panel
+#### J3. Administrator User Management (Assign / Activate / Delete / Approve Requests)
 - **Multi-Role Collaboration**:
-  - **Roles Involved**: Catherine (Admin, `Project_Admin`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: Catherine enters the permission console to edit Ian's role. Upon saving, Ian's privileges update instantly, and the action is logged to the Audit Log for Fiona to review.
-- **User Goal**: Enable administrators to inspect all accounts and dynamically assign or revoke user privileges based on project duties.
+  - **Roles Involved**: Catherine (`Project_Admin`), Jack (`Platform_Admin`), Ian (`Developer`), newly registered pending users
+  - **Collaboration Details**: Admins list users, assign roles, activate/deactivate, **delete users**, and process J5 authorization requests; changes are audited for Fiona.
+- **User Goal**: Inspect accounts, assign duties, approve registration role requests, and remove unused accounts.
 - **Acceptance Criteria**:
-  1. Provides an administrator-only RBAC panel listing all users, their assigned roles, and permission scopes.
-  2. Allows administrators to edit and save role changes, updating database states and applying new privileges to the target user upon their next refresh.
-  3. Enforces mandatory audit logging for role updates, specifying the administrator, the target user, and change details.
-- **Operational Flow**: 1. Admin accesses "User Management Panel". 2. Selects a user, modifies their role, and saves. 3. **AI Reset/Manual Adjust**: Click "Reset User" to restore platform default privileges.
-- **System Feedback**:
-  - **Success**: A green toast prompts "✔ User role updated to SRE," updating the table state. **Next Step**: Prompts "Check audit log to confirm changes."
-  - **Failure**: A red alert prompts "✘ Update failed: Cannot downgrade the last administrator." **Next Step**: Prompts "Assign another admin first."
-- **BDD**: `Given` Administrator Catherine is logged into the console `When` she changes Ian's role to SRE and saves `Then` The user state updates, and a corresponding audit entry is logged.
+  1. ✅ Admin panel lists users, roles, active state.
+  2. ✅ Role changes within the 11-role allowlist; apply on target refresh.
+  3. ✅ Activate/deactivate; disabled users cannot log in.
+  4. ✅ Cannot remove the last admin with J3a.edit.
+  5. ⏳ Backend audit events for role changes; ❌ **Next** full Audit Log UI.
+  6. ❌ **Next / this iteration**: **Authorization requests** page (`/admin/authorization-requests`) lists pending items; approve/reject (J5); formal `role` only on approve.
+  7. ❌ **Next / this iteration**: Delete users after deactivate, with no owned diagrams (see functional-design).
+- **Operational Flow**: 1. Open User settings or **Authorization requests**. 2. Assign / activate / approve or reject / delete. 3. Confirm.
+- **System Feedback**: Success toasts for update / approve / delete; failure if last-admin rule violated.
+- **BDD**: `Given` Jack sees a pending request on the authorization queue `When` he approves `Then` user.role becomes `SRE` and Sidebar updates after refresh; `Given` Jack deletes a deactivated user with no owned diagrams `When` confirmed `Then` login fails and the user disappears from the list.
 
 #### J4. Fine-Grained Role-to-Story Permission Matrix & Default Reset
 - **Multi-Role Collaboration**:
-  - **Roles Involved**: Catherine (Admin, `Project_Admin`), Fiona (Security Reviewer, `Security_Reviewer`)
-  - **Collaboration Details**: Catherine edits the permission checkboxes for system roles against each User Story (A1-H3). Upon saving, privileges are updated system-wide and automatically logged to the Audit Log for Fiona's review.
-- **User Goal**: Allow administrators to fine-tune can_view, can_edit, and can_review permissions for system roles per story, and reset to defaults easily on misconfiguration.
+  - **Roles Involved**: Catherine (`Project_Admin`), Fiona (`Security_Reviewer`), Jack (`Platform_Admin`)
+  - **Collaboration Details**: Admins edit view/edit/review per role × story; changes audited for Fiona.
+- **User Goal**: Fine-tune permissions and reset to design defaults when misconfigured.
 - **Acceptance Criteria**:
-  1. Provides a role-to-story matrix screen (`RolePermissionsPage`).
-  2. Allows administrators to toggle and save can_view, can_edit, and can_review permissions per role for each User Story.
-  3. Updates session scopes in real-time, immediately enforcing new rules on browser refresh.
-  4. Provides a "Reset to Defaults" button invoking `/api/auth/role-permissions/reset-defaults` to restore seed data.
-- **Operational Flow**: 1. Admin accesses "Fine-Grained Permission Panel". 2. Modifies checkboxes in the role-story matrix and clicks "Save Permissions". 3. Reverts configuration by clicking "Reset Defaults" if necessary.
-- **System Feedback**:
-  - **Success**: A green toast prompts "✔ Permissions saved successfully" or "✔ Permissions reset to defaults." **Next Step**: Prompts "Review changes in Member list."
-  - **Failure**: A red alert prompts "✘ Save failed: Check network connection." **Next Step**: Prompts "Retry" or "Contact System Admin."
-- **BDD**: `Given` Catherine is on the Fine-Grained Permissions page `When` she enables can_review for Developer on Well-Architected Review and saves `Then` database states update in `role_permissions` and apply immediately.
+  1. ✅ `RolePermissionsPage` matrix UI.
+  2. ✅ Toggle and save can_view / can_edit / can_review.
+  3. ✅ **A1=A2=A4** merged as one "Architecture generation" column; save syncs three rows.
+  4. ✅ Pillar J matrix UI shows only **J3a** and **J3b**; J1/J5 stay out of the matrix UI.
+  5. ✅ "Reset to defaults" calls `/api/auth/role-permissions/reset-defaults`.
+  6. ✅ Changes apply after user refresh via `/me`.
+- **Operational Flow**: 1. Open fine-grained panel. 2. Edit and save. 3. Reset defaults if needed.
+- **System Feedback**: Save/reset success or network failure messages.
+- **BDD**: `Given` Catherine enables review for a role on a story and saves `When` that user refreshes `Then` `/me` permissions reflect the change.
 
+#### J5. Self-Registration, Role Catalog & Authorization Request (No Default Role)
+- **Multi-Role Collaboration**:
+  - **Roles Involved**: New registrant, Jack (`Platform_Admin`), Catherine (`Project_Admin`)
+  - **Collaboration Details**: Registration **must not** assign any formal role. Role catalog + request; admins use the **Authorization requests** page to approve; reject deletes the account.
+- **User Goal**: Self-serve account creation with a clear role choice; no accidental privileges before approval; admins gate access and clean up accounts.
+- **Acceptance Criteria**:
+  1. ❌ **Next / this iteration**: Register API/UI must **not** default to `Developer` or any formal role; account is pending (null/`Pending` role, not in effective allowlist).
+  2. ❌ Registration page lists all 11 formal roles with **intro** and **feature summary** (from personas + default matrix).
+  3. ❌ User must pick a requested role; system creates account + **authorization request** (applicant, requested role, time, status=pending).
+  4. ❌ Pending users only see waiting-for-approval + logout; business APIs return 403.
+  5. ❌ Admins use **Authorization requests** page to approve (write role) or reject (delete account); after approve, J2 visibility applies.
+  6. ❌ Pending users may change requested role before decision.
+  7. ⏳ **As-built gap**: current `/register` assigns `Developer` immediately — must be changed to match this story.
+- **Operational Flow**: 1. Register with requested role. 2. Waiting-for-approval page. 3. Jack/Catherine act on **Authorization requests** page.
+- **System Feedback**:
+  - **Register success**: "✔ Registered; role request submitted; wait for admin approval."
+  - **Approve success**: Menus appear after refresh.
+  - **Failure**: "✘ Username taken" / "✘ Please select a requested role."
+- **BDD**: `Given` a new user registers requesting `SRE` `When` they log in immediately `Then` no business menus and role is not formal; `When` Jack approves and the user refreshes `Then` role=`SRE` and Sidebar follows the matrix.

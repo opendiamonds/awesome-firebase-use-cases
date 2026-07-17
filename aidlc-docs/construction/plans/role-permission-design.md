@@ -200,10 +200,34 @@ Admin／文件顯示名：**MCP 與 Skill**
 
 #### 12.1 頁面① — 使用者 ↔ 角色
 
-- 列表：username、目前 role、啟用狀態  
-- 動作：下拉改為 11 個正式 role → 儲存  
-- 防護：不可移除最後一位具 J3a.edit 的管理員；role ∈ allowlist  
-- Audit：`actor / target / old_role / new_role / time`
+- 列表：username、目前 role（含**待授權／Pending**）、啟用狀態、（下期）待處理授權申請  
+- 動作：下拉改為 11 個正式 role → 儲存；啟停用；**下期**：核准／拒絕角色申請、**刪除使用者**  
+- 防護：不可移除最後一位具 J3a.edit 的管理員；正式 role ∈ allowlist；Pending 不在生效 allowlist  
+- Audit：`actor / target / old_role / new_role / time`（刪除／核准亦需記錄）
+
+#### 12.1.1 註冊與授權申請（stories J5 — 目標語意；現況尚未實作）
+
+| 項目 | 語意 |
+|---|---|
+| 註冊 | **不得**預設 `Developer` 或其他正式角色；建立帳號為 Pending |
+| 註冊 UI | 必選「申請角色」；展示 11 角色介紹 + 可使用功能摘要 |
+| 申請單 | applicant、requested_role、created_at、status∈{pending,approved,rejected} |
+| 登入後 | Pending 僅「等待授權」+ 登出；業務 API 403 |
+| 核准 | 寫入正式 `role`，關閉申請；之後走 §12.2 矩陣可見性 |
+| 刪除 | Admin 可刪使用者（硬／軟刪與圖表歸屬 → Functional Design） |
+| **授權申請佇列** | 路由 `/admin/authorization-requests`；J3a.view 可看列表；J3a.edit 可核准／拒絕；預設篩 pending |
+
+> **As-built gap**：現行 `/api/auth/register` 直接指派 `Developer` 且立即生效，與 J5 衝突，實作時必須改掉。
+
+#### 12.1.2 Admin 授權申請頁（Functional Design 2026-07-17）
+
+| 項目 | 語意 |
+|---|---|
+| 路由 | `/admin/authorization-requests` |
+| Sidebar | 「使用者設定」下方 **授權申請**（可選 pending 筆數 badge） |
+| 列表 | username、requested_role、申請時間、狀態；篩選 pending／approved／rejected |
+| 核准 | BR-04 角色邊界；寫入 role + approved |
+| 拒絕 | 刪除帳號 + audit |
 
 #### 12.2 頁面② — 角色 ↔ 細項權限
 
@@ -347,10 +371,28 @@ Default role×story matrices: Chinese §§4–12.3 (seeded in `role_permissions`
 
 ### Two Admin pages
 
-1. **`/admin/users`** (J3a) — assign user → role  
+1. **`/admin/users`** (J3a) — assign user → role; activate/deactivate; **next**: approve/reject registration role requests (J5), **delete users**
 2. **`/admin/role-permissions`** (J3b) — role × story view/edit/review  
 
 `Project_Admin` & `Platform_Admin` = VER on both; `Platform_Owner` = V.
+
+#### Registration & authorization request (story J5 — target; not yet implemented)
+
+| Item | Semantics |
+|---|---|
+| Register | Must **not** default to `Developer` or any formal role; account is Pending |
+| Register UI | Required “requested role”; show 11 role intros + feature summaries |
+| Request row | applicant, requested_role, created_at, status ∈ {pending, approved, rejected} |
+| After login | Pending users only see waiting-for-approval + logout; business APIs 403 |
+| Approve | Write formal `role`, close request; then matrix visibility applies |
+| Delete | Admin may delete users (hard/soft + diagram ownership → Functional Design) |
+| **Authorization request queue** | `/admin/authorization-requests`; J3a.view lists; J3a.edit approve/reject; default filter pending |
+
+> **As-built gap**: current `/api/auth/register` assigns `Developer` immediately — conflicts with J5 and must change.
+
+#### Authorization requests admin page (FD 2026-07-17)
+
+Dedicated Sidebar entry and page for pending role requests; approve/reject per BR-04; reject deletes account.
 
 ### Data & migration
 

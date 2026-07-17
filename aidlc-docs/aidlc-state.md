@@ -8,9 +8,9 @@
 
 - **Project Name**: Cloud-360
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
-- **AIDLC Version**: 0.1.8（見 `.aidlc-rule-details/VERSION`）
+- **AIDLC Version**: 1.0.1（見 `.aidlc/aidlc-rules/VERSION`；最初採用 0.1.8，見 ADR-0006）
 - **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1）→ `feat/aidlc-docs-migration`（PR2）→ `Doreen`（目錄重組）
-- **Current Stage**: CONSTRUCTION — A1/A4 待手動 E2E；**RBAC 角色權限重設計實作中**（見 `construction/plans/role-permission-construction-plan.md`）
+- **Current Stage**: INCEPTION 已開發範圍階段齊全 → 下一優先 **CONSTRUCTION**（補 FD／NFR／build-and-test、AC 缺口與 E2E；見 `inception/plans/execution-plan.md`）
 
 ### Workspace State
 
@@ -44,19 +44,21 @@
 
 - 🔵 Inception
   - Workspace Detection: ✅
-  - Reverse Engineering: ⏳
+  - Reverse Engineering: ✅（`inception/reverse-engineering/`：business-overview、architecture、code-structure、api-documentation、component-inventory、technology-stack、dependencies）
   - Requirements Analysis: ✅（A, B, C 三模組已完成）
-  - User Stories: ✅（A, B, C 三模組繁中版已完成）
-  - Workflow Planning: ⏳
-  - Application Design: 🔄（已有 baseline）
-  - Units Generation: ⏳
+  - User Stories: ✅（A, B, C 三模組繁中版已完成；含 J 與 A4/A5）
+  - Workflow Planning: ✅（`inception/plans/execution-plan.md`）
+  - Application Design: ✅（baseline：`system-architecture.md`、`frontend-backend-specification.md`；units：`unit-of-work*.md`）
+  - Units Generation: ✅（已開發範圍 A1／A2／A4／A5／J → U-A1／U-A2／U-A4／U-A5／U-J；見 `application-design/unit-of-work*.md`；A3／B–H 尚未建 unit）
 - 🟢 Construction
   - A1 Code Generation: ✅（舊版 httpx；已由 Agent SDK 路徑取代）
   - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — 待手動驗收 Step 6／8（見 `construction/plans/a1-agent-sdk-code-generation-plan.md`、`construction/a1/code/a1-core-gap-summary.md`）
   - A4 Chat Persistence: ✅ Code done — 待手動驗收（見 `construction/plans/a4-chat-persistence-plan.md`、`construction/a4/code/chat-persistence-summary.md`）
   - Role & Permission Redesign: ✅ Core done — A1/A2/A4 語意、Sidebar 隱藏、細項無 J；待 WebSocket JWT／手動 E2E（見 `construction/plans/role-permission-design.md`、`role-permission-construction-plan.md`）
-  - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照）
-  - Build and Test: 🔄（`.github/workflows/ci.yml`：repo contract、frontend lint/typecheck/build、backend import check、Docker build。**尚無測試套件** — backend job 只做 import check）
+  - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照；summary：`construction/a2/code/canvas-editing-summary.md`）
+  - A5 Sharing & Collaboration: ✅ Core done — 待 cursor 廣播／WS JWT（summary：`construction/a5/code/sharing-collab-summary.md`）
+  - Pillar J Identity & RBAC: ✅ Core + **J5 done**（註冊 pending、授權申請頁、核准／拒絕、停用刪除；見 `construction/j/`）
+  - Build and Test: 🔄（`construction/build-and-test/` instructions 已建。backend unit suite：auth／collab／design_agent／diagram_builder／rbac，含 hypothesis PBT；`unittest discover` → 42 tests OK；CI backend job 已接上跑測試。仍缺：HTTP 整合測、WS JWT、前端 UT）
 - 🟡 Operations: 🔄
   - Deployment: ✅ `.github/workflows/deploy.yml` — push 至 `ut` 觸發，於 192.168.10.10 的 self-hosted runner（`cloud360-10-10`）執行 `docker compose up -d --build`；對外經 Cloudflare Tunnel 開放 `cloud360.danniel.cc`（見 ADR-0007）
   - Agentic Automation: ✅ 六支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、doc-sync、release-watch、daily-digest）
@@ -85,9 +87,9 @@
 
 - **Project Name**: Cloud-360
 - **Project Type**: Brownfield (existing SRS / architecture / user stories / ADR baseline)
-- **AIDLC Version**: 0.1.8 (see `.aidlc-rule-details/VERSION`)
+- **AIDLC Version**: 1.0.1 (see `.aidlc/aidlc-rules/VERSION`; initially adopted 0.1.8 per ADR-0006)
 - **AIDLC Adoption Branch**: `Doreen` (restructuring: .agents/ → AIDLC three-layer architecture + docs/ → aidlc-docs/inception/ migration completed)
-- **Current Stage**: CONSTRUCTION — A1/A4 pending manual E2E; **RBAC redesign in progress** (see `construction/plans/role-permission-construction-plan.md`)
+- **Current Stage**: Inception complete for developed scope → next priority **CONSTRUCTION** (FD/NFR/build-and-test, AC gaps, E2E; see `inception/plans/execution-plan.md`)
 
 ### Workspace State
 
@@ -121,19 +123,21 @@
 
 - 🔵 Inception
   - Workspace Detection: ✅
-  - Reverse Engineering: ⏳
+  - Reverse Engineering: ✅ (`inception/reverse-engineering/` full as-built set)
   - Requirements Analysis: ✅ (Modules A, B, C completed)
-  - User Stories: ✅ (Traditional Chinese A, B, C completed)
-  - Workflow Planning: ⏳
-  - Application Design: 🔄 (baseline exists)
-  - Units Generation: ⏳
+  - User Stories: ✅ (including J and A4/A5)
+  - Workflow Planning: ✅ (`inception/plans/execution-plan.md`)
+  - Application Design: ✅ (baseline + unit-of-work artifacts)
+  - Units Generation: ✅ (developed scope A1/A2/A4/A5/J → U-A1/U-A2/U-A4/U-A5/U-J; A3/B–H not unitised yet)
 - 🟢 Construction
   - A1 Code Generation: ✅ (legacy httpx superseded by Agent SDK path)
   - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — pending manual Steps 6/8 (see `construction/plans/a1-agent-sdk-code-generation-plan.md`, `construction/a1/code/a1-core-gap-summary.md`)
   - A4 Chat Persistence: ✅ Code done — pending manual acceptance (see `construction/plans/a4-chat-persistence-plan.md`, `construction/a4/code/chat-persistence-summary.md`)
   - Role & Permission Redesign: ✅ Core done — A1/A2/A4 semantics, Sidebar hide-when-empty, no Pillar J in matrix UI; pending WebSocket JWT / manual E2E (see `construction/plans/role-permission-design.md`, `role-permission-construction-plan.md`)
-  - A2 Code Generation: 🔄 (core features done; partial AC gaps — see acceptance table below)
-  - Build and Test: 🔄 (`.github/workflows/ci.yml`: repo contract, frontend lint/typecheck/build, backend import check, Docker build. **No test suite exists yet** — the backend job performs an import check only)
+  - A2 Code Generation: 🔄 (core features done; partial AC gaps — see acceptance table below; summary: `construction/a2/code/canvas-editing-summary.md`)
+  - A5 Sharing & Collaboration: ✅ Core done — pending cursor broadcast / WS JWT (summary: `construction/a5/code/sharing-collab-summary.md`)
+  - Pillar J Identity & RBAC: ✅ Core + **J5 done** (pending registration, authorization queue, approve/reject, deactivate-delete; see `construction/j/`)
+  - Build and Test: 🔄 (`construction/build-and-test/` instructions exist. Backend unit suite: auth / collab / design_agent / diagram_builder / rbac with Hypothesis PBT; `unittest discover` → 42 tests OK; CI backend job now runs tests. Still missing: HTTP integration tests, WS JWT, frontend UT)
 - 🟡 Operations: 🔄
   - Deployment: ✅ `.github/workflows/deploy.yml` — triggered by push to `ut`, runs `docker compose up -d --build` on the self-hosted runner at 192.168.10.10 (`cloud360-10-10`); exposed publicly at `cloud360.danniel.cc` through a Cloudflare Tunnel (see ADR-0007)
   - Agentic Automation: ✅ six gh-aw workflows (contract-guard, pr-reviewer, issue-triage, doc-sync, release-watch, daily-digest)

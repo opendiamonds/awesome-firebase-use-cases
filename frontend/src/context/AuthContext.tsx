@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
 import { apiUrl } from '../config/api';
 
 export type StoryAction = 'view' | 'edit' | 'review';
+export type AuthorizationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface StoryPermission {
   view: boolean;
@@ -12,12 +13,21 @@ export interface StoryPermission {
   can_review?: boolean;
 }
 
+export interface PendingRequest {
+  id: number;
+  requested_role: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface User {
   id?: number;
   username: string;
-  role: string;
+  role: string | null;
   is_active?: boolean;
+  authorization_status?: AuthorizationStatus;
   permissions?: Record<string, StoryPermission>;
+  pending_request?: PendingRequest | null;
 }
 
 interface AuthContextType {
@@ -25,18 +35,17 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, token: string, role: string) => Promise<void>;
+  isPending: boolean;
+  login: (username: string, token: string, role: string | null) => Promise<void>;
   logout: () => void;
   checkAuthSession: () => Promise<boolean>;
   can: (storyId: string, action?: StoryAction) => boolean;
-  /** 架構圖生成（A1／A2／A4 同一功能） */
   canArch: (action?: StoryAction) => boolean;
   refreshMe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/** A1／A2／A4 視為同一「架構圖生成」能力，以 A1 為準 */
 const ARCH_STORIES = new Set(['A1', 'A2', 'A4']);
 const ARCH_CANONICAL = 'A1';
 
@@ -53,7 +62,9 @@ async function fetchMe(tokenVal: string): Promise<User> {
     username: data.username,
     role: data.role,
     is_active: data.is_active,
+    authorization_status: data.authorization_status || 'approved',
     permissions: data.permissions || {},
+    pending_request: data.pending_request || null,
   };
 }
 
@@ -65,7 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const applyUser = (u: User, tokenVal: string) => {
     localStorage.setItem('token', tokenVal);
     localStorage.setItem('username', u.username);
-    localStorage.setItem('role', u.role);
+    localStorage.setItem('role', u.role || '');
+    localStorage.setItem('authorization_status', u.authorization_status || 'approved');
     setToken(tokenVal);
     setUser(u);
   };
@@ -74,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+    localStorage.removeItem('authorization_status');
     setToken(null);
     setUser(null);
   }, []);
@@ -85,7 +98,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     applyUser(me, activeToken);
   }, [token]);
 
-  // 初始化：有 token 則打 /me 取得最新 role + permissions
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     if (!savedToken) {
@@ -98,18 +110,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .finally(() => setIsLoading(false));
   }, [logout]);
 
-  const login = async (username: string, tokenVal: string, roleVal: string) => {
-    // 先寫入基本資料，再以 /me 覆寫 permissions（避免舊 localStorage role）
+  const login = async (username: string, tokenVal: string, roleVal: string | null) => {
     localStorage.setItem('token', tokenVal);
     localStorage.setItem('username', username);
-    localStorage.setItem('role', roleVal);
+    localStorage.setItem('role', roleVal || '');
     setToken(tokenVal);
-    setUser({ username, role: roleVal, permissions: {} });
+    setUser({ username, role: roleVal, permissions: {}, authorization_status: 'approved' });
     try {
       const me = await fetchMe(tokenVal);
       applyUser(me, tokenVal);
     } catch {
-      // /me 失敗仍保留登入 token，permissions 稍後再補
+      // keep token
     }
   };
 
@@ -129,7 +140,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isPending = user?.authorization_status === 'pending';
+
   const can = (storyId: string, action: StoryAction = 'view'): boolean => {
+    if (isPending) return false;
     const key = ARCH_STORIES.has(storyId) ? ARCH_CANONICAL : storyId;
     const p = user?.permissions?.[key];
     if (!p) return false;
@@ -153,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isAuthenticated,
         isLoading,
+        isPending,
         login,
         logout,
         checkAuthSession,

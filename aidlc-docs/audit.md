@@ -1148,6 +1148,15 @@ Each entry uses the following format:
 
 ---
 
+#### 2026-07-17 01:11 +08:00 — Units Generation (retroactive A1/A2/A4/A5/J)
+
+**User request (raw)**: "補 Inception 的 unit-of-work*.md + story map（把 A1／A2／A4／A5／J 對到 unit）"
+**Stage**: Inception → Units Generation (Part 2 Generation, retrospective)
+**Outcome**: Created `unit-of-work.md`, `unit-of-work-dependency.md`, `unit-of-work-story-map.md`, and `plans/unit-of-work-plan.md`. Mapped J1–J4→U-J, A1→U-A1, A2→U-A2, A4→U-A4, A5→U-A5. Updated `aidlc-state.md` Units Generation to complete for developed scope. Awaiting user review of artifacts under `aidlc-docs/inception/application-design/`.
+**Approver**: pending user review
+
+---
+
 #### 2026-07-17 16:50 +08:00 — Track Rules Folder & Version Control Update
 
 **User request (raw)**: "我把 .gitignore .aidlc 刪除 幫我重新 commit 推上遠端"
@@ -1157,5 +1166,117 @@ Each entry uses the following format:
 2. Updated `aidlc-docs/inception/application-design/frontend-backend-specification.md` to be bilingual, satisfying repository contract constraints.
 3. Staged, committed, and pushed the updated `.gitignore`, specification document, and the entire `.aidlc/` folder to the remote `doreen/refactor` branch.
 **Approver**: houguanyu
+
+---
+
+#### 2026-07-17 19:04 +08:00 — Close Inception Gaps (Reverse Engineering + Workflow Planning)
+
+**User request (raw)**: "幫我補 Inception 缺口"
+**Stage**: Inception → Reverse Engineering + Workflow Planning
+**Outcome**:
+1. Created `aidlc-docs/inception/reverse-engineering/` (business-overview, architecture, code-structure, api-documentation, component-inventory, technology-stack, dependencies).
+2. Created `aidlc-docs/inception/plans/execution-plan.md` with phase checklist and next Construction priorities.
+3. Updated `aidlc-state.md`: Reverse Engineering, Workflow Planning, Application Design marked complete; Current Stage points to Construction follow-ups.
+**Extension compliance**: bilingual-docs compliant; security N/A (docs stage); property-based deferred to Build-and-Test; resiliency undecided.
+**Approver**: pending user review
+
+---
+
+#### 2026-07-17 19:30 +08:00 — Construction Gap Fill (A2 / A5 / J summaries + Build-and-Test)
+
+**User request (raw)**: "進 Construction 補 a2／a5／j 文件與 build-and-test"
+**Stage**: Construction → Code Generation (retrospective docs) + Build and Test
+**Outcome**:
+1. Created retrospective code summaries: `construction/a2/code/canvas-editing-summary.md`, `construction/a5/code/sharing-collab-summary.md`, `construction/j/code/identity-rbac-summary.md` (each with AC mapping and known gaps).
+2. Created `construction/build-and-test/`: `build-instructions.md`, `unit-test-instructions.md`, `integration-test-instructions.md` (manual E2E scenarios; automated integration/E2E listed as gaps).
+3. Verified `backend/tests/test_rbac.py` locally: 6 tests, all OK (in-memory SQLite; `unittest discover` blocked by missing `__init__.py` — documented).
+4. Updated `aidlc-state.md` Construction tracking (A5 / Pillar J entries added; Build and Test status refreshed).
+**Extension compliance**: bilingual-docs compliant; security N/A (docs stage, no IAM/network change); property-based non-compliant for agent partial-update merge (flagged as gap in unit-test-instructions); resiliency undecided.
+**Approver**: pending user review
+
+---
+
+#### 2026-07-17 19:45 +08:00 — Expand Backend Unit Test Suite (auth / collab / agent / diagram)
+
+**User request (raw)**: "那幫我根據文件，補齊unit test"
+**Stage**: Construction → Build and Test
+**Outcome**:
+1. Added `backend/tests/__init__.py`, `helpers.py` (shared SQLite + seed).
+2. New suites: `test_auth.py`, `test_collab.py`, `test_design_agent.py`, `test_diagram_builder.py`; refactored `test_rbac.py` to use helpers.
+3. Added `hypothesis` (+ explicit `bcrypt`) to `backend/requirements.txt`; PBT on password verify, chat serialize↔parse, prompt embedding, `is_inside` invariants.
+4. Local run: `python -m unittest discover -s tests -v` → **42 tests OK**.
+5. Wired CI backend job to run unit tests; updated `unit-test-instructions.md` and `aidlc-state.md`.
+**Extension compliance**: bilingual-docs compliant; security N/A (test-only); property-based **partial compliant** (round-trip / invariants for chat + geometry + prompts; full agent XML-merge PBT still limited because merge is prompt-driven, not a pure function); resiliency undecided.
+**Approver**: pending user review
+
+---
+
+
+#### 2026-07-17 19:50 +08:00 — Revise Pillar J User Stories (J5 registration gate)
+
+**User request (raw)**: answers in `user-stories-j-revision-questions.md` (Q1=B expand+status; Q2=X registration without default role + admin approve/delete; Q3=A bilingual; Q4=BCD personas/design/summary)
+**Stage**: Inception → User Stories (revision)
+**Outcome**:
+1. Rewrote `stories.md` §J (ZH+EN): status markers on J1–J4; expanded J3 (approve/delete); added **J5** self-registration / role catalog / authorization request (no default role).
+2. Updated `personas.md` Jack (ZH+EN) for authorization gate + delete.
+3. Updated `construction/plans/role-permission-design.md` §12.1.1 + English Admin pages note; flagged as-built `/register`→Developer gap.
+4. Updated `construction/j/code/identity-rbac-summary.md` AC table for J5 gap.
+**Extension compliance**: bilingual-docs compliant; security watch (registration privilege gate is a hard product constraint going forward); property-based N/A (docs); resiliency undecided.
+**Approver**: pending user review
+
+---
+
+#### 2026-07-17 19:55 +08:00 — Start J5 Functional Design (plan + questions)
+
+**User request (raw)**: "好" (proceed with J5 FD / implementation)
+**Stage**: Construction → Functional Design (U-J / J5)
+**Outcome**: Created `construction/plans/j5-functional-design-plan.md` with checklist and 8 clarification questions. Awaiting answers before generating `construction/j/functional-design/*` artifacts.
+**Extension compliance**: bilingual-docs compliant; security watch (privilege gate design); property-based N/A until code gen; resiliency undecided.
+**Approver**: pending user answers
+
+---
+
+#### 2026-07-17 20:05 +08:00 — J5 Functional Design Complete (+ admin authorization queue)
+
+**User request (raw)**: "好了 但我露加一個 admin要有地方可以看到使用者的申請"
+**Stage**: Construction → Functional Design (U-J / J5)
+**Outcome**:
+1. Recorded plan answers Q1–Q8 + user add-on: admin **Authorization requests** page.
+2. Created `construction/j/functional-design/`: domain-entities, business-rules (BR-08 queue), business-logic-model, frontend-components (`AuthorizationRequestsPage`, `/admin/authorization-requests`).
+3. Updated `j5-functional-design-plan.md` (COMPLETE), `role-permission-design.md` §12.1.2, `stories.md` J3/J5, `identity-rbac-summary.md`.
+**Extension compliance**: bilingual-docs compliant; security compliant (privilege gate design); property-based: P-J5-01..04 identified in business-rules; resiliency undecided.
+**Approver**: pending user review
+
+---
+
+#### 2026-07-17 20:20 +08:00 — J5 Code Generation Complete
+
+**User request (raw)**: "Ａ" (Continue to Next Stage after J5 FD)
+**Stage**: Construction → Code Generation (U-J / J5)
+**Outcome**:
+1. Plan: `construction/plans/j5-code-generation-plan.md` (executed).
+2. Backend: `authorization_status`, `role_authorization_requests`, register/catalog/approve/reject/active/delete APIs; RBAC pending gate; `_ensure_j5_schema`.
+3. Frontend: WaitingApprovalPage, AuthorizationRequestsPage, Login role catalog, Admin deactivate/delete, Sidebar link, pending RouteGuard.
+4. Tests: `test_j5_authz.py`; suite **51 tests OK**.
+**Extension compliance**: bilingual-docs compliant; security compliant (privilege gate); property-based: pending invariant covered in unit tests; resiliency undecided.
+**Approver**: pending user review
+
+---
+
+#### 2026-07-17 20:00:50 +08:00 — User Registration
+
+**User request (raw)**: "註冊新帳號 tinaluo 申請 Developer"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 使用者 tinaluo 註冊成功，authorization_status=pending，等待管理員核准。
+**Approver**: System_Auto
+
+---
+
+#### 2026-07-17 20:01:21 +08:00 — Authorization Request Approved
+
+**User request (raw)**: "核准 tinaluo → Developer"
+**Stage**: Operations → Privilege Enforcement
+**Outcome**: 管理員 catherine 已核准授權申請 #1。
+**Approver**: catherine
 
 ---

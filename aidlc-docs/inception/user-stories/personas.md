@@ -146,17 +146,20 @@
 - **使用場景**：間接受益於 Cloud-360 平台 AI 驅動的自動修復、擴展與穩定性保障。
 
 ### 10. Jack - 平台管理員 (Platform Admin)
-- **情境描述**：Jack 是 Cloud-360 系統的「超級管理員」。他負責設定平台內部極其複雜的角色權限，確保 AI Agent 不會因為權限過大而意外刪除公司的核心資料庫。
-- **職責**：管理 Cloud-360 平台本身的系統配置、租戶與使用者權限。
+- **情境描述**：Jack 是 Cloud-360 系統的「超級管理員」。他負責設定平台內部極其複雜的角色權限，確保 AI Agent 不會因為權限過大而意外刪除公司的核心資料庫；並把關**新註冊使用者的角色授權申請**（核准／拒絕）與帳號刪除。
+- **職責**：管理 Cloud-360 平台本身的系統配置、租戶與使用者權限；審核自助註冊者之角色申請（見 stories J5／J3）。
 - **在意的核心需求 (Key Requirements Focus)**：
   - **H. MCP & Skill 管理**：極度關注工具權限模型 (Read-only, Write, Deploy, Delete 風險等級) 的隔離機制。
-  - **7. 非功能性需求**：RBAC (Role-Based Access Control) 與最低權限原則 (Least Privilege) 在平台的落實。
+  - **J. 身分與權限**：新帳號不得預設角色；僅管理員核准後才生效；可刪除不再需要的帳號。
+  - **7. 非功能性需求**：RBAC 與最低權限原則 (Least Privilege) 在平台的落實。
 - **核心目標**：
   - 確保 Cloud-360 平台自身環境的安全、穩定與高效運行。
+  - 防止未授權使用者在獲准前存取任何業務模組。
 - **核心痛點**：
   - 需要管理極其複雜的 MCP 權限模型與 AI Agent 的存取控制策略。
+  - 註冊申請堆積時需快速判斷申請角色是否與申請人職責相符。
 - **技術背景**：具備企業級系統管理、身分驗證與存取控制架構經驗。
-- **使用場景**：監控平台資源使用率，分析 AI Agent 權限，管理平台全域操作政策。
+- **使用場景**：監控平台資源使用率，分析 AI Agent 權限，管理平台全域操作政策；在「使用者設定」核准角色申請或刪除帳號。
 
 ### 11. Karen - 平台擁有者 (Platform Owner)
 - **情境描述**：Karen 是這個平台的總負責人，為企業的數位轉型投資把關。每當系統將要執行自動化資料庫遷移這種高風險操作時，Karen 必須在手機上按下最後的核准按鈕。
@@ -317,17 +320,20 @@
 - **Usage Scenario**: Indirectly benefits from the AI-driven automated remediation, scaling, and stability guarantees provided by the Cloud-360 platform.
 
 ### 10. Jack - Platform Admin
-- **Persona Context**: Jack is the "super admin" of the Cloud-360 system itself. He manages the platform's highly complex RBAC configurations to ensure AI Agents never gain the permissions to accidentally drop a core database.
-- **Responsibility**: Manages system configurations, tenants, and user permissions for the Cloud-360 platform itself.
+- **Persona Context**: Jack is the "super admin" of the Cloud-360 system itself. He manages the platform's highly complex RBAC configurations to ensure AI Agents never gain the permissions to accidentally drop a core database, and he gates **role authorization requests from newly registered users** (approve/reject) plus account deletion.
+- **Responsibility**: Manages system configurations, tenants, and user permissions for the Cloud-360 platform itself; reviews self-registration role requests (see stories J5 / J3).
 - **Key Requirements Focus**:
   - **H. MCP & Skill Management**: Deeply concerned with the isolation mechanisms in the tool permission model (Read-only, Write, Deploy, Delete risk levels).
+  - **J. Identity & Access**: New accounts must not receive a default role; access starts only after admin approval; unused accounts can be deleted.
   - **7. Non-Functional Req**: Enforces RBAC and the Least Privilege principle strictly within the platform.
 - **Core Goals**:
   - Ensure the Cloud-360 platform's own environment remains secure, stable, and highly performant.
+  - Prevent unauthorized users from accessing any business module before approval.
 - **Core Pain Points**:
   - Tasked with managing an extremely complex MCP permission model and access control policies for AI Agents.
+  - Must quickly judge whether a requested role matches the applicant's duties when requests queue up.
 - **Technical Background**: Experienced in enterprise-grade system administration, identity verification, and access control architecture.
-- **Usage Scenario**: Monitors platform resource utilization, analyzes AI Agent permissions, and manages global operational policies for the platform.
+- **Usage Scenario**: Monitors platform resource utilization, analyzes AI Agent permissions, manages global operational policies, and approves role requests or deletes accounts in User settings.
 
 ### 11. Karen - Platform Owner
 - **Persona Context**: Karen oversees the platform's product direction, safeguarding digital transformation investments. When the system proposes a high-risk automated database migration, Karen is the one pushing the final approval button on her phone.

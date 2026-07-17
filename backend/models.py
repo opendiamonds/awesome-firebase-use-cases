@@ -1,7 +1,7 @@
 """
 models.py — Cloud-360 ORM 模型
 
-含使用者、架構圖、分享關聯，以及 A4 聊天持久化（user × diagram）。
+含使用者、架構圖、分享關聯、A4 聊天持久化，以及 J5 授權申請。
 """
 
 from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, ForeignKey, Table
@@ -25,11 +25,19 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    role = Column(String, nullable=False)  # Role handle, e.g., Project_Admin, Developer, SRE
+    # 正式角色；pending 時為 NULL（J5）
+    role = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    # A4：上次開啟的架構圖（重整後自動還原）
+    # pending | approved | rejected（執行期以本欄為準）
+    authorization_status = Column(String(32), nullable=False, default="approved")
     last_opened_diagram_id = Column(
         Integer, ForeignKey("user_diagrams.id", ondelete="SET NULL"), nullable=True
+    )
+
+    authorization_requests = relationship(
+        "RoleAuthorizationRequest",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
     def to_dict(self):
@@ -38,8 +46,31 @@ class User(Base):
             "username": self.username,
             "role": self.role,
             "is_active": self.is_active,
+            "authorization_status": self.authorization_status,
             "last_opened_diagram_id": self.last_opened_diagram_id,
         }
+
+
+class RoleAuthorizationRequest(Base):
+    """J5：註冊時的角色授權申請。"""
+
+    __tablename__ = "role_authorization_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    requested_role = Column(String(64), nullable=False)
+    status = Column(String(32), nullable=False, default="pending")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    decided_by = Column(String(128), nullable=True)
+    decided_at = Column(DateTime(timezone=True), nullable=True)
+    note = Column(Text, nullable=True)
+
+    user = relationship("User", back_populates="authorization_requests")
 
 
 class UserDiagram(Base):

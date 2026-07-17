@@ -31,7 +31,9 @@ Cloud-360 是 AI-native multi-cloud platform，仰賴 Claude Code 與其他 AI c
    - **PR1** ✅ 安裝 rules tree、CLAUDE.md、aidlc-docs 骨架；`docs/` 不動（branch `feat/aidlc-framework-rules`）。
    - **PR2** ✅ 用 `git mv` 將 `docs/srs/`、`docs/architecture/`、`docs/user-stories/`、`docs/adr/`（含本 ADR）搬到 `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`；移除 `docs/` 目錄；更新 README、validate script、CLAUDE.md、bilingual-docs.md 與所有 cross-link（branch `feat/aidlc-docs-migration`）。
 7. 重大變更（架構、外部依賴、production 影響）必須以新 ADR 紀錄。
-8. AIDLC 升級流程：對照官方 release，更新 `.aidlc-rule-details/VERSION` 與內容；客製 `extensions/bilingual-docs/` 不得被覆蓋；升級記錄寫入新 ADR。
+8. AIDLC 升級流程：對照官方 release，更新 `.aidlc/aidlc-rules/VERSION` 與 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 內容；客製 `extensions/bilingual-docs/` 不得被覆蓋；升級記錄寫入新 ADR。
+
+> **現行規則目錄（PR #433 起）**：統一為 `.aidlc/aidlc-rules/`（入口 `aws-aidlc-rules/core-workflow.md`、細節 `aws-aidlc-rule-details/`）。下方 Repository Contract 已對應現行路徑；決策 2–3 所述舊路徑 `.aidlc-rules/`、`.aidlc-rule-details/` 僅作歷史紀錄。
 
 ### Consequences
 
@@ -50,18 +52,18 @@ Cloud-360 是 AI-native multi-cloud platform，仰賴 Claude Code 與其他 AI c
 
 ### Repository Contract 影響
 
-`scripts/validate_repo_contract.py` 隨 PR1 新增、PR2 重新對應到 `aidlc-docs/inception/...` 路徑。當前必要檔案包括：
+`scripts/validate_repo_contract.py` 隨 PR1 新增、PR2 重新對應到 `aidlc-docs/inception/...` 路徑；PR #433 起規則樹改為 `.aidlc/aidlc-rules/`。當前必要檔案包括：
 
 - `CLAUDE.md`
-- `.aidlc-rule-details/VERSION`
-- `.aidlc-rules/aws-aidlc-rules/core-workflow.md`
-- `.aidlc-rule-details/extensions/bilingual-docs/bilingual-docs.md`
+- `.aidlc/aidlc-rules/VERSION`
+- `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/bilingual-docs/bilingual-docs.md`
 - `aidlc-docs/aidlc-state.md`
 - `aidlc-docs/audit.md`
 - `aidlc-docs/README.md`
 - `aidlc-docs/inception/requirements/cloud-360-srs.md`
 - `aidlc-docs/inception/application-design/system-architecture.md`
-- `aidlc-docs/inception/user-stories/core-pillars.md`
+- `aidlc-docs/inception/user-stories/stories.md`
 - `aidlc-docs/inception/decisions/0001..0006-*.md`
 
 雙語掃描範圍 PR2 後固定為 `aidlc-docs/**/*.md`（PR1 暫過渡期同時掃 `docs/` 與 `aidlc-docs/`）。
@@ -96,7 +98,9 @@ Cloud-360 is an AI-native multi-cloud platform that relies on Claude Code and ot
    - **PR1** ✅ install the rules tree, CLAUDE.md, and aidlc-docs skeleton; `docs/` left untouched (branch `feat/aidlc-framework-rules`).
    - **PR2** ✅ `git mv` `docs/srs/`, `docs/architecture/`, `docs/user-stories/`, and `docs/adr/` (including this ADR) to `aidlc-docs/inception/{requirements,application-design,user-stories,decisions}/`; remove the `docs/` directory; update README, the validation script, CLAUDE.md, bilingual-docs.md, and all cross-links (branch `feat/aidlc-docs-migration`).
 7. Significant changes (architecture, external dependencies, production impact) must be recorded as new ADRs.
-8. AIDLC upgrade process: compare against upstream releases, bump `.aidlc-rule-details/VERSION` and refresh contents; the custom `extensions/bilingual-docs/` must not be overwritten; record the upgrade in a new ADR.
+8. AIDLC upgrade process: compare against upstream releases, bump `.aidlc/aidlc-rules/VERSION` and refresh `.aidlc/aidlc-rules/aws-aidlc-rule-details/`; the custom `extensions/bilingual-docs/` must not be overwritten; record the upgrade in a new ADR.
+
+> **Current rules layout (since PR #433)**: unified under `.aidlc/aidlc-rules/` (entry `aws-aidlc-rules/core-workflow.md`, details `aws-aidlc-rule-details/`). The Repository Contract below uses current paths; decisions 2–3 reference legacy `.aidlc-rules/` / `.aidlc-rule-details/` paths for history only.
 
 ### Consequences
 
@@ -115,18 +119,18 @@ Cloud-360 is an AI-native multi-cloud platform that relies on Claude Code and ot
 
 ### Repository Contract Impact
 
-`scripts/validate_repo_contract.py` was extended in PR1 and remapped in PR2 to the `aidlc-docs/inception/...` paths. The current required files include:
+`scripts/validate_repo_contract.py` was extended in PR1 and remapped in PR2 to the `aidlc-docs/inception/...` paths; since PR #433 the rules tree lives under `.aidlc/aidlc-rules/`. The current required files include:
 
 - `CLAUDE.md`
-- `.aidlc-rule-details/VERSION`
-- `.aidlc-rules/aws-aidlc-rules/core-workflow.md`
-- `.aidlc-rule-details/extensions/bilingual-docs/bilingual-docs.md`
+- `.aidlc/aidlc-rules/VERSION`
+- `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/bilingual-docs/bilingual-docs.md`
 - `aidlc-docs/aidlc-state.md`
 - `aidlc-docs/audit.md`
 - `aidlc-docs/README.md`
 - `aidlc-docs/inception/requirements/cloud-360-srs.md`
 - `aidlc-docs/inception/application-design/system-architecture.md`
-- `aidlc-docs/inception/user-stories/core-pillars.md`
+- `aidlc-docs/inception/user-stories/stories.md`
 - `aidlc-docs/inception/decisions/0001..0006-*.md`
 
 After PR2 the bilingual scan is fixed to `aidlc-docs/**/*.md` (during the PR1 transitional period it scanned both `docs/` and `aidlc-docs/`).

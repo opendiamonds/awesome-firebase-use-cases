@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { StoryAction } from '../context/AuthContext';
 
@@ -13,7 +13,8 @@ const LoadingScreen: React.FC<{ label: string }> = ({ label }) => (
 );
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isPending } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return <LoadingScreen label="載入中，請稍候..." />;
@@ -21,6 +22,10 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (isPending && location.pathname !== '/waiting-approval') {
+    return <Navigate to="/waiting-approval" replace />;
   }
 
   return <>{children}</>;

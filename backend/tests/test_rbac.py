@@ -1,22 +1,7 @@
-import sys
-from unittest.mock import MagicMock
-
-# Mock psycopg2 to bypass ModuleNotFoundError when running tests on systems without postgresql drivers
-sys.modules['psycopg2'] = MagicMock()
-
 import unittest
-from pathlib import Path
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-# 將 backend 路徑引入
-backend_dir = Path(__file__).resolve().parents[1]
-if str(backend_dir) not in sys.path:
-    sys.path.insert(0, str(backend_dir))
-if str(backend_dir / "services") not in sys.path:
-    sys.path.insert(0, str(backend_dir / "services"))
+from tests.helpers import close_session, make_session
 
-from models import Base, RolePermission
 from services.rbac import (
     normalize_role,
     is_canonical_role,
@@ -24,24 +9,15 @@ from services.rbac import (
     user_can_arch,
     sync_arch_permission_flags,
     permissions_map_for_role,
-    ensure_role_permissions_seeded,
 )
+
 
 class TestRBAC(unittest.TestCase):
     def setUp(self):
-        # 使用 sqlite memory 資料庫
-        self.engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-        Base.metadata.create_all(bind=self.engine)
-        
-        Session = sessionmaker(bind=self.engine)
-        self.db = Session()
-        
-        # Seed 資料
-        ensure_role_permissions_seeded(self.db, force=True)
+        self.db = make_session()
 
     def tearDown(self):
-        self.db.close()
-        Base.metadata.drop_all(bind=self.engine)
+        close_session(self.db)
 
     def test_normalize_role(self):
         self.assertEqual(normalize_role("Security_Admin"), "Security_Reviewer")
