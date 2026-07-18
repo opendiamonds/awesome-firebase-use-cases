@@ -92,9 +92,9 @@ Delete `eslint-report.json` before you finish so it is not part of the pushed ch
 ## Deliver
 
 - If you fixed anything, push it to this PR's branch. The push must contain only your `frontend/src/` edits — nothing else.
-- Post exactly one comment, bilingual (Traditional Chinese first, then English):
+- Post exactly one comment, in Traditional Chinese (ADR-0009):
   1. **Auto-fixed** — each error you fixed: file, rule, and what you changed, one line each.
   2. **Needs a human** — each error you deliberately left, with the rule and why (touches auth/effects/exports, or the type is not locally obvious). Reference issue #427 if it tracks them.
   3. If lint still shows errors you could not safely fix, say so plainly — do not imply the PR is green when it is not.
 
-No preamble, no restating these instructions. If there were no fixable errors, say so in one line per language and stop.
+No preamble, no restating these instructions. If there were no fixable errors, say so in one line and stop.

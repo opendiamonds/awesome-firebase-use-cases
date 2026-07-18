@@ -6,8 +6,6 @@
 > Sources: `personas.md` · `stories.md` · SRS Pillar J  
 > 實作對照：`role-permission-construction-plan.md` · `schema_rbac.sql` · `services/rbac.py`
 
-## 中文版
-
 ### 1. 設計目標
 
 1. 依 Persona 與 Stories，對功能標定 **檢視／編輯／審核**
@@ -294,68 +292,3 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 ### 15. 狀態
 
 設計已批准並進入實作；核心 RBAC、Admin 兩頁、架構圖語意已落地。後續可補：WebSocket JWT、架構圖審核流程完整 UI。
-
----
-
-## English Version
-
-### Goals
-
-Platform RBAC with **view / edit / review** per story; diagram share ACL is orthogonal. **A1, A2, and A4 are one product capability** (“architecture diagram generation”), keyed off **A1** and kept in sync.
-
-### Action legend
-
-| Symbol | Meaning |
-|---|---|
-| `-` | None (hidden + API 403) |
-| `V` | **View** only |
-| `VE` | View + **Edit** (no review approval) |
-| `VR` | View + **Review** (no edit) |
-| `VER` | View + Edit + Review |
-
-Admin UI labels: **檢視 / 編輯 / 審核** (Chinese).
-
-### Architecture diagram (A1 / A2 / A4)
-
-| Flags | Behavior |
-|---|---|
-| **View only** | List/open **only diagrams shared with the user**; no canvas edit, no AI chat, no create/save/share |
-| **Edit** | Everything except review approval (create, save, share, AI, chat persistence) |
-| **Review without edit** | View shared diagrams + review actions; no edit / no AI |
-
-Owned diagrams are **not** listed for view-only / review-only users until shared by an editor.
-
-Admin matrix shows one column **「架構圖生成」** that writes identical flags to A1, A2, and A4. **A3** (Well-Architected) stays separate.
-
-### Pillar display names (Admin)
-
-| Code | Chinese label |
-|---|---|
-| A | 架構設計 |
-| B | 跨雲選型 |
-| C | 成本與 FinOps |
-| D | 基礎建設即程式碼 |
-| E | 維運優化 |
-| F | AI 多雲維運 |
-| G | 安全與合規 |
-| H | MCP 與 Skill |
-| J | 身分與權限（UI：僅 使用者設定 J3a、細項設定 J3b） |
-
-Pillar **J** matrix UI shows only **使用者設定 (J3a)** and **細項設定 (J3b)** — not J1. If all three flags for a feature are off, that feature is **hidden from the Sidebar**.
-
-Default role×story matrices: Chinese §§4–12.3 (seeded in `role_permissions`).
-
-### Two Admin pages
-
-1. **`/admin/users`** (J3a) — assign user → role  
-2. **`/admin/role-permissions`** (J3b) — role × story view/edit/review  
-
-`Project_Admin` & `Platform_Admin` = VER on both; `Platform_Owner` = V.
-
-### Data & migration
-
-`users.role` + `role_permissions`. Full script: `schema_rbac.sql` (includes seed + `admin`/`admin123`).
-
-### Status
-
-Design approved; core implementation landed. Follow-ups: WebSocket JWT hardening, full diagram review workflow UI.

@@ -75,7 +75,7 @@ For each requirement the spec now states, look at the code that would implement 
 
 If the code already conforms, **open no issue**. A spec edit that the code already satisfies is not drift, and a "nothing to do" issue is noise.
 
-If there is drift, open **one** issue titled `Spec drift: <spec file(s)> changed, code needs updating`. Bilingual (Traditional Chinese first, then English). For each gap, one entry:
+If there is drift, open **one** issue titled `Spec drift: <spec file(s)> changed, code needs updating`. In Traditional Chinese (ADR-0009). For each gap, one entry:
 
 1. **What the spec now requires** — quote the relevant line(s) from the spec diff.
 2. **Where the code doesn't match** — the file and location, and what it currently does.

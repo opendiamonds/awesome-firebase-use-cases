@@ -73,7 +73,7 @@ Use `triage` sparingly. It means "a human must read this", and it should be a la
 
 ## Step 2 — Comment
 
-Post exactly one comment, bilingual (Traditional Chinese first, then English). Cover:
+Post exactly one comment, in Traditional Chinese (ADR-0009). Cover:
 
 1. **What I think this is** — one sentence, and which labels you applied.
 2. **What is missing** — the specific facts that would make this issue actionable, as concrete questions. For a bug: reproduction steps, expected versus actual, environment. For a feature: which user story or pillar it belongs to, and who the user is. Ask only for what is genuinely absent — do not ask for information the issue already gives you.

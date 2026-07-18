@@ -4,8 +4,6 @@
 > Design: `role-permission-design.md`（已批准；含架構圖語意／Sidebar／細項 UI 規則）  
 > Status: **CORE DONE**（WebSocket JWT、手動 E2E 待補）
 
-## 中文版
-
 ### 範圍
 
 依設計文件落地：DB 矩陣、`require(story, action)`、Admin 兩頁、前後端同一套權限，以及後續產品語意調整。
@@ -76,24 +74,3 @@ curl -s -X POST http://localhost:8000/api/auth/login \
 | security/baseline | compliant | 權限以 DB + API 強制；role allowlist；audit 寫入 |
 | testing/property-based | N/A | 本階段未新增 PBT 目標模組 |
 | bilingual-docs | compliant | plan／design／notes 皆雙語 |
-
----
-
-## English Version
-
-### Status
-
-**Core done.** Remaining: WebSocket JWT hardening, manual E2E.
-
-### Delivered (incl. later product tweaks)
-
-- DB-backed RBAC + two Admin pages  
-- **A1/A2/A4** treated as one “architecture diagram” capability (sync on write; view-only = shared diagrams only)  
-- Admin matrix: Chinese pillar labels; 檢視／編輯／審核; merged A1/A2/A4 column  
-- **Pillar J in matrix UI**: only 使用者設定 (J3a) + 細項設定 (J3b); J1 not shown  
-- **Sidebar hides** a feature when all three flags are off; home redirects to first allowed page  
-- Frontend API/WS base URL + backend `CORS_ORIGINS` env vars  
-
-### Follow-ups
-
-WebSocket JWT + diagram ACL; manual E2E across roles.

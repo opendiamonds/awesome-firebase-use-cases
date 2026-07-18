@@ -54,7 +54,7 @@ git diff ${{ github.event.pull_request.base.sha }}...HEAD
 
 **Scope boundaries (ADR-0001, ADR-0002, ADR-0007).** Production credentials, environment-specific secrets, destructive cloud operations, and native mobile apps are out of scope unless a new ADR approves them. Deployment to the self-hosted environment is in scope as of ADR-0007. A PR that crosses a boundary without an ADR is a finding, however good the code is.
 
-**Documentation contract.** New or changed `aidlc-docs/**/*.md` must carry both `## 中文版` and `## English Version`, with equivalent substance on both sides — not a heading with an empty body. Contract Guard repairs this automatically; if it has not run or could not fix it, say so.
+**Documentation contract.** Docs are Traditional-Chinese-only (ADR-0009). New or changed `aidlc-docs/**/*.md` must not carry a `## English Version` section. Contract Guard removes stray English sections automatically; if it has not run or could not, say so.
 
 **Architecture decisions.** A change that alters the architecture, adds a dependency on a new external service, or reverses an earlier decision needs an ADR under `aidlc-docs/inception/decisions/`. Point at the specific decision that is being made implicitly.
 
@@ -64,7 +64,7 @@ git diff ${{ github.event.pull_request.base.sha }}...HEAD
 
 ## What to say
 
-Post exactly one comment, bilingual (Traditional Chinese first, then English).
+Post exactly one comment, in Traditional Chinese (ADR-0009).
 
 Structure it as:
 
@@ -72,4 +72,4 @@ Structure it as:
 2. **Findings** — one bullet per finding, ordered most-serious first. Each names the file, the convention it breaks, and the concrete fix. Cite the rule's source (`CLAUDE.md` section, ADR number) so the author can check you.
 3. **Notes** — anything worth flagging but not blocking. Omit the section if there is nothing.
 
-If the PR is clean, say so in one line per language and stop. Do not invent findings to look useful — a review that manufactures work is worse than no review. Do not comment on formatting, naming, or style. Do not restate the diff back to the author.
+If the PR is clean, say so in one line and stop. Do not invent findings to look useful — a review that manufactures work is worse than no review. Do not comment on formatting, naming, or style. Do not restate the diff back to the author.

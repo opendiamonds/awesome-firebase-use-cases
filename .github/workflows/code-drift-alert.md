@@ -76,7 +76,7 @@ Do **not** flag — stay silent — when:
 
 ## Step 3 — Ask, don't assert
 
-If and only if there is real, unaccompanied contract drift, post exactly one comment, bilingual (Traditional Chinese first, then English):
+If and only if there is real, unaccompanied contract drift, post exactly one comment, in Traditional Chinese (ADR-0009):
 
 1. **What changed** — the code file and the contract-level change (the field, route, or rule), quoted from the diff.
 2. **The spec that should reflect it** — name the spec file and section, and state plainly that it was not updated in this PR.

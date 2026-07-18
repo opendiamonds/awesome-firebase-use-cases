@@ -70,7 +70,7 @@ Look at the actual failed step and its output. Read `backend/Dockerfile`, `front
 
 Open **one** issue, titled `Deploy failure: run ${{ github.event.inputs.run_id }}`.
 
-The body is bilingual (Traditional Chinese first, then English) and states:
+The body is in Traditional Chinese (ADR-0009) and states:
 
 1. **What failed** — which step, and the key error line(s) quoted from the log. Keep the quote tight.
 2. **Root cause** — your best-supported explanation, tied to specific evidence. If the log is truncated and you genuinely cannot tell, say what you can see and what additional log you would need — do not fabricate a cause.

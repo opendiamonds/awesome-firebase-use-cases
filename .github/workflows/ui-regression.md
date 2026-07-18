@@ -175,7 +175,7 @@ Do not run any tests yourself, and do not trust the surrounding CI logs over the
 
 ## Comment
 
-Post exactly one comment, bilingual (Traditional Chinese first, then English).
+Post exactly one comment, in Traditional Chinese (ADR-0009).
 
 - **If every test passed**, say so in one line per language, and stop. Do not list the passing cases.
 - **If any test failed**, lead with the count (e.g. "2 of 6 UI regression tests failed"). Then, one bullet per failed test:

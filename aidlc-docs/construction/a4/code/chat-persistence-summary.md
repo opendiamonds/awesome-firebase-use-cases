@@ -1,7 +1,5 @@
 # A4 Chat Persistence — Implementation Summary
 
-## 中文版
-
 ### 結果
 
 重整／重新進入工作區後，會自動開啟**上次架構圖**並還原該使用者在該圖的**對話紀錄**。聊天鍵值為 **user × diagram**；「清空對話」只刪聊天、不刪圖 XML。
@@ -31,20 +29,4 @@
 1. 登入 → 開圖 → 對話數輪 → 重整 → 同圖同聊天  
 2. 換另一張圖 → 聊天隔離  
 3. 清空對話 → 歡迎訊息；畫布 XML 仍在  
-4. 無權限 diagram → 403  
-
----
-
-## English Version
-
-### Result
-
-On refresh / workspace entry, auto-open **last-opened diagram** and restore that user's **chat** for that diagram. Key = **user × diagram**. Clear chat deletes messages only, not diagram XML.
-
-### Data / API / Frontend
-
-Same as Chinese: `last_opened_diagram_id`, `user_diagram_chats`, bootstrap + chat CRUD + last-opened endpoints, WorkspacePage restore/persist/clear, ChatBox clear button.
-
-### Manual checks
-
-Same diagram: refresh restores chat; switch diagram isolates chat; clear keeps XML; unauthorized → 403.
+4. 無權限 diagram → 403

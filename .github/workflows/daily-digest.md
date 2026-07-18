@@ -52,7 +52,7 @@ Use the GitHub tools:
 
 ## What to write
 
-Create **one** issue titled `Daily digest: <YYYY-MM-DD>`, bilingual (Traditional Chinese first, then English).
+Create **one** issue titled `Daily digest: <YYYY-MM-DD>`, in Traditional Chinese (ADR-0009).
 
 Lead with what a person would want to know first:
 
