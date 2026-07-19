@@ -1,0 +1,30 @@
+# A5 Frontend Components
+
+## 中文版
+
+### 元件
+
+| 元件 | 職責 |
+|---|---|
+| `ShareModal` | 勾選使用者／權限、送出分享 |
+| `useCollaboration` | WS 連線、收送 XML、連線狀態 |
+| `WorkspacePage` | 「協作中／單機」標籤、唯讀模式、歡迎詞隔離 |
+
+### 回饋
+
+| 情境 | UI |
+|---|---|
+| 分享成功 | Toast；可選複製連結 |
+| WS 連線 | 綠色「協作中」 |
+| WS 斷線 | 灰色「單機模式」＋重試 |
+| 僅檢視 | 畫布鎖定＋檢視警告詞 |
+
+### 已知缺口
+
+- 多人游標渲染層：未做。
+
+---
+
+## English Version
+
+`ShareModal`, `useCollaboration`, and `WorkspacePage` status/welcome handling cover A5 UI. Multi-user cursors not built.

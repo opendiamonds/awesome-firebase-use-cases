@@ -20,48 +20,48 @@
 
 | Unit ID | 名稱 | 類型 | Stories | Construction 目錄（現況） |
 |---|---|---|---|---|
-| `U-J` | Identity & RBAC | Module | J1, J2, J3, J4, J5 | `construction/plans/role-permission-*.md`、`construction/j/code/` |
-| `U-A1` | Architecture Design Generation | Module | A1 | `construction/a1/` + `plans/a1-*.md` |
-| `U-A2` | Canvas Collaborative Editing | Module | A2 | 計畫／code summary **待補** |
-| `U-A4` | Chat & Last-Opened Persistence | Module | A4 | `construction/a4/` + `plans/a4-*.md` |
-| `U-A5` | Diagram Sharing & Real-time Collab | Module | A5 | 計畫／code summary **待補**（實作併在 collab） |
+| `U-J` | Identity & RBAC | Module | J1, J2, J3, J4, J5 | `construction/j/`（`code/` + `functional-design/`）+ `plans/role-permission-*.md`、`j5-*.md` |
+| `U-A1` | Architecture Design Generation | Module | A1 | `construction/a1/`（`code/` + `functional-design/`）+ `plans/a1-*.md` |
+| `U-A2` | Canvas Collaborative Editing | Module | A2 | `construction/a2/`（`code/` + `functional-design/`） |
+| `U-A4` | Chat & Last-Opened Persistence | Module | A4 | `construction/a4/`（`code/` + `functional-design/`）+ `plans/a4-*.md` |
+| `U-A5` | Diagram Sharing & Real-time Collab | Module | A5 | `construction/a5/`（`code/` + `functional-design/`；實作併在 collab） |
 
 ### 3. Unit 定義
 
 #### U-J — Identity & RBAC
 
-- **職責**：登入／JWT、角色 allowlist、角色×Story 細項矩陣、Admin 使用者與細項 UI、Sidebar／路由可見性；**目標**含註冊無預設角色、授權申請核准、刪除使用者（J5／J3 擴充）。
-- **擁有實體**：`users`、`role_permissions`；（目標）授權申請表；API 前綴 `/api/auth`。
-- **主要程式**：`backend/services/auth.py`、`user_router.py`、`rbac.py`；前端 AuthContext、Admin pages、CapabilityRoute。
-- **狀態**：J1–J4 Core done；**J5 未做**（現況 `/register`→Developer）；WebSocket JWT／手動 E2E 待補。
+- **職責**：登入／JWT、角色 allowlist、角色×Story 細項矩陣、Admin 使用者與細項 UI、Sidebar／路由可見性；含註冊無預設角色、授權申請核准、刪除使用者（J5）。
+- **擁有實體**：`users`、`role_permissions`、`role_authorization_requests`；API 前綴 `/api/auth`。
+- **主要程式**：`user_router.py`、`rbac.py`；前端 AuthContext、Admin／AuthorizationRequests／WaitingApproval。
+- **狀態**：J1–J5 Core done；WebSocket JWT／手動 E2E 待補。
 
 #### U-A1 — Architecture Design Generation
 
 - **職責**：自然語言 → Agent SDK／OpenRouter → draw.io XML；SSE 串流回前端。
 - **擁有介面**：`POST /api/architecture/generate`（及相關 architecture 路由）。
 - **主要程式**：`agent_router.py`、`design_agent.py`、`diagram_builder.py`、prompts；前端 ChatBox 產圖流程。
-- **狀態**：Code done；待手動 E2E。
+- **狀態**：Code done；FD 已補；待手動 E2E。
 
 #### U-A2 — Canvas Collaborative Editing
 
 - **職責**：畫布局部 AI 編輯、連線保留、架構圖 CRUD、多檔切換、進入工作區載入草稿（與 A4 bootstrap 銜接）。
 - **擁有介面**：`/api/collab/diagrams` CRUD；前端 WorkspacePage／DrawioCanvas 編輯與儲存。
 - **主要程式**：collab diagram APIs、WorkspacePage diagram selector、agent partial-update 路徑。
-- **狀態**：核心完成；框選抽取、AI Undo、游標等 AC 未滿（游標屬 A5）。
+- **狀態**：核心完成；FD 已補；框選抽取、AI Undo、游標等 AC 未滿（游標屬 A5）。
 
 #### U-A4 — Chat & Last-Opened Persistence
 
 - **職責**：`user × diagram` 聊天持久化、清空對話、`last_opened_diagram_id`、workspace bootstrap。
 - **擁有實體**：`user_diagram_chats`、`users.last_opened_diagram_id`。
 - **主要程式**：collab chat／bootstrap／last-opened endpoints；前端進場還原。
-- **狀態**：Code done；待手動 E2E。
+- **狀態**：Code done；FD 已補；待手動 E2E。
 
 #### U-A5 — Diagram Sharing & Real-time Collab
 
 - **職責**：分享彈窗與 `diagram_shares`、WebSocket XML 廣播、協作／單機狀態、檢視／編輯／審核歡迎詞隔離。
 - **擁有實體／介面**：`diagram_shares`；`WS /api/collab/ws/{workspace_id}`；ShareModal。
 - **主要程式**：`collab_router` WebSocket／share API；前端連線狀態列。
-- **狀態**：分享＋XML 同步已有；多人游標未做；WS JWT 強化待補。
+- **狀態**：分享＋XML 同步已有；FD 已補；多人游標未做；WS JWT 強化待補。
 
 ### 4. 文字結構圖
 
@@ -96,11 +96,11 @@
 
 | Unit ID | Name | Kind | Stories | Construction path (today) |
 |---|---|---|---|---|
-| `U-J` | Identity & RBAC | Module | J1–J5 | `construction/plans/role-permission-*.md`, `construction/j/code/` |
-| `U-A1` | Architecture Design Generation | Module | A1 | `construction/a1/` + `plans/a1-*.md` |
-| `U-A2` | Canvas Collaborative Editing | Module | A2 | plan/code summary **pending** |
-| `U-A4` | Chat & Last-Opened Persistence | Module | A4 | `construction/a4/` + `plans/a4-*.md` |
-| `U-A5` | Diagram Sharing & Real-time Collab | Module | A5 | plan/code summary **pending** (code lives under collab) |
+| `U-J` | Identity & RBAC | Module | J1–J5 | `construction/j/` (`code/` + `functional-design/`) + role-permission / j5 plans |
+| `U-A1` | Architecture Design Generation | Module | A1 | `construction/a1/` (`code/` + `functional-design/`) + `plans/a1-*.md` |
+| `U-A2` | Canvas Collaborative Editing | Module | A2 | `construction/a2/` (`code/` + `functional-design/`) |
+| `U-A4` | Chat & Last-Opened Persistence | Module | A4 | `construction/a4/` (`code/` + `functional-design/`) + `plans/a4-*.md` |
+| `U-A5` | Diagram Sharing & Real-time Collab | Module | A5 | `construction/a5/` (`code/` + `functional-design/`; code under collab) |
 
 ### 3. Unit definitions
 
