@@ -240,10 +240,16 @@ jobs:
           git checkout -B ut origin/ut
           git checkout -b "${BR}"
           if git revert -m 1 --no-edit "${MERGE_SHA}"; then
+            # git revert writes an English "Revert ..." subject; rewrite it to the
+            # Traditional-Chinese convention (ADR-0010). Amend rather than
+            # --no-commit so the conflict path below stays exactly as it was.
+            git commit --amend \
+              -m "還原(deploy): 還原 PR #${PR}，部署至 192.168.10.10 失敗" \
+              -m "自動還原。合併 #${PR} 觸發的部署失敗（run ${{ github.run_id }}），執行中的服務已回滾至上一個正常版本。合併本 PR 可讓 \`ut\` 與實際執行的版本一致。根因請見 Deploy Doctor 開的 issue。"
             git push origin "${BR}"
             gh pr create --base ut --head "${BR}" \
-              --title "Revert PR #${PR}: deploy to 192.168.10.10 failed" \
-              --body "Automated revert. The deploy triggered by merging #${PR} failed (run ${{ github.run_id }}); the running service was rolled back to the last-good commit. Merging this restores \`ut\` to match. See the Deploy Doctor issue for the root cause." \
+              --title "還原(deploy): 還原 PR #${PR}，部署至 192.168.10.10 失敗" \
+              --body "自動還原。合併 #${PR} 觸發的部署失敗（run ${{ github.run_id }}），執行中的服務已回滾至上一個正常版本。合併本 PR 可讓 \`ut\` 與實際執行的版本一致。根因請見 Deploy Doctor 開的 issue。" \
               || echo "::warning::revert branch pushed but PR create failed"
           else
             echo "::warning::automatic revert hit a conflict; a human must revert PR #${PR} manually" >&2

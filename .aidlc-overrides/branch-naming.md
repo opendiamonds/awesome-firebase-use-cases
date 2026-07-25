@@ -14,7 +14,7 @@
 - `<uploader>`：開分支的人慣用的英文小寫 handle。
   - Danniel 一律使用 `danniel`。
   - 其他成員使用各自一致的英文小寫 handle（建議與 GitHub username 一致）。
-- `<type>`：分支用途，限定為下列 conventional commit 類型之一：
+- `<type>`：分支用途，限定為下列類型之一，**一律英文小寫**：
   - `feat` — 新功能
   - `fix` — bug 修復
   - `docs` — 文件變更（純 markdown / spec）
@@ -22,6 +22,17 @@
   - `refactor` — 重構（行為不變）
   - `test` — 測試補強或修正
 - `<slug>`：英文小寫，連字號分隔，3–5 個詞概述變更目的。
+
+> ⚠️ **Branch type 與 commit message type 已解耦（ADR-0010）**
+>
+> ADR-0010 把 commit message 的 type 改為中文（`功能`、`修正`…），但 **branch 名稱維持英文**，因為中文 branch 名稱在 `gh` CLI、URL 與部分 CI 工具需要 percent-encoding。
+>
+> 開 branch 用上面的英文 type，寫 commit 用 `.aidlc-overrides/commit-message.md` 的中文 type，兩者以該檔的對照表換算：
+>
+> ```
+> branch：danniel/feat/rbac-permission-matrix
+> commit：功能(rbac): 新增角色與故事的權限矩陣
+> ```
 
 ### 範例
 

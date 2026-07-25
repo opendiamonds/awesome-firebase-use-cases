@@ -226,3 +226,21 @@
 3. **資料庫初始化**：執行 `schema_rbac.sql`，建立所有結構並成功寫入 **308 筆** 角色權限對照資料，且建立 `admin` 管理員帳號。
 4. **依賴安裝與啟動**：重建損壞的 Python 虛擬環境，安裝後端與前端依賴，順利啟動後端 FastAPI 服務（`127.0.0.1:8000`）與前端 Vite 服務（`localhost:5173`），並通過專案合約驗證。
 **Approver**: houguanyu
+
+---
+
+#### 2026-07-25 — Commit message 一律繁體中文（ADR-0010）
+
+**User request (raw)**: "commit message 也改繁中"
+**Stage**: Operations / Governance → Commit Message Convention
+**Outcome**:
+1. **新增 override**：`.aidlc-overrides/commit-message.md` — commit message 與 PR 標題一律繁中，conventional commit type 中文化（`功能`、`修正`、`文件`、`格式`、`重構`、`效能`、`測試`、`建置`、`整合`、`雜項`、`還原`）；scope、`BREAKING CHANGE:`、trailer 維持英文。
+2. **新增 ADR-0010**：`aidlc-docs/inception/decisions/0010-chinese-commit-messages.md`，記錄決策脈絡與工具相容性風險。
+3. **branch naming 解耦**：`.aidlc-overrides/branch-naming.md` 明確標示 branch 的 `<type>` 維持英文（中文 branch 名稱在 `gh` CLI／URL 需 percent-encoding），並附中英對照換算範例。
+4. **CLAUDE.md**：第 6 章工作模式新增第 7 條 commit message 規則，原第 7 條順延為第 8 條。
+5. **CI 自動產出一併中文化**：`.github/workflows/deploy.yml` 的 revert commit 訊息（`git commit --amend`）與 revert PR 標題／body 改繁中；`.github/workflows/lint-fix.md` 指示 Lint Fixer 以 `修正(frontend):` 開頭撰寫 commit message，並以 `gh aw compile` 重編譯 `lint-fix.lock.yml`。
+6. **overrides 索引補正**：`.aidlc-overrides/README.md` 補上先前漏登的 `traditional-chinese-docs.md`，並新增 `commit-message.md`。
+
+**限制**：`scripts/validate_repo_contract.py` 驗證檔案內容而非 git 歷史，本規則無法納入 repo contract 自動強制；目前依賴 PR review 與 AI agent 自動套用。
+**不溯及既往**：既有 commit 歷史不做 rewrite。
+**Approver**: danniel

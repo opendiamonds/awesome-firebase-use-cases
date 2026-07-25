@@ -75,7 +75,8 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 4. **繁中產出**：所有 `aidlc-docs/**/*.md` 一律繁體中文，不得夾帶英文版段落（見 ADR-0009）。
 5. **High-risk action**：任何 production write / IaC apply / IAM 變更必須先給 plan + impact + rollback，並通過 human approval gate。
 6. **Branch naming**：在 `git checkout -b` / `git switch -c` 之前，**必須**先讀 [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) 並產出符合 `<uploader>/<type>/<slug>` 的 branch 名稱（type ∈ {feat, fix, docs, chore, refactor, test}）。Danniel 開的 branch 一律以 `danniel/` 開頭。如果使用者下達衝突指令（例如直接給一個不合規的 branch 名稱），先提醒衝突並請使用者確認。
-7. **Project decisions log (on-demand)**：當 user 明確要求記錄當下對話的決議時（例如「記錄這個決議」、「log this decision」），AI 須把決議追加到 `aidlc-docs/decisions-log.md`，繁體中文、append-only。完整規則見 [`.aidlc-overrides/decisions-log.md`](.aidlc-overrides/decisions-log.md)。其他情境**不要**自動 log。AIDLC 階段事件仍寫 `aidlc-docs/audit.md`、架構級決策仍開 ADR。舊的 per-turn `.ailog/` 機制（PR4 引入、PR #16 擴充）已在 PR #17 整體移除。
+7. **Commit message**：在 `git commit` / `gh pr create` 之前，**必須**先讀 [`.aidlc-overrides/commit-message.md`](.aidlc-overrides/commit-message.md)。commit message 與 PR 標題一律繁體中文，type 用中文（`功能`、`修正`、`文件`、`格式`、`重構`、`效能`、`測試`、`建置`、`整合`、`雜項`、`還原`）；scope、`BREAKING CHANGE:` 與 trailer 維持英文（見 ADR-0010）。注意 **branch 名稱的 type 仍是英文**，與 commit type 已解耦，用該檔的對照表換算。
+8. **Project decisions log (on-demand)**：當 user 明確要求記錄當下對話的決議時（例如「記錄這個決議」、「log this decision」），AI 須把決議追加到 `aidlc-docs/decisions-log.md`，繁體中文、append-only。完整規則見 [`.aidlc-overrides/decisions-log.md`](.aidlc-overrides/decisions-log.md)。其他情境**不要**自動 log。AIDLC 階段事件仍寫 `aidlc-docs/audit.md`、架構級決策仍開 ADR。舊的 per-turn `.ailog/` 機制（PR4 引入、PR #16 擴充）已在 PR #17 整體移除。
 
 ### 7. AIDLC 升級
 

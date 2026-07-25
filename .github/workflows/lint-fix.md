@@ -92,6 +92,7 @@ Delete `eslint-report.json` before you finish so it is not part of the pushed ch
 ## Deliver
 
 - If you fixed anything, push it to this PR's branch. The push must contain only your `frontend/src/` edits — nothing else.
+- The commit message you pass to `push_to_pull_request_branch` must follow ADR-0010: Traditional Chinese, with a Chinese conventional-commit type. Use `修正(frontend):` followed by a short Chinese description of what you fixed — for example `修正(frontend): 移除未使用的變數與 catch 參數`. Keep the scope `(frontend)` in English; never write an English type such as `fix` or `chore`.
 - Post exactly one comment, in Traditional Chinese (ADR-0009):
   1. **Auto-fixed** — each error you fixed: file, rule, and what you changed, one line each.
   2. **Needs a human** — each error you deliberately left, with the rule and why (touches auth/effects/exports, or the type is not locally obvious). Reference issue #427 if it tracks them.

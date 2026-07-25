@@ -24,6 +24,8 @@ CLAUDE.md 指示 Claude Code（與其他 AI agent）依下列順序載入規則�
 | `branch-naming.md` | Cloud-360 git branch 命名規範 | upstream 無此規則，純疊加 |
 | `decisions-log.md` | 使用者明確要求時，把對話決議記錄到 `aidlc-docs/decisions-log.md` | upstream 無此規則，純疊加（取代 PR #17 移除的 `ai-logging.md`） |
 | `continuous-delivery.md` | 以連續 DevOps 迴圈取代「Construction → Operations 線性交棒」 | 覆蓋 upstream 三段式的線性假設（見 ADR-0008） |
+| `traditional-chinese-docs.md` | 文件語言一律繁體中文，取代雙語強制 | 覆蓋 `extensions/bilingual-docs/`（見 ADR-0009） |
+| `commit-message.md` | Commit message 與 PR 標題一律繁體中文，type 中文化 | upstream 無此規則，純疊加（見 ADR-0010） |
 
 ### 撰寫新 override 的原則
 
