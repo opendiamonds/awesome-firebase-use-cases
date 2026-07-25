@@ -1051,7 +1051,6 @@ Each entry uses the following format:
 **Approver**: catherine
 
 ---
-
 #### 2026-07-11 03:45:05 +08:00 — Role Permission Matrix Update
 
 **User request (raw)**: "更新 4 列 role_permissions"
@@ -1278,5 +1277,96 @@ Each entry uses the following format:
 **Stage**: Operations → Privilege Enforcement
 **Outcome**: 管理員 catherine 已核准授權申請 #1。
 **Approver**: catherine
+
+---
+
+#### 2026-07-23 11:48 +08:00 — Branch Creation Request (Modify A1)
+
+**User request (raw)**: "using AIDLC 幫我從 ut 分支開新分支，我想要去修改A1 的功能"
+**Stage**: Inception → Workspace Detection / Branch Creation
+**Outcome**: 啟動 AIDLC 工作流程，處理從 `ut` 分支建立符合規範的新分支之要求。偵測到專案為 Brownfield，目前位於 `ut` 分支。
+**Approver**: pending branch name verification
+
+---
+
+#### 2026-07-23 13:50 +08:00 — Branch Naming Clarification
+
+**User request (raw)**: "done" (answering D 'Doreen/feat/modify-a1-features' in branch-creation-questions.md)
+**Stage**: Inception → Workspace Detection / Branch Creation
+**Outcome**: 偵測到分支名稱包含大寫字母 `D`，不符合全小寫規範。已建立 `branch-creation-clarification-questions.md` 供使用者確認是否修正為 `doreen/feat/modify-a1-features`。
+**Approver**: pending user clarification
+
+---
+
+#### 2026-07-23 13:52 +08:00 — Branch Naming Confirmed
+
+**User request (raw)**: "done" (answering A in branch-creation-clarification-questions.md)
+**Stage**: Inception → Workspace Detection / Branch Creation
+**Outcome**: 使用者同意將分支更名為符合規範的 `doreen/feat/modify-a1-features`，即將從 `ut` 分支建立並切換至新分支。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-23 13:53 +08:00 — Branch Created Successfully
+
+**User request (raw)**: "done" (answering A in branch-creation-clarification-questions.md)
+**Stage**: Inception → Workspace Detection / Branch Creation
+**Outcome**: 成功建立並切換至新分支 `doreen/feat/modify-a1-features`（基於 `ut` 分支）。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-23 14:02 +08:00 — A1 GCP Diagramming Requirements
+
+**User request (raw)**: "A1 我要新增 GCP 的畫圖
+1. 跟使用者收集完資訊之後要評估要用 GCP 還是 AWS 比較符合使用者的需求
+2. n8n 現在會回傳 AWS 以及 GCP 的icon"
+**Stage**: Inception → Requirements Analysis (A1 modification)
+**Outcome**: 開始進行 A1 GCP 畫圖需求分析與程式碼調研。
+**Approver**: pending requirements analysis
+
+---
+
+#### 2026-07-23 14:30 +08:00 — A1 GCP Diagramming & Evaluation Feature Completed
+
+**User request (raw)**: "A1 我要新增 GCP 的畫圖
+1. 跟使用者收集完資訊之後要評估要用 GCP 還是 AWS 比較符合使用者的需求
+2. n8n 現在會回傳 AWS 以及 GCP 的icon"
+**Stage**: Construction → Code Generation (U-A1 / GCP Support)
+**Outcome**: 
+1. 於 `diagram_builder.py` 新增 `gcp_cloud`, `gcp_vpc`, `gcp_subnet` 群組樣式。
+2. 擴充 `design_agent.py` 的 `DRAW_INPUT_SCHEMA` 以支援 GCP 群組類型。
+3. 建立全新雙雲系統提示詞 `cloud_architecture_system_prompt.md` 以引導需求收集與評估。
+4. 新增 `test_gcp_groups_produce_mxgraph` 測試，且 52 項後端單元測試全部通過。
+5. 更新 `walkthrough.md` 與 `aidlc-state.md`。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-23 15:08 +08:00 — A1 User Story Update
+
+**User request (raw)**: "user-stories 的 a1 是不是需要修改 因為現在有改功能"
+**Stage**: Inception → User Stories (A1 modification)
+**Outcome**: 更新 `stories.md` 中的 A1 User Story（中英文版），納入 AWS vs GCP 評估機制、GCP 繪圖支援與 n8n 動態雙雲圖示功能。
+**Approver**: houguanyu
+
+---
+
+#### 2026-07-25 18:03 +08:00 — GCP Icon Segregation & A1 NFR Documents Completed
+
+**User request (raw)**: "GET http://localhost:5173/favicon.svg net::ERR_CONNECTION_REFUSED
+如果是選 GCP 的架構圖 會有aws 的圖出現
+請幫我嚴格區分 如果是 GCP 的要用provider=GCP
+...
+GCP 的架構圖請根據使用者的需求去對照Google Cloud 官方產品圖示 PDF 產圖
+...
+using AIDLC 我現在這個分支是去異動原有 A1 的功能 幫我確定construction 有沒有文件需要補齊的"
+**Stage**: Construction → Code Generation / Functional Design (U-A1 / GCP Support)
+**Outcome**: 
+1. 於 `diagram_builder.py` 實作 `provider` 參數傳遞，強制 GCP 產圖時帶上 `provider=GCP`。
+2. 閱讀 `google-cloud-product-icons.pdf` 並將精確的核心 GCP 元件命名及分類大項規則寫入 `cloud_architecture_system_prompt.md`。
+3. 建立 A1 單元的 NFR 需求及設計文件：`nfr-requirements.md`、`tech-stack-decisions.md` 與 `nfr-design.md`。
+4. 通過後端所有單元測試。
+**Approver**: houguanyu
 
 ---
