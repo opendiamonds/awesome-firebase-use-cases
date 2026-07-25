@@ -270,3 +270,19 @@
 **Verification**: YAML 解析通過；自 workflow 抽出實際 compose 腳本，以 5 種情境（成功／手動 dispatch／失敗+回滾成功／失敗+無 last-good／取消）實測，含引號、反引號、`&` 的 commit 標題跳脫正確；`python3 scripts/validate_repo_contract.py` 通過。
 **未做**：未開新 ADR — 本變更屬 ADR-0007 部署管線的增量，非架構級決策。
 **Approver**: danniel
+
+---
+
+#### 2026-07-25 — Slack 通知驗證結果
+
+**Stage**: Operations → Deploy Notification（驗證）
+**方式**: 暫時性 workflow `slack-notify-test.yml`，compose 腳本自 `deploy.yml` 的 notify job 逐字複製，不觸發實際部署。驗證後已刪除。
+**結果**（run 30161853421）:
+1. **成功情境 `ok=true`**、**失敗情境 `ok=true`**，channel `C0B5XEQDVR7`，bot `NeMoClaw`，`acceptedScopes: ["chat:write"]`。
+2. **`<!here>` 經 Slack 解析為 `{"type":"broadcast","range":"here"}`** — 確認為真實廣播通知，非純文字。
+3. mrkdwn 渲染正確：粗體標題、`code` span、連結標籤（`GitHub Actions`、`待合併`）、emoji、耗時格式（`3 分 13 秒`）皆如預期。
+
+**過程中發現並修正的問題**：`errors: false` 會讓 Slack 端的拒絕（`not_in_channel`、`invalid_auth`）留下綠燈且零輸出 — 壞掉的通知與正常的無法區分。已在 `deploy.yml` 加入 `Report whether Slack accepted the message` 步驟，讀取 action 的 `ok` output，非 true 時以 warning 揭露 response，但仍不將部署判定為失敗。
+
+**仍未驗證**：`needs.deploy.outputs.*` / `needs.rollback.outputs.*` 的 job outputs 串接，只有真實部署會行經該路徑。
+**Approver**: danniel
