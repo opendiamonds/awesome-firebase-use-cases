@@ -60,6 +60,7 @@
   - Agentic Automation: ✅ 十支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、spec-sync、code-drift-alert、release-watch、daily-digest、lint-fix、deploy-doctor、ui-regression）
   - Incident Playbooks: ✅ `aidlc-docs/operations/runbooks.md`（SLO + 7 則 playbook）
   - Observability: 🔄 Prometheus + Grafana + blackbox 已建（`grafana.danniel.cc`，於 dc-infra 維運）；主動告警待 Telegram bot token
+  - Deploy Notification: ✅ `deploy.yml` 的 `notify` job 以 Slack bot token（`SLACK_BOT_TOKEN`）發送成功／失敗／回滾結果至 `#nemoclaw`（`C0B5XEQDVR7`）；失敗與回滾帶 `<!here>`。跑在 GitHub-hosted runner，故 192.168.10.10 本身故障時仍可送達（需求釐清見 `operations/deploy-slack-notification-questions.md`）
 
 ### Construction Unit 驗收（A2）
 

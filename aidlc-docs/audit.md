@@ -244,3 +244,29 @@
 **限制**：`scripts/validate_repo_contract.py` 驗證檔案內容而非 git 歷史，本規則無法納入 repo contract 自動強制；目前依賴 PR review 與 AI agent 自動套用。
 **不溯及既往**：既有 commit 歷史不做 rewrite。
 **Approver**: danniel
+
+---
+
+#### 2026-07-25 — 部署完成 Slack 通知
+
+**User request (raw)**: "AI-DLC 我部署完成的時候要能夠通知slack chaneel"
+**Stage**: Operations → Deploy Notification（依 `.aidlc-overrides/continuous-delivery.md`，與 Construction 連續進行，無 phase gate）
+**Requirements Analysis**: `aidlc-docs/operations/deploy-slack-notification-questions.md`（5 題全數作答，無矛盾）
+- Q1 接入方式：B — Slack App bot token + `slackapi/slack-github-action`
+- Q2 通知範圍：C — 成功 + 失敗 + 回滾結果
+- Q3 Channel：A — 單一頻道 `#nemoclaw`（`C0B5XEQDVR7`）
+- Q4 Mention：`@here`（選項 B），僅失敗與回滾時觸發
+- Q5 訊息內容：A,B,C,D,E — commit、PR、網址、耗時、run 連結全收
+
+**Outcome**:
+1. **新增 `notify` job**（`.github/workflows/deploy.yml`）：`needs: [deploy, rollback]` + `if: always()`，涵蓋成功／失敗／取消／回滾四種結果。
+2. **刻意跑在 GitHub-hosted runner**：不使用 self-hosted runner，確保 192.168.10.10 本身故障時通知仍可送出。
+3. **新增 job outputs**：`deploy` 導出 `deployed`／`subject`／`started`（commit 標題以 heredoc 形式寫入 `$GITHUB_OUTPUT`，避免任意文字破壞 key=value）；`rollback` 導出 `restored`（healthy／unhealthy／none）與 `revert_pr`。
+4. **`restored` 預設 unhealthy，僅健康檢查通過才升級為 healthy**，避免訊息謊報「已還原」。
+5. **payload 以 `jq` 產生 JSON 檔**：所有跳脫交給 `jq`，同時避開 `slack-github-action` v4.0.0 對 YAML 多行縮排轉嚴的 breaking change。
+6. **`@here` 使用 Slack API 的 `<!here>` 形式**：字面 `@here` 在 `chat.postMessage` 只會顯示為純文字、不會實際通知。
+7. **絕不讓通知影響部署結果**：token 未設定時跳過並發 warning；送出步驟設 `errors: false`，Slack 故障不會把成功的部署變紅燈。
+
+**Verification**: YAML 解析通過；自 workflow 抽出實際 compose 腳本，以 5 種情境（成功／手動 dispatch／失敗+回滾成功／失敗+無 last-good／取消）實測，含引號、反引號、`&` 的 commit 標題跳脫正確；`python3 scripts/validate_repo_contract.py` 通過。
+**未做**：未開新 ADR — 本變更屬 ADR-0007 部署管線的增量，非架構級決策。
+**Approver**: danniel
