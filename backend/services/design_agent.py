@@ -43,7 +43,7 @@ DRAW_TOOL_NAME = "draw_architecture_diagram"
 DRAW_TOOL_FQN = f"mcp__{MCP_SERVER_NAME}__{DRAW_TOOL_NAME}"
 
 PROMPT_PATH = (
-    Path(__file__).resolve().parent.parent / "prompts" / "aws_architecture_system_prompt.md"
+    Path(__file__).resolve().parent.parent / "prompts" / "cloud_architecture_system_prompt.md"
 )
 
 # 執行期間由 run_design_agent 注入：進度佇列與最後產出的 XML
@@ -116,6 +116,11 @@ def format_user_prompt(messages: list[dict[str, str]]) -> str:
 DRAW_INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
+        "provider": {
+            "type": "string",
+            "enum": ["AWS", "GCP"],
+            "description": "雲端供應商平台，決定畫圖使用的元件與圖示風格（AWS 或 GCP）。"
+        },
         "groups": {
             "type": "array",
             "description": "架構圖上的框架/區域",
@@ -135,6 +140,9 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
                             "az",
                             "public_subnet",
                             "private_subnet",
+                            "gcp_cloud",
+                            "gcp_vpc",
+                            "gcp_subnet",
                         ],
                     },
                     "x": {"type": "integer", "description": "絕對 X 座標"},
@@ -212,6 +220,7 @@ async def draw_architecture_diagram(args: dict[str, Any]) -> dict[str, Any]:
             nodes=args.get("nodes") or [],
             edges=args.get("edges") or [],
             on_progress=on_progress,
+            provider=args.get("provider"),
         )
         _last_xml = xml_data
         if _progress_queue is not None:

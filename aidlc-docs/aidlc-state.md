@@ -52,7 +52,7 @@
   - Units Generation: ✅（已開發範圍 A1／A2／A4／A5／J → U-A1／U-A2／U-A4／U-A5／U-J；見 `application-design/unit-of-work*.md`；A3／B–H 尚未建 unit）
 - 🟢 Construction
   - A1 Code Generation: ✅（舊版 httpx；已由 Agent SDK 路徑取代）
-  - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — 待手動驗收 Step 6／8（見 `construction/plans/a1-agent-sdk-code-generation-plan.md`、`construction/a1/code/a1-core-gap-summary.md`）
+  - A1 Agent SDK Refactor & GCP Support: ✅ Phase 1 + Phase 2 done；GCP 畫圖與 AWS/GCP 需求評估機制已實作並通過 52 項單元測試（見 `doreen/feat/modify-a1-features`）
   - A4 Chat Persistence: ✅ Code done — 待手動驗收（見 `construction/plans/a4-chat-persistence-plan.md`、`construction/a4/code/chat-persistence-summary.md`）
   - Role & Permission Redesign: ✅ Core done — A1/A2/A4 語意、Sidebar 隱藏、細項無 J；待 WebSocket JWT／手動 E2E（見 `construction/plans/role-permission-design.md`、`role-permission-construction-plan.md`）
   - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照；summary：`construction/a2/code/canvas-editing-summary.md`）

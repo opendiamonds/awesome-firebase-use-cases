@@ -98,6 +98,57 @@ class TestBuildMxgraphXml(unittest.TestCase):
         )
         self.assertNotIn("edge_", xml)
 
+    @patch(
+        "services.diagram_builder.fetch_icon_from_n8n",
+        new_callable=AsyncMock,
+        return_value='<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+    )
+    def test_gcp_groups_produce_mxgraph(self, _icon):
+        groups = [
+            {
+                "id": "g_gcp_cloud",
+                "name": "GCP Project",
+                "type": "gcp_cloud",
+                "x": 0,
+                "y": 0,
+                "width": 800,
+                "height": 600,
+            },
+            {
+                "id": "g_gcp_vpc",
+                "name": "GCP VPC Network",
+                "type": "gcp_vpc",
+                "x": 40,
+                "y": 40,
+                "width": 700,
+                "height": 500,
+            },
+            {
+                "id": "g_gcp_subnet",
+                "name": "GCP Subnet",
+                "type": "gcp_subnet",
+                "x": 80,
+                "y": 80,
+                "width": 600,
+                "height": 400,
+            }
+        ]
+        nodes = [
+            {"id": "n1", "name": "gce", "x": 100, "y": 100},
+            {"id": "n2", "name": "gcs", "x": 300, "y": 100},
+        ]
+        edges = [{"source": "n1", "target": "n2"}]
+        xml = asyncio.run(build_mxgraph_xml(groups, nodes, edges))
+        self.assertIn("<mxGraphModel>", xml)
+        self.assertIn('id="g_gcp_cloud"', xml)
+        self.assertIn('id="g_gcp_vpc"', xml)
+        self.assertIn('id="g_gcp_subnet"', xml)
+        self.assertIn('id="n1"', xml)
+        self.assertIn('parent="g_gcp_subnet"', xml)
+        self.assertIn('strokeColor=#4285F4', xml)  # GCP Cloud style color
+        self.assertIn('strokeColor=#34A853', xml)  # GCP VPC style color
+        self.assertIn('strokeColor=#FBBC05', xml)  # GCP Subnet style color
+
 
 if __name__ == "__main__":
     unittest.main()

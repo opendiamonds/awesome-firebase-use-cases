@@ -10,17 +10,18 @@
 #### A1. 自然語言轉架構與草圖產出
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Ian (開發者, `Developer`)
-  - **協作細節**: Alex 負責輸入自然語言產出初始高階架構；Ian (開發者) 可以即時檢視生成的草圖，並透過「留言」或「局部重置」提議加入特定的開發元件（如 Redis 快取），AI 會綜合雙方意見更新圖面。
-- **使用者需求/目標 (User Goal)**: 希望透過自然語言快速將業務需求轉換為具體的雲端架構藍圖，節省手動繪圖時間。
+  - **協作細節**: Alex 負責輸入自然語言並提供業務與技術需求；AI 會先進行 AWS vs GCP 評估分析並推薦最適合 the cloud 平台；Alex 確認後，AI 產出對應雲平台的初始高階架構；Ian (開發者) 可以即時檢視生成的草圖，並透過對話或「局部重置」調整元件，AI 會更新圖面並動態向 n8n 取得 AWS 或 GCP 的服務圖示。
+- **使用者需求/目標 (User Goal)**: 希望透過自然語言輸入需求，讓 AI 評估最適合的雲端平台（AWS 或 GCP），並快速轉換為具體且具備對應圖示的雲端架構藍圖，節省手動評選與繪圖時間。
 - **驗收標準 (Acceptance Criteria)**:
-  1. 系統能精準識別自然語言中的特定雲端服務 (如 WAF, Aurora) 與高可用性 (HA) 關鍵字。
-  2. 產出的圖表必須為相容 `.drawio` 格式，並使用標準雲端服務圖示。
-  3. 圖面必須包含清晰的邏輯連線、網路邊界 (VPC/AZ) 與資料流向。
-- **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求。 3. **AI重置/人工微調**: 對產出草圖不滿意可點「全部重置」，或手動在對話框人工修正參數。
+  1. 系統在收集完需求後，能進行 AWS 與 GCP 的優缺點評估，並向使用者推薦最適合的雲端平台。
+  2. 系統能精準識別自然語言中的 AWS 雲端服務 (如 WAF, Aurora) 與 GCP 服務 (如 Cloud Armor, Cloud SQL) 以及高可用性 (HA) 關鍵字。
+  3. 產出的圖表必須為相容 `.drawio` 格式，且能透過 n8n webhook 動態取得正確的 AWS 或 GCP 標準服務圖示 (SVG)。
+  4. 圖面必須包含清晰的邏輯連線、對應選定平台的網路邊界 (VPC/AZ 或 GCP Project/VPC/Subnet) 與資料流向。
+- **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求，與 AI 進行平台評估。 3. 確認推薦的平台後，AI 自動產出對應草圖。 4. **AI重置/人工微調**: 對產出草圖不滿意可點「全部重置」，或手動在對話框人工修正參數。
 - **系統回饋 (System Feedback)**:
   - **成功 (Success)**: 畫面中央浮現綠色 Toast 提示「✔ 架構草圖已生成」，並自動存檔。**後續引導**：彈出按鈕引導點擊「前往 IaC 工作區生成代碼」或「進行 Well-Architected 評估」。
   - **失敗 (Failure)**: 畫面頂部跳出紅色警告框「資源衝突：所選區域不支援該服務」。**後續引導**：提示「請於對話框修改參數後重試」，或提供「聯絡平台架構師 (Alex) 尋求協助」的快捷按鈕。
-- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求後點擊全部重置並人工加上 "需 WAF" `Then` 系統重新產出包含 WAF 的架構畫布。
+- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求、完成 AWS/GCP 評估並確認後 `Then` 系統產出包含對應雲端服務 (如 AWS 或 GCP) 及正確網路邊界與 n8n 動態圖示的架構畫布。
 
 #### A2. AI + draw.io 畫布協同編輯
 - **多角色協作 (Multi-Role Collaboration)**:
@@ -534,17 +535,18 @@
 #### A1. Natural Language to Architecture & Draft Generation
 - **Multi-Role Collaboration**:
   - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: Alex inputs requirements to generate the base architecture; Ian views it and uses comments or "Partial Reset" to propose adding Dev components (e.g., Redis). AI merges both inputs.
-- **User Goal**: Rapidly convert business requirements into concrete cloud architecture blueprints via natural language to save manual drawing time.
+  - **Collaboration Details**: Alex inputs requirements; AI evaluates AWS vs GCP to recommend the best cloud platform; once Alex confirms, AI generates the initial architecture for that platform; Ian views it and adjusts components, with AI updating the canvas and dynamically fetching AWS/GCP service icons from n8n.
+- **User Goal**: Evaluate the best cloud platform (AWS or GCP) and convert business requirements into concrete cloud architecture blueprints with proper icons via natural language to save manual selection and drawing time.
 - **Acceptance Criteria**:
-  1. Accurately identifies specific cloud services (e.g., WAF, Aurora) and High Availability (HA) keywords from natural language.
-  2. Outputs compatible `.drawio` format diagrams using standard cloud service icons.
-  3. The canvas must include clear logical connections, network boundaries (VPC/AZ), and data flow directions.
-- **Operational Flow**: 1. Log into Desktop Web. 2. Input needs in AI Chat. 3. **AI Reset/Manual Adjust**: Click "Full Reset" if dissatisfied, or manually type corrections in the chat.
+  1. Performs AWS vs GCP pros/cons evaluation based on collected requirements and recommends the most suitable platform.
+  2. Accurately identifies specific cloud services for both AWS (e.g., WAF, Aurora) and GCP (e.g., Cloud Armor, Cloud SQL) along with High Availability (HA) keywords.
+  3. Outputs compatible `.drawio` format diagrams, dynamically retrieving correct AWS or GCP standard service icons (SVG) via n8n webhook.
+  4. The canvas must include clear logical connections, network boundaries matching the selected platform (VPC/AZ for AWS, Project/VPC/Subnet for GCP), and data flow directions.
+- **Operational Flow**: 1. Log into Desktop Web. 2. Input needs in AI Chat, perform platform evaluation with AI. 3. Confirm recommended platform to trigger draft generation. 4. **AI Reset/Manual Adjust**: Click "Full Reset" if dissatisfied, or manually type corrections in the chat.
 - **System Feedback**:
   - **Success**: A green toast "✔ Architecture draft generated" appears in the center, autosaving the canvas. **Next Step**: A button prompts "Proceed to IaC generation" or "Start Well-Architected review".
   - **Failure**: A red warning box pops up at the top: "Resource Conflict: Service not supported in selected Region." **Next Step**: Prompts "Please adjust parameters in the chat and retry" or offers a shortcut to "Contact Lead Architect (Alex) for help".
-- **BDD**: `Given` Alex is typing `When` he requests a canvas, resets it, and manually adds "needs WAF" `Then` AI renders a new architecture including a WAF.
+- **BDD**: `Given` Alex is on the input page `When` he submits requirements, completes the AWS/GCP evaluation, and confirms the platform `Then` the system renders a canvas containing corresponding cloud services (e.g., AWS or GCP) with proper network boundaries and dynamic n8n icons.
 
 #### A2. AI + draw.io Collaborative Editing
 - **Multi-Role Collaboration**:
