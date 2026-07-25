@@ -408,6 +408,7 @@ jobs:
           echo "payload composed ($(wc -c < payload.json) bytes)"
 
       - name: Send the Slack message
+        id: send
         if: steps.slack.outputs.configured == 'true'
         uses: slackapi/slack-github-action@v4.0.0
         with:
@@ -417,3 +418,21 @@ jobs:
           # Never fail this job on a Slack-side error: the deploy already
           # happened and its result must not be rewritten by a chat outage.
           errors: false
+
+      # errors: false means Slack rejecting the message (not_in_channel,
+      # invalid_auth) leaves the step green and silent, so a broken
+      # notification would look identical to a working one forever. Surface the
+      # verdict as a warning instead — visible in the run, still not a failure.
+      - name: Report whether Slack accepted the message
+        if: always() && steps.slack.outputs.configured == 'true'
+        env:
+          OK: ${{ steps.send.outputs.ok }}
+          RESPONSE: ${{ steps.send.outputs.response }}
+        run: |
+          set -euo pipefail
+          if [ "${OK}" = "true" ]; then
+            echo "Slack accepted the message (ok=true)"
+          else
+            echo "::warning::Slack did not accept the deploy notification (ok=${OK:-unset}). Response: ${RESPONSE:-none}" >&2
+            echo "not_in_channel → invite the bot to #nemoclaw; invalid_auth → check SLACK_BOT_TOKEN." >&2
+          fi
