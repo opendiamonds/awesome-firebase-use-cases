@@ -3,8 +3,6 @@
 > AIDLC Inception Phase → User Stories Stage
 > Branch: `doreen/docs/user-stories-restructure`
 
-## 中文版
-
 ### 執行摘要
 
 將 `core-pillars.md`（26 個 stories、9 個 pillars）拆分為：
@@ -122,33 +120,3 @@ B) 只有 `## English Version` 需要完整，中文版保持現有程度即可
 C) 其他（請說明）
 
 [Answer]:
-
----
-
-## English Version
-
-### Executive Summary
-
-Split `core-pillars.md` (26 stories, 9 pillars) into:
-- `personas.md`: Role definition document
-- `stories.md`: User story content document
-
-### Existing Persona Analysis (from core-pillars.md)
-
-| Persona ID | Role Name | Appears in Stories |
-|---|---|---|
-| P1 | Cloud Architect / 雲端架構師 | A1, A2 (implied), A3, E2, H1 |
-| P2 | SRE | A2, B2, C2, E1, F1, F3, H2, I5 |
-| P3 | Technical Decision Maker / 技術決策者 | B1 |
-| P4 | FinOps Analyst / FinOps 分析師 | C1 |
-| P5 | Architect / 架構師 | C3 |
-| P6 | Platform Engineer / 平台工程師 | D1, F2, G3, I1 |
-| P7 | Security Reviewer / 安全性審查員 | D2, G1, G3 (implied), I3 |
-| P8 | Operations Lead / 運維負責人 | F3 |
-| P9 | AI Platform Operator / AI 平台操作員 | I2 |
-| P10 | Platform Admin / 平台管理員 | G2 |
-| P11 | Platform Owner / 平台擁有者 | H3, I4 |
-
-### Questions (fill in [Answer]: tags)
-
-Same questions as Chinese version above — Q1 through Q5.

@@ -1,9 +1,6 @@
 # ADR 0005: Bilingual Documentation
 
-> 本文件必須同時包含中文版與英文版。
-> This document must include both Chinese and English versions.
-
-## 中文版
+> ⚠️ **Superseded by ADR-0009**（文件改為一律繁體中文）。本 ADR 保留作歷史紀錄。
 
 - Status: Accepted
 - Date: 2026-05-02
@@ -34,35 +31,3 @@ Cloud-360 會由中文使用者、國際協作者、AI agent、dev-agent 與不�
 - 中文團隊可以快速討論產品與架構。
 - 英文 reviewer、外部 contributor 與 AI agent 可以理解規格。
 - 文件變更成本略增，但能降低跨語言誤解風險。
-
-## English Version
-
-- Status: Accepted
-- Date: 2026-05-02
-- Amendment 2026-05-09: After ADR-0006 PR2, documentation lives under `aidlc-docs/`. The bilingual requirement of this ADR automatically extends to `aidlc-docs/**/*.md`.
-
-## Context
-
-Cloud-360 documentation will be read and maintained by Chinese-speaking users, international collaborators, AI agents, dev-agents, and different technical roles. To avoid requirement and architecture misunderstandings, all project documentation must provide both Chinese and English versions. The original wording targeted `docs/**/*.md`; after the PR2 migration in ADR-0006 it applies to `aidlc-docs/**/*.md` — the bilingual requirement itself is unchanged.
-
-## Decision
-
-Every `aidlc-docs/**/*.md` document must include:
-
-- `## 中文版`
-- `## English Version`
-
-The documentation may use a single-file bilingual format. The initial phase uses the single-file bilingual format to reduce synchronization overhead.
-
-## Requirements
-
-- When adding or modifying files under `aidlc-docs/`, both Chinese and English content must be updated together.
-- README may remain the product entry point, but it should link to bilingual docs.
-- SRS, Architecture, User Stories, and ADRs must all be bilingual.
-- CI repository contract validation must check whether `aidlc-docs/` files contain bilingual sections (after PR2, `docs/` no longer exists).
-
-## Consequences
-
-- Chinese-speaking teams can discuss product and architecture quickly.
-- English reviewers, external contributors, and AI agents can understand the specification.
-- Documentation changes become slightly more expensive, but cross-language misunderstanding risk is reduced.

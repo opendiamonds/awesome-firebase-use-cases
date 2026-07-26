@@ -1,0 +1,10 @@
+fastapi[standard]
+pydantic
+uvicorn
+httpx
+python-dotenv
+sqlalchemy
+psycopg2-binary
+passlib[bcrypt]
+pyjwt
+claude-agent-sdk

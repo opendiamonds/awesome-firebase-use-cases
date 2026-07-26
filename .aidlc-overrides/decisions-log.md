@@ -3,8 +3,6 @@
 > Project override rule. On explicit user request, capture the current AI conversation's decision into `aidlc-docs/decisions-log.md`.
 > 專案 override 規則。當使用者明確要求時，把當下與 AI 對話達成的決議記錄到 `aidlc-docs/decisions-log.md`。
 
-## 中文版
-
 ### 規範
 
 當使用者**明確要求**記錄當下對話的決議時，AI 必須把該決議追加到 `aidlc-docs/decisions-log.md`，並 commit + push（含此檔變動的 PR）。
@@ -32,7 +30,7 @@ AI 應以**判斷**而非死記字串：使用者只要明確表達「想把剛�
 ### 檔案格式
 
 - 路徑：`aidlc-docs/decisions-log.md`（單檔，append-only）
-- **雙語強制**（per ADR-0005）：與 `aidlc-docs/**/*.md` 其他文件一樣，整檔含 `## 中文版` 與 `## English Version` 區塊；新 entry 須在兩區同步寫入
+- **繁體中文**（per ADR-0009）：整檔繁體中文；新 entry 直接以繁中追加
 - 每筆 entry 結構（H3）：
 
 ```markdown
@@ -74,77 +72,3 @@ upstream `awslabs/aidlc-workflows` 沒有對應規則，本規則為**純疊加*
 ### 與舊 ai-logging 機制的關係
 
 本規則**取代**已移除的 `.aidlc-overrides/ai-logging.md`（per-turn 強制 log 機制）。舊機制每個 turn 都得寫，pure-ops turn 還引發 PR 遞迴噪音；新機制僅在 user 主動要求時記錄重要決議，雜訊大幅降低。舊 `.ailog/` 內容在 git 歷史中保留（PR4 起），不會被搬到 `aidlc-docs/decisions-log.md`。
-
----
-
-## English Version
-
-### Rule
-
-When the user **explicitly asks** to record the decision reached in the current conversation, the AI MUST append that decision to `aidlc-docs/decisions-log.md` and commit + push (the PR containing this change).
-
-**Typical trigger phrases (non-exhaustive; Chinese or English)**:
-
-- 「記錄這個決議」
-- 「把這個決定記下來」
-- 「存成決議」
-- 「寫進決議紀錄」
-- "log this decision"
-- "record this as a decision"
-- "save this to the decision log"
-
-The AI should use **judgment**, not literal string matching: any clear expression of "preserve this decision in the log" triggers the rule. When in doubt, ask the user to confirm before writing.
-
-### When NOT to trigger (avoid spurious entries)
-
-- ❌ The user did not explicitly ask → do not auto-write
-- ❌ AIDLC stage events (transitions, extension toggles, approvals) → write `aidlc-docs/audit.md`, not this file
-- ❌ Architecture-level decisions (system-shape impact, review trail, multi-stakeholder approval) → open an ADR under `aidlc-docs/inception/decisions/NNNN-*.md`
-- ❌ Code review discussion, requirements clarification, plain Q&A → do not write
-- ❌ User is just responding or chitchatting → do not write
-
-### File Format
-
-- Path: `aidlc-docs/decisions-log.md` (single file, append-only)
-- **Bilingual enforcement** (per ADR-0005): like other `aidlc-docs/**/*.md` files, the file contains both `## 中文版` and `## English Version` sections; every new entry is mirrored in both
-- Each entry (H3):
-
-```markdown
-### YYYY-MM-DD HH:MM:SS +TZ — <short title (5–10 chars)>
-
-**Decision**: <1–3 self-contained sentences capturing the decision>
-**Context**: <why this decision is needed; brief, no need to recite the conversation>
-**Trigger**: <verbatim user request that triggered the log>
-**Related**: <PRs, ADRs, branches, commits, issues; or N/A>
-```
-
-### Self-check
-
-When triggered, the AI should:
-
-1. Extract the **decision actually made** from the conversation (not surrounding chitchat, but the real call).
-2. Use a 5–10-character title that names the decision itself, not a description of the user's question.
-3. Write the Decision block as self-contained sentences that do not require the conversation context to understand.
-4. After appending, ship it according to the current situation:
-   - If the turn has other working-tree changes → bundle the log entry into the same PR
-   - If the turn is logging-only → open a single-file chore PR (branch type `chore` or `docs`)
-
-### Difference from other logs
-
-| Target | Path | When to write |
-|---|---|---|
-| AIDLC stage events | `aidlc-docs/audit.md` | Auto-written on AIDLC stage completion, extension change, approval, etc. |
-| Architecture decisions (ADR) | `aidlc-docs/inception/decisions/NNNN-*.md` | Per-PR ADR for major architecture decisions |
-| General project decisions | `aidlc-docs/decisions-log.md` (this file) | **Only when the user explicitly asks** |
-
-### Relationship to upstream AIDLC rules
-
-Upstream `awslabs/aidlc-workflows` has no equivalent rule; this is a **pure addition**. `.aidlc-overrides/` is loaded after upstream so this rule wins on conflict (no known conflict today).
-
-### Privacy and security
-
-Same as the repo contract: no tokens, API keys, or production credentials may enter this file. If the user supplies sensitive data in their request, the AI must redact it (e.g. `[REDACTED]`) and warn the user. `scripts/validate_repo_contract.py`'s `FORBIDDEN_CONTENT_PATTERNS` will scan this file.
-
-### Relationship to the removed ai-logging mechanism
-
-This rule **supersedes** the now-removed `.aidlc-overrides/ai-logging.md` (per-turn forced log mechanism). The old mechanism required an entry every turn and produced recursive PR noise for pure-ops turns; this rule only records decisions when the user explicitly asks, dramatically reducing noise. The historical `.ailog/` entries remain in git history (from PR4 onwards) and are NOT migrated into `aidlc-docs/decisions-log.md`.

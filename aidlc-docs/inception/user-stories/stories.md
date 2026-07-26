@@ -3,8 +3,6 @@
 > 本文件列出 Cloud-360 的使用者故事，嚴格依據 `cloud-360-srs.md` 與 `personas.md`，將架構支柱（Pillars A-H）細分為 3~4 個具體情境（共 24 個 User Stories）。每個故事皆包含使用者需求/目標、多角色協作細節、詳細列點的驗收標準、首頁登入操作流程、正負向系統畫面回饋與引導、AI 重置/人工微調機制，以及 BDD 劇本。
 > This document lists the user stories for Cloud-360, strictly based on `cloud-360-srs.md` and `personas.md`, breaking down architecture pillars (A-H) into 3-4 specific scenarios each (24 User Stories total). Each story includes user goals, multi-role collaboration details, detailed acceptance criteria, homepage login flows, highly detailed positive/negative UI feedback with Call-To-Actions, AI reset mechanisms, and BDD scenarios.
 
-## 中文版 (Chinese Version)
-
 ### A. 架構設計 (AI-Driven Architecture Design)
 
 #### A1. 自然語言轉架構與草圖產出
@@ -26,16 +24,17 @@
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`)
   - **協作細節**: Alex 在畫布上調整底層網路層時，Hannah 同時在畫布上框選應用程式層請 AI 優化。兩人可即時看到對方的游標與 AI 生成的變更，避免衝突。
-- **使用者需求/目標 (User Goal)**: 透過 AI 協作快速微調架構，避免頻繁手動查閱雲端供應商文檔。
+- **使用者需求/目標 (User Goal)**: 透過 AI 協作快速微調架構，避免頻繁手動查閱雲端供應商文檔，並將編輯結果與個人帳號綁定，確保下次登入時能無縫接續編輯。
 - **驗收標準 (Acceptance Criteria)**:
   1. 允許使用者在畫布上框選特定節點群組，並要求 AI 進行針對性修改。
   2. AI 在替換或新增節點時，必須自動保留或重新接上原有的邏輯連線。
   3. 支援追蹤多人的修改歷史，允許一鍵還原 (Undo) 任何變更。
-- **操作流程**: 1. 從首頁進入架構畫布。 2. 框選特定區域請 AI 優化。 3. **AI重置/人工微調**: 點「局部重置」要求更換元件型號，隨後人工拖拉連線。
+  4. 提供「儲存架構圖」功能，將畫布 XML 寫入資料庫，並於下次進入工作區時自動載入最新草稿。
+- **操作流程**: 1. 從首頁進入架構畫布（系統自動載入歷史草稿）。 2. 框選特定區域請 AI 優化。 3. 點擊右上角「儲存架構圖」將結果同步至資料庫。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 被修改的節點會以綠色邊框閃爍 2 秒，提示「修改已同步」。**後續引導**：出現懸浮按鈕引導「匯出架構圖」或「查看預估成本」。
-  - **失敗 (Failure)**: 節點出現紅底，連線斷裂並提示「該元件不支援此協定」。**後續引導**：提示「請使用人工拖拉重新連線」，或「點擊查閱雲端相容性官方文件」。
-- **BDD**: `Given` 畫布已有基礎架構 `When` 框選 DB 點擊局部重置為 Aurora 並人工接上 API Gateway `Then` 系統僅替換 DB 並保留人工連線。
+  - **成功 (Success)**: 點擊儲存後出現綠色 Toast 提示「架構圖儲存成功」。**後續引導**：出現懸浮按鈕引導「匯出架構圖」或「查看預估成本」。
+  - **失敗 (Failure)**: 儲存失敗或節點元件不相容時出現錯誤提示。**後續引導**：提示「請檢查網路連線後重試」或「點擊查閱雲端相容性官方文件」。
+- **BDD**: `Given` 畫布已有基礎架構並存檔 `When` 使用者重新登入並進入工作區 `Then` 系統自動從資料庫載入該使用者最後一次儲存的畫布 XML 狀態。
 
 #### A3. 自動化 Well-Architected 評核與模擬
 - **多角色協作 (Multi-Role Collaboration)**:
@@ -51,6 +50,24 @@
   - **成功 (Success)**: 彈出綠色滿分徽章與撒花特效，顯示「符合最佳實踐」。**後續引導**：引導點選「下載 PDF 報告」並「發送給主管審閱」。
   - **失敗 (Failure)**: SPOF 節點標示為跳動的紅色驚嘆號，並顯示扣分項目。**後續引導**：提示「請點擊 AI 自動加入備援節點」，或點選「聯絡 SRE 團隊討論」。
 - **BDD**: `Given` 掃出資料庫單點故障 `When` Hannah 人工補上備援連線並點擊局部重置評分 `Then` 分數重新計算並達標。
+
+#### A4. 重整後仍記得對話與上次開啟的架構圖
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`)
+  - **協作細節**: Alex 與 Hannah 各自在不同架構圖上與 AI 對話；重整瀏覽器或重新登入後，每人回到自己上次開啟的圖，並看到該圖對應的完整聊天紀錄，互不混淆。
+- **使用者需求/目標 (User Goal)**: 重整重整或短暫離開後，仍能接續與 AI 的多輪對話，並自動回到上次編輯的架構圖，無需重述需求。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 聊天紀錄必須持久化於後端資料庫，鍵值為 **使用者 × 架構圖 (`user_id` + `diagram_id`)**；不同圖表的對話互相隔離。
+  2. 進入工作區（或重整頁面）時，系統必須自動選回該使用者**上次開啟的架構圖**，並載入其 XML 與對應聊天 `messages[]`。
+  3. 每次使用者送出訊息或收到助理回覆後，聊天紀錄須寫回資料庫（至少在一輪對話結束後成功持久化）；切換 `diagramId` 時載入該圖的對話（無紀錄則顯示預設歡迎訊息）。
+  4. 僅圖表擁有者與被分享且有權開啟該圖的使用者可讀寫對應聊天；未授權回傳 403。
+  5. 工作區須提供「清空對話」按鈕：點擊並確認後，刪除**目前架構圖**對應的 `user × diagram` 聊天紀錄，畫布 XML 不變；清空後聊天區回到預設歡迎訊息。
+- **操作流程**: 1. 登入並開啟某架構圖，與 AI 多輪對話。 2. 重整瀏覽器或重新登入進入工作區。 3. 系統自動選回上次圖表並還原聊天；可繼續追問（例如「再加上 WAF」）。 4. 若要重開話題，點「清空對話」→ 確認 → 僅該圖聊天被清除。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 進入工作區後聊天區顯示歷史訊息，畫布為上次圖表；可選 Toast「已還原上次對話」。清空成功時 Toast「✔ 已清空此架構圖的對話」。
+  - **失敗 (Failure)**: 無法載入歷史時顯示預設歡迎訊息與提示「無法還原對話，請重新描述需求」；不阻擋產圖。清空失敗時紅色提示「無法清空對話，請重試」。
+- **BDD**: `Given` Alex 在 diagram#12 已與 AI 對話三輪並重整頁面 `When` 再次進入工作區 `Then` 系統自動開啟 diagram#12 且聊天區顯示原先三輪訊息。  
+  `Given` Alex 在 diagram#12 有歷史對話 `When` 點擊清空對話並確認 `Then` 該圖聊天被刪除、顯示歡迎訊息，且 diagram#12 的 XML 仍在。
 
 ---
 
@@ -395,396 +412,49 @@
   - **失敗 (Failure)**: 卡片亮紅燈顯示「Health Check 失敗」或「相依性缺失」。**後續引導**: 提示「請點擊檢視錯誤日誌」或「重新配置雲端連接器憑證」。
 - **BDD**: `Given` Elena 註冊了一個具備修改權限的 Cloud Connector `When` AI 自動測試連線成功，但 Jack 人工在審批階段將其降級為 Read-only `Then` Agent 在 Routing Layer 呼叫該工具時僅能執行查詢動作。
 
----
+### J. 身分認證與基於角色的權限管理 (Identity Authentication & Role-Based Access Control)
 
-## English Version (Translation)
+#### J1. 統一登入入口與安全憑證驗證
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: 平台內所有使用者 (如 Alex, Fiona, Ian 等), Jack (平台管理員, `Platform_Admin`)
+  - **協作細節**: 所有使用者必須通過統一登入入口完成身分認證以獲取 Session Token。Jack 負責設定密碼複雜度策略與 MFA 規則。
+- **使用者需求/目標 (User Goal)**: 擁有一個安全的登入頁面，驗證身分並開始系統工作，保障帳戶與系統資料的安全。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 提供獨立的 Desktop / Mobile Web 登入頁面，支援帳號與密碼欄位輸入。
+  2. 驗證失敗時必須回傳模糊之錯誤提示（如「帳號或密碼錯誤」），以防止暴力破解與使用者列舉攻擊。
+  3. 驗證成功後，在瀏覽器安全儲存加密的 Token，並隨附時效控制（Token Expiration），逾時自動登出。
+- **操作流程**: 1. 訪問平台首頁網址。 2. 輸入帳號密碼並點擊「登入」。 3. **AI重置/人工微調**: 登入失敗可點擊「重設密碼」，或手動修正輸入之憑證。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 綠色 Toast 提示「✔ 登入成功，正在跳轉...」，隨後頁面跳轉至該角色對應之預設工作面板。**後續引導**：引導進入首頁控制台。
+  - **失敗 (Failure)**: 紅色警告「✘ 登入失敗：帳號或密碼錯誤」。**後續引導**：提示「請確認您的憑證後重試」，或提供「聯絡管理員」按鈕。
+- **BDD**: `Given` 使用者未登入 `When` 輸入正確憑證點擊登入 `Then` 派發 Token 並導向對應角色頁面。
 
-### A. Architecture Design (AI-Driven Architecture Design)
+#### J2. 基於角色的權限頁面可見性控制
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Ian (開發者, `Developer`), David (FinOps 分析師, `FinOps_Analyst`), Fiona (資安審查員, `Security_Reviewer`)
+  - **協作細節**: 開發者 Ian 與 FinOps 分析師 David 在登入後，各自只能看到符合自己工作範疇的頁面。當 Ian 企圖越權查看 David 的成本面板時，系統將主動阻擋。
+- **使用者需求/目標 (User Goal)**: 確保平台內不同使用者僅能訪問與其職責相關的選單與工作區，落實職責分離 (SoD) 與最小權限原則。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 側邊導航欄與系統選單必須根據當前使用者的 Role 屬性動態隱藏或顯示對應的工作區連結。
+  2. 當使用者企圖手動修改瀏覽器 URL 路由（Bypass）訪問未授權頁面（如 `Developer` 訪問 `/admin`）時，前端路由守衛必須立刻攔截並將其導向 403 Forbidden 頁面。
+  3. 後端 API 接收請求時，必須同步比對 Token 中的 Role 範圍，確認無權限時回傳 403 HTTP code。
+- **操作流程**: 1. 使用者登入並進入主畫面。 2. 檢視左側選單，訪問授權模組。 3. **AI重置/人工微調**: 系統選單動態更新，若發生誤判，管理員可「局部重置」清除當前 Session 快取要求重配。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 介面順暢渲染授權的面板選單。**後續引導**：引導點擊進入相關分析工作區。
+  - **失敗 (Failure)**: 畫面轉為「403 拒絕存取」錯誤警告。**後續引導**：提示「您無此頁面的存取權限」，並提供「返回首頁」或「申請權限」按鈕。
+- **BDD**: `Given` Ian 的角色為 Developer `When` 嘗試修改瀏覽器 URL 訪問 `/admin` `Then` 路由守衛攔截並顯示 403 拒絕訪問。
 
-#### A1. Natural Language to Architecture & Draft Generation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: Alex inputs requirements to generate the base architecture; Ian views it and uses comments or "Partial Reset" to propose adding Dev components (e.g., Redis). AI merges both inputs.
-- **User Goal**: Rapidly convert business requirements into concrete cloud architecture blueprints via natural language to save manual drawing time.
-- **Acceptance Criteria**:
-  1. Accurately identifies specific cloud services (e.g., WAF, Aurora) and High Availability (HA) keywords from natural language.
-  2. Outputs compatible `.drawio` format diagrams using standard cloud service icons.
-  3. The canvas must include clear logical connections, network boundaries (VPC/AZ), and data flow directions.
-- **Operational Flow**: 1. Log into Desktop Web. 2. Input needs in AI Chat. 3. **AI Reset/Manual Adjust**: Click "Full Reset" if dissatisfied, or manually type corrections in the chat.
-- **System Feedback**:
-  - **Success**: A green toast "✔ Architecture draft generated" appears in the center, autosaving the canvas. **Next Step**: A button prompts "Proceed to IaC generation" or "Start Well-Architected review".
-  - **Failure**: A red warning box pops up at the top: "Resource Conflict: Service not supported in selected Region." **Next Step**: Prompts "Please adjust parameters in the chat and retry" or offers a shortcut to "Contact Lead Architect (Alex) for help".
-- **BDD**: `Given` Alex is typing `When` he requests a canvas, resets it, and manually adds "needs WAF" `Then` AI renders a new architecture including a WAF.
-
-#### A2. AI + draw.io Collaborative Editing
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), Hannah (Engineering Manager, `Project_Editor`)
-  - **Collaboration Details**: While Alex adjusts network layers manually, Hannah selects app tiers for AI optimization. Both see real-time cursor and AI changes to prevent conflicts.
-- **User Goal**: Fine-tune architectures rapidly via AI collaboration, avoiding constant manual reference to cloud provider documentation.
-- **Acceptance Criteria**:
-  1. Allows users to box-select specific node groups on the canvas and request targeted AI modifications.
-  2. The AI must preserve or automatically reconnect existing logical links when replacing or adding nodes.
-  3. Supports tracking AI modification history, allowing users to 1-click Undo any changes.
-- **Operational Flow**: 1. Open canvas from homepage. 2. Box select areas for AI tuning. 3. **AI Reset/Manual Adjust**: "Partial Reset" a node to swap models, then manually drag lines.
-- **System Feedback**:
-  - **Success**: The modified node flashes a green border for 2 seconds with "Changes synced." **Next Step**: A floating button prompts "Export architecture diagram" or "View estimated costs."
-  - **Failure**: The node turns red, links break, and a prompt says "Component does not support this protocol." **Next Step**: Prompts "Please manually drag lines to reconnect" or "Click to read cloud compatibility documentation."
-- **BDD**: `Given` A base architecture exists `When` DB is partially reset to Aurora and manually linked to Gateway `Then` System only swaps the DB, keeping manual links.
-
-#### A3. Automated Well-Architected Review & Simulation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Hannah (Engineering Manager, `Project_Editor`), Fiona (Security Reviewer, `Security_Reviewer`)
-  - **Collaboration Details**: Hannah triggers HA/DR simulations; Fiona monitors the Security pillar in the same report. When SPOFs are flagged, Hannah fixes the design while Fiona ensures no new security flaws emerge.
-- **User Goal**: Ensure architectures comply with cloud best practices and preemptively identify potential risks.
-- **Acceptance Criteria**:
-  1. Automatically assesses if the diagram complies with the 5 pillars of cloud best practices (Reliability, Security, etc.).
-  2. Simulates Single Point of Failure (SPOF) or AZ-level outages and estimates RPO/RTO achievement rates.
-  3. Outputs a downloadable, detailed health score and remediation checklist PDF report.
-- **Operational Flow**: 1. Access Assessment Dashboard. 2. Trigger architecture scan. 3. **AI Reset/Manual Adjust**: "Partial Reset" to relax RTO metrics, or manually drop in a backup node.
-- **System Feedback**:
-  - **Success**: Pops up a green perfect-score badge with confetti, showing "Compliant with Best Practices." **Next Step**: Prompts to "Download PDF Report" and "Send to management for review."
-  - **Failure**: SPOF nodes are marked with a bouncing red exclamation mark detailing the penalty. **Next Step**: Prompts "Click to let AI auto-add backup nodes" or "Contact SRE team to discuss."
-- **BDD**: `Given` A SPOF is detected `When` Hannah manually adds a backup node and clicks partial reset `Then` The score recalculates and passes.
-
----
-
-### B. Cross-Cloud Component Selection
-
-#### B1. AI-Driven Single Cloud Selection
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Catherine (Tech Decision Maker, `Project_Admin`), David (FinOps Analyst, `FinOps_Analyst`)
-  - **Collaboration Details**: Catherine focuses on SLA weights; David steps in to toggle cost-first weights. Both run simulations on the same matrix and combine their findings into one decision report.
-- **User Goal**: Objectively evaluate different cloud providers to find the optimal fit for the project.
-- **Acceptance Criteria**:
-  1. Ranks cloud provider recommendations automatically based on user-defined weights (e.g., cost vs. performance).
-  2. The comparison matrix must evaluate at least 3 dimensions: SLAs, hardware limits, and billing models.
-  3. Allows 1-click export of the decision matrix into an easily shareable PDF report.
-- **Operational Flow**: 1. Access Selection Module. 2. Input workload traits. 3. **AI Reset/Manual Adjust**: "Full Reset" to switch to cost-first weight, or manually hide AWS.
-- **System Feedback**:
-  - **Success**: Outputs a dynamic comparison chart with provider logos, highlighting the optimal choice. **Next Step**: Prompts "Apply this provider and begin architecture design."
-  - **Failure**: Dashboard shows a yellow "API Timeout" banner; data turns gray. **Next Step**: Prompts "Please click refresh" or "Submit ticket to platform maintenance team if it persists."
-- **BDD**: `Given` A generated matrix `When` Catherine partially resets to update SLAs and manually hides AWS `Then` The system updates data for remaining vendors.
-
-#### B2. Tech Ecosystem Compatibility Scan
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), George (Ops Lead, `Ops_Lead`)
-  - **Collaboration Details**: Alex imports CI/CD stacks; George imports Ops monitoring tools. AI aggregates both to generate a cross-departmental compatibility and migration hours report.
-- **User Goal**: Evaluate the compatibility of existing on-prem tech stacks migrating to the cloud to accurately estimate refactoring costs.
-- **Acceptance Criteria**:
-  1. Parses the current on-prem tech stack and maps them to managed cloud equivalents.
-  2. Provides an exact compatibility score (0-100%) for each technology migration.
-  3. Offers preliminary estimates for migration and code-refactoring effort.
-- **Operational Flow**: 1. Access Compatibility Room. 2. Import on-prem stack. 3. **AI Reset/Manual Adjust**: "Partial Reset" for a specific DB, manually tag "Must keep CI/CD tools."
-- **System Feedback**:
-  - **Success**: Displays a circular progress bar (e.g., 85% compatible) expanding into a green list of seamless migrations. **Next Step**: Prompts "View list of codes requiring manual refactoring."
-  - **Failure**: Chart stuck at 0% with red text "No cloud alternative found." **Next Step**: Prompts "Please adjust to IaaS VM evaluation" or "Contact platform admin to add support."
-- **BDD**: `Given` An initial report `When` Jenkins is manually tagged as mandatory and reset `Then` AI reassesses integration risks.
-
-#### B3. Latency Optimization & Geo-Compliance
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Admin, `Security_Admin`), Catherine (Tech Decision Maker, `Project_Admin`)
-  - **Collaboration Details**: Catherine aims for lowest latency by inputting target locations; Fiona enforces GDPR restrictions. AI finds the optimal overlap and highlights any necessary trade-offs.
-- **User Goal**: Ensure app deployment regions comply with local laws while minimizing access latency for the target audience.
-- **Acceptance Criteria**:
-  1. Built-in database of data residency requirements for common regulations (e.g., GDPR, HIPAA).
-  2. Visually recommends the Top 3 lowest-latency Regions on a map.
-  3. Strongly blocks users with red text if they select a Region violating chosen regulations.
-- **Operational Flow**: 1. Enter Geo-compliance setup. 2. Input target audience location. 3. **AI Reset/Manual Adjust**: "Full Reset" to change regulations, manually inject custom GDPR rules.
-- **System Feedback**:
-  - **Success**: Map displays green glowing dots on the best Regions with a compliance checkmark. **Next Step**: Prompts "Confirm Region and lock project settings."
-  - **Failure**: Selected Region is covered in red slashes with a "GDPR Violation" warning. **Next Step**: Prompts "Please click system recommended alternatives" or "Contact legal/security for exception review."
-- **BDD**: `Given` US-East is recommended `When` Fiona manually checks GDPR and clicks partial reset `Then` System recommends EU data centers.
-
----
-
-### C. Cost Estimation & FinOps
-
-#### C1. Project TCO & Egress Forecasting
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: David (FinOps Analyst, `FinOps_Analyst`), Hannah (Engineering Manager, `Project_Editor`)
-  - **Collaboration Details**: David sets the monthly budget cap; when Hannah adds VMs to the canvas, the system alerts David of the cost delta, warning both if it exceeds the budget.
-- **User Goal**: Accurately track monthly Total Cost of Ownership (TCO) and budget trends to prevent cost overruns.
-- **Acceptance Criteria**:
-  1. Automatically extracts all compute/storage resources and queries the latest pricing APIs.
-  2. Outputs dynamic cost breakdown pie charts detailed to the individual resource level.
-  3. Instantly recalculates total monthly cost when the user modifies "daily operational hours".
-- **Operational Flow**: 1. Access FinOps Dashboard. 2. Import diagram. 3. **AI Reset/Manual Adjust**: "Full Reset" to high-bandwidth model, manually edit uptime.
-- **System Feedback**:
-  - **Success**: Center displays a dynamic pie chart with the total budget in green text indicating it's within limits. **Next Step**: Prompts "Set up Billing Alarm."
-  - **Failure**: Certain wedges turn gray labeled "Price Unavailable." **Next Step**: Prompts "Please manually input estimates" or "Contact FinOps (David) to verify contract pricing."
-- **BDD**: `Given` Initial TCO is $5000 `When` David manually edits uptime to 8h and partially resets `Then` TCO drops to $2000, tagged "Manual Override".
-
-#### C2. Resource Optimization & Pricing Model Comparison
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: David (FinOps Analyst, `FinOps_Analyst`), Ben (SRE, `SRE`)
-  - **Collaboration Details**: David proposes converting instances to Spot to save money; Ben evaluates if they are stateless, manually locking core DB nodes to On-Demand before proceeding.
-- **User Goal**: Maximize infrastructure savings by transitioning to optimal pricing models (Spot/RI).
-- **Acceptance Criteria**:
-  1. Clearly flags stateless resources suitable for Spot instances.
-  2. Calculates expected savings percentages for converting to 1/3-year RIs.
-  3. Allows users to manually exclude core machines, dynamically recalculating savings for the rest.
-- **Operational Flow**: 1. Open Cost Optimizer. 2. Request Spot analysis. 3. **AI Reset/Manual Adjust**: "Partial Reset" to view Spot options, manually lock a DB.
-- **System Feedback**:
-  - **Success**: A coin animation floats up, showing "Est. 30% Savings" in large text. **Next Step**: Prompts "Apply 1-click conversion Change Request."
-  - **Failure**: Screen prompts "Architecture not suitable for Spot instances"; list remains empty. **Next Step**: Prompts "Try unlocking core machines" or "Contact Ops to verify architecture elasticity."
-- **BDD**: `Given` AI suggests 100% Spot `When` David manually locks the DB and partially resets `Then` System calculates savings strictly for unlocked tiers.
-
-#### C3. Hidden Cost (Data Egress) Deep Dive
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: David (FinOps Analyst, `FinOps_Analyst`), Alex (Cloud Architect, `Project_Architect`)
-  - **Collaboration Details**: David notices huge egress costs on a cross-AZ link, tagging Alex. Alex adjusts the architecture to localize traffic, and David immediately sees the cost drop.
-- **User Goal**: Track and forecast the often-overlooked costs of cross-region Data Egress.
-- **Acceptance Criteria**:
-  1. Identifies and calculates potential network transfer fees across AZs and Regions.
-  2. Outputs traffic heat maps visually flagging expensive connections (e.g., DB syncs).
-  3. Instantly updates estimated Egress fees when the topology is altered on the canvas.
-- **Operational Flow**: 1. Open Network Tracker. 2. Review egress. 3. **AI Reset/Manual Adjust**: "Partial Reset" an AZ route, manually change volume to 10TB.
-- **System Feedback**:
-  - **Success**: Canvas connections morph into blue flow lines of varying thickness with cost tags. **Next Step**: Prompts "Export network egress heatmap report."
-  - **Failure**: Cannot parse routing, showing yellow text "Please verify network config." **Next Step**: Prompts "Ask AI to check network topology integrity" or "Contact Network Engineer."
-- **BDD**: `Given` $100 Egress forecast `When` Partially reset and manually bumped to 10TB `Then` Egress costs spike in red.
-
----
-
-### D. Standardized IaC Generation & Secure Delivery
-
-#### D1. Templated Terraform / OpenTofu Generation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: Elena enforces module/tagging standards; when Ian generates code for his services, the system ensures Elena's enterprise tags are automatically applied.
-- **User Goal**: Automate the creation of enterprise-standard IaC code that supports multi-cloud providers, eliminating manual coding errors.
-- **Acceptance Criteria**:
-  1. Automatically generates Terraform / OpenTofu module code supporting `aws`, `google`, and `azurerm` providers based on the canvas.
-  2. The code directory must strictly follow enterprise standards, including `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf`, and `modules/` structure.
-  3. Output code must pass basic `terraform init` / `tofu init` and `validate` checks out-of-the-box.
-- **Operational Flow**: 1. Access IaC Workspace. 2. Convert canvas to code. 3. **AI Reset/Manual Adjust**: "Partial Reset" variables to add prefixes, manually edit tags.
-- **System Feedback**:
-  - **Success**: The editor pops up a green "✔ Conversion Successful" and displays the `.tf` file tree. **Next Step**: Prompts "Proceed to static security scan" or "1-click Git Push."
-  - **Failure**: Red compilation errors flash in the editor, highlighting problematic lines. **Next Step**: Prompts "Click for AI to auto-fix syntax" or "Contact Platform Engineer (Elena)."
-- **BDD**: `Given` AI draft generated `When` Elena partially resets prefixes and manually edits tags `Then` Code compiles preserving her changes.
-
-#### D2. Automated Static Security Scan
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Fiona (Security Reviewer, `Security_Reviewer`)
-  - **Collaboration Details**: Elena triggers a scan; Fiona receives a ping for any vulnerabilities. Fiona can accept the risk or ask AI for fix snippets, which Elena then applies.
-- **User Goal**: Intercept security vulnerabilities and compliance issues in the code before deployment using multiple scanning engines.
-- **Acceptance Criteria**:
-  1. Natively integrates tfsec, Trivy, and Checkov to force deep static scans before export.
-  2. Forcibly blocks code download/deployment when High vulnerabilities are detected.
-  3. Provides directly applicable AI-remediation code snippets for found vulnerabilities.
-- **Operational Flow**: 1. Enter Security Review. 2. Trigger combined tfsec/Checkov scan. 3. **AI Reset/Manual Adjust**: "Partial Reset" for alternative fix suggestions, manually apply one.
-- **System Feedback**:
-  - **Success**: A full-screen green security shield checks off, indicating "0 Vulnerabilities." **Next Step**: Prompts "Approve and begin automated deployment."
-  - **Failure**: Screen flashes red, blocks deployment buttons, and lists Critical CVEs. **Next Step**: Prompts "Click to apply AI security fixes" or "Contact Security (Fiona) for Risk Acceptance."
-- **BDD**: `Given` Checkov flagged a High-severity bug `When` AI suggests fixes and Elena manually applies one `Then` Rescan passes, Git Push unlocked.
-
-#### D3. Sensitive Values & Secret Manager Check
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: System detects Ian's hardcoded password. Fiona mandates a Secret conversion. Ian uses AI to 1-click replace it with a secure AWS/Azure ARN before committing.
-- **User Goal**: Ensure IaC code never contains plaintext passwords, preventing credential leaks.
-- **Acceptance Criteria**:
-  1. Scans and highlights hardcoded plaintext keys/passwords.
-  2. Forcibly replaces plaintext with secure references to native cloud providers (e.g., AWS Secrets Manager, Azure Key Vault).
-  3. Prohibits pushing code to remote repos without valid Secret ARN mappings.
-- **Operational Flow**: 1. Open Secret Scanner. 2. Scan for hardcoded keys. 3. **AI Reset/Manual Adjust**: "Full Reset" to force native Secrets format, manually input ARN.
-- **System Feedback**:
-  - **Success**: Plaintext transforms into native Provider Secret variables via typewriter effect. **Next Step**: Prompts "Save code and proceed to next step."
-  - **Failure**: Pops up red text "Matching Secret ARN not found, conversion failed." **Next Step**: Prompts "Go to Secrets Manager to create a new key" or "Contact Security for permissions."
-- **BDD**: `Given` Hardcoded password exists `When` Partially reset to Secret Ref and manually filled ARN `Then` Code updates to a secure format.
-
----
-
-### E. Proactive Operations Optimization
-
-#### E1. Behavior-Based Right-Sizing
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: George (Ops Lead, `Ops_Lead`), Hannah (Engineering Manager, `Engineering_Manager`)
-  - **Collaboration Details**: George receives 5 downsize suggestions and assigns them to Hannah. Hannah evaluates business impact, excludes 2 core DBs, and George executes the remaining 3.
-- **User Goal**: Dynamically downsize idle resources based on actual system load to reduce wasteful spending.
-- **Acceptance Criteria**:
-  1. Analyzes CPU/Memory loads over 14 days to pinpoint machines with sub-10% utilization.
-  2. Lists specific target instance types for downgrading and estimates monthly savings.
-  3. Supports 1-click generation of formal Change Requests with downsize scripts.
-- **Operational Flow**: 1. Open Ops Dashboard. 2. Check downsize lists. 3. **AI Reset/Manual Adjust**: "Partial Reset" to demand 50% buffer, manually exclude core machines.
-- **System Feedback**:
-  - **Success**: A green "Adoption Recommended" badge appears next to the list, dynamically tallying savings. **Next Step**: Prompts "Create downsize Change Request (CR)."
-  - **Failure**: List greys out with an orange "Termination Protection Active" label. **Next Step**: Prompts "Go to cloud console to disable protection" or "Contact system owner for authorization."
-- **BDD**: `Given` 5 machines flagged `When` Manually excluding 2 and partially resetting the rest `Then` CR created for 3 machines safely.
-
-#### E2. Architecture Modernization Guidance
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Alex (Cloud Architect, `Project_Architect`), Catherine (Tech Decision Maker, `Project_Admin`)
-  - **Collaboration Details**: Alex generates a technical Serverless migration plan; Catherine focuses on the attached ROI report. Both weigh technical vs. commercial benefits simultaneously.
-- **User Goal**: Explore the feasibility and benefits of upgrading traditional Legacy architectures to Serverless.
-- **Acceptance Criteria**:
-  1. Flags outdated or high-maintenance IaaS resources (e.g., DB VMs).
-  2. Provides managed PaaS or Serverless (e.g., AWS Lambda) technical alternatives.
-  3. Estimates the Return on Investment (ROI) and potential performance gains.
-- **Operational Flow**: 1. Access Modernization Evaluator. 2. Analyze Legacy setup. 3. **AI Reset/Manual Adjust**: "Full Reset" to prefer Serverless, manually check VMs that must remain.
-- **System Feedback**:
-  - **Success**: Side-by-side green radar charts comparing Legacy vs. Serverless appear, highlighting ROI gains. **Next Step**: Prompts "Export executive summary presentation."
-  - **Failure**: Prompts "Tech stack too legacy for automated Serverless conversion." **Next Step**: Prompts "Try using containerization (K8s) as a transitional step" or "Contact Lead Architect for manual review."
-- **BDD**: `Given` Plan suggests K8s `When` Fully reset to demand Serverless `Then` AI outputs a Lambda-centric migration plan.
-
-#### E3. Automated Runbooks Generation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Ben (SRE, `SRE`), George (Ops Lead, `Ops_Lead`)
-  - **Collaboration Details**: Ben generates a DB restart playbook and edits timeouts; sends it to George for Peer Review. George approves it, marking it Active for automation tools.
-- **User Goal**: Ensure standardized scripts are ready to quickly restore service during common system failures.
-- **Acceptance Criteria**:
-  1. Auto-generates playbooks for common failures based on the current architecture.
-  2. Outputs scripts in YAML/JSON directly executable by automation tools.
-  3. Includes explicit restart commands, timeout parameters, and health validation steps.
-- **Operational Flow**: 1. Open Runbook Library. 2. Generate DB crash playbook. 3. **AI Reset/Manual Adjust**: "Partial Reset" to inject snapshot step, manually adjust Timeouts.
-- **System Feedback**:
-  - **Success**: YAML script generates via typewriter effect, with a green "✔ Validation Passed" badge. **Next Step**: Prompts "Register script into automated Runbook Library."
-  - **Failure**: Editor flashes red stating "Parse Error: Missing required variables." **Next Step**: Prompts "Click partial reset to let AI refill variables" or "Contact SRE (Ben) to code it."
-- **BDD**: `Given` Basic restart script generated `When` Ben partially resets to add snapshot and manually sets Timeout to 120s `Then` Playbook saved securely.
-
----
-
-### F. AI Multi-Cloud Operations & Approvals
-
-#### F1. Natural Language Multi-Cloud Health Query
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Ben (SRE, `SRE`), Hannah (Engineering Manager, `Engineering_Manager`)
-  - **Collaboration Details**: Ben queries anomaly data, pins the trend chart, and shares it with Hannah. Hannah clicks the link to view Ben's annotations and the full chat context instantly.
-- **User Goal**: Rapidly grasp real-time health and performance bottlenecks across multi-cloud environments using natural language.
-- **Acceptance Criteria**:
-  1. Correctly parses natural language for specific cloud resources and exact timeframes.
-  2. Fetches real telemetry data via internal MCPs and renders accurate time-trend charts.
-  3. Automatically flags anomalous performance spikes directly on the chart.
-- **Operational Flow**: 1. Open AI Chat. 2. Ask "Yesterday's cross-cloud DB latency". 3. **AI Reset/Manual Adjust**: "Full Reset" to change timeframe to 1 week, manually append a tag filter.
-- **System Feedback**:
-  - **Success**: Smoothly renders a green trend chart in chat, with anomalies tagged via red dots. **Next Step**: Prompts "Pin chart to personal dashboard" or "Generate shareable link for manager."
-  - **Failure**: Chart dissolves into static, popping a red "MCP Connection Timeout." **Next Step**: Prompts "Click to retry connection" or "Contact Platform Admin (Jack) to verify Agent."
-- **BDD**: `Given` 24h chart generated `When` Ben manually adds `env:prod` tag and partially resets `Then` Chart filters to production data only.
-
-#### F2. Guided Change Plan & Rollback Generation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Ben (SRE, `SRE`), Elena (Platform Engineer, `Platform_Engineer`)
-  - **Collaboration Details**: Ben creates a scaling plan/rollback. Elena reviews its impact on K8s nodes, manually injecting node-health checks before marking it Ready for Review.
-- **User Goal**: Safely execute complex changes by ensuring every operation includes a comprehensive rollback mechanism.
-- **Acceptance Criteria**:
-  1. Generates detailed Change Plans for commands like scaling or updates.
-  2. Mandates the output of a paired reverse Rollback script.
-  3. Allows SREs to manually overwrite commands or inject security validation steps.
-- **Operational Flow**: 1. Request scaling via AI Chat. 2. AI generates Plan & Rollback. 3. **AI Reset/Manual Adjust**: "Partial Reset" rollback script for safety checks, manually edit max capacity.
-- **System Feedback**:
-  - **Success**: Generates split-pane views of the Plan and a green shield-tagged Rollback script. **Next Step**: Prompts "Submit package for Approval."
-  - **Failure**: Submit button greyed out with "Rollback logic flawed; system safety unverified." **Next Step**: Prompts "Ask AI to rewrite rollback logic" or "Invite Platform Engineer for peer review."
-- **BDD**: `Given` Base Plan generated `When` Ben manually sets instances to 10 and partially resets rollback logic `Then` New package has updated numbers and safer rollback.
-
-#### F3. Mobile Approval Gate for High-Risk Actions
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Ben (SRE, `SRE`), Karen (Platform Owner, `Platform_Owner`)
-  - **Collaboration Details**: Ben submits a DB delete command. Karen receives a mobile push, Rejects it, and types "Use a backup swap instead." Ben instantly receives the rejection reason.
-- **User Goal**: Enable executives to securely review and authorize high-risk infrastructure changes anytime, anywhere.
-- **Acceptance Criteria**:
-  1. Sends push notifications to mobile devices displaying clear impact analysis.
-  2. Mandates secondary biometric authorization (FaceID/Fingerprint) on mobile to approve.
-  3. Supports a Reject function requiring a typed reason to aid subsequent revisions.
-- **Operational Flow**: 1. Receives push, logs into Mobile Web. 2. Reviews high-risk change. 3. **AI Reset/Manual Adjust**: Manually Rejects and types a reason, forcing the Agent to redo the plan.
-- **System Feedback**:
-  - **Success**: Mobile screen shows a large green checkmark "Authorization Successful" with a short vibration. **Next Step**: Prompts "Tap to view real-time execution progress."
-  - **Failure**: Mobile shows a red cross "Authorization Denied" or "Session Timeout." **Next Step**: Prompts "Type rejection reason for SRE to rework" or "Call SRE Lead to explain."
-- **BDD**: `Given` CR is Pending `When` Karen manually types "Do this off-hours" and Rejects `Then` CR cancels, returning feedback to SRE.
-
----
-
-### G. Cloud Security Posture & Policy Advisory
-
-#### G1. CSPM & Continuous Compliance Review
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Alex (Cloud Architect, `Project_Architect`)
-  - **Collaboration Details**: Fiona triggers a global scan covering network exposure, storage access, encryption, and audit logging. The system generates a Remediation Plan and an IaC patch. When Alex applies the patch, the high-risk nature of the fix forces it into a Human Approval Gate for Fiona to authorize.
-- **User Goal**: Continuously monitor cloud resources for security compliance and rapidly generate automated remediation plans and code.
-- **Acceptance Criteria**:
-  1. Deeply inspects and reports on Network exposure (e.g., Public SGs), Storage access, Encryption (at rest/transit), and Audit logging configurations.
-  2. Generates a specific Remediation Plan and directly executable IaC Patch for all discovered vulnerabilities.
-  3. Mandates that any fix flagged as High-Risk must pass through a Human Approval Gate before execution.
-- **Operational Flow**: 1. Access Global Security Dashboard. 2. Start deep compliance scan. 3. **AI Reset/Manual Adjust**: Manually modify IaC patch parameters, resetting the remediation plan.
-- **System Feedback**:
-  - **Success**: Displays a full green shield and high score, outputting a protected checklist. **Next Step**: Prompts "1-click apply IaC Patch and submit for Human Approval Gate."
-  - **Failure**: Flashes a red light warning of blocked scans or insufficient permissions. **Next Step**: Prompts "Click to rebind IAM Scanner Role."
-- **BDD**: `Given` A scan finds an unencrypted S3 bucket `When` AI generates an IaC Patch and SRE applies it `Then` The system intercepts deployment, triggering a Human Approval Gate for Fiona's review.
-
-#### G2. Least-Privilege & Identity Security (IAM / RBAC)
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Ian (Developer, `Developer`)
-  - **Collaboration Details**: Fiona scans Ian's over-permissive project roles. The system assigns a fix task to Ian, who uses AI to generate least-privilege suggestions. The fix ticket is routed to Fiona's Approval Gate.
-- **User Goal**: Rigorously audit IAM and RBAC to identify over-permissive roles and enforce the Principle of Least Privilege.
-- **Acceptance Criteria**:
-  1. Deeply inspects existing IAM / RBAC permissions to identify over-permissive accounts or roles.
-  2. Automatically generates minimized Least-Privilege Policy recommendations based on historical access records.
-  3. Forces any permission reductions affecting core compute resources into a Human Approval Gate.
-- **Operational Flow**: 1. Enter IAM Review area. 2. Run over-permission analysis. 3. **AI Reset/Manual Adjust**: "Partial Reset" to exclude specific developers, manually add security tags.
-- **System Feedback**:
-  - **Success**: List filtering animation completes, showing green text "Refined to secure privilege scope." **Next Step**: Prompts "Generate Least-Privilege Policy and submit for approval."
-  - **Failure**: Pops a red dialog "Insufficient permissions to read access history." **Next Step**: Prompts "Click to request cross-account access."
-- **BDD**: `Given` An Action of "*" is flagged `When` AI suggests a Least-privilege policy and user applies it `Then` The fix is locked pending Human Approval Gate authorization from Fiona.
-
-#### G3. Policy Guardrails & Policy-as-Code Automation
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Fiona (Security Reviewer, `Security_Reviewer`), Elena (Platform Engineer, `Platform_Engineer`)
-  - **Collaboration Details**: Fiona defines policy guardrails in natural language; AI converts them into Policy-as-Code (e.g., Rego). Elena integrates it into CI/CD, collaborating in the IDE to ensure valid deployments aren't blocked.
-- **User Goal**: Establish automated Policy Guardrails to prevent non-compliant deployments by encoding security rules.
-- **Acceptance Criteria**:
-  1. Translates natural language compliance requirements into Policy-as-Code (OPA Rego or AWS Config).
-  2. Establishes defensive Policy Guardrails to proactively intercept non-compliant IaC operations during deployment.
-  3. Features an IDE interface allowing manual edits of conditions and regex patterns by security personnel.
-- **Operational Flow**: 1. Enter Guardrail configuration. 2. Input defensive rule requests. 3. **AI Reset/Manual Adjust**: "Full Reset" to request AWS Config rules, manually edit regex.
-- **System Feedback**:
-  - **Success**: Code block corner lights up green, mock terminal displays `PASS`. **Next Step**: Prompts "Merge this policy to enforce the guardrail."
-  - **Failure**: Terminal throws red compilation errors, highlighting syntax mismatches. **Next Step**: Prompts "Manually fix syntax in IDE" or "Click AI Smart Debug for assistance."
-- **BDD**: `Given` AI-generated OPA Policy `When` Fiona manually edits the regex and tests `Then` System reports guardrail policy validation success.
-
----
-
-### H. MCP & Skill Management
-
-#### H1. Internal Custom API Tool Registration
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Jack (Platform Admin, `Platform_Admin`)
-  - **Collaboration Details**: Elena inputs the API schema and shortens the Prompt via AI. Jack reviews the API's rate limits and security scope before officially approving it for Agent use.
-- **User Goal**: Rapidly register internal custom API tools as viable Skills callable by the AI Agent.
-- **Acceptance Criteria**:
-  1. Correctly parses standard OpenAPI Schemas or internal API specification files.
-  2. Translates API parameters into a System Prompt that Agents comprehend with 100% accuracy.
-  3. Performs automated Health Checks before registration; rejects if connections fail.
-- **Operational Flow**: 1. Enter MCP Catalog. 2. Paste API endpoint. 3. **AI Reset/Manual Adjust**: "Full Reset" to shrink verbose Prompt, manually edit required param notes.
-- **System Feedback**:
-  - **Success**: Tool card flips to a vibrant `ACTIVE` state with a green check. **Next Step**: Prompts "Test call this tool immediately in AI Chat."
-  - **Failure**: Card shakes violently displaying red text "Schema parse failed." **Next Step**: Prompts "Check YAML/JSON formatting compliance" or "Contact API developer to verify spec."
-- **BDD**: `Given` 500-word prompt generated `When` Elena fully resets for brevity and manually adds a `region` requirement `Then` Tool goes live successfully.
-
-#### H2. Agent Access Boundaries & Review
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Jack (Platform Admin, `Platform_Admin`), Ben (SRE, `SRE`)
-  - **Collaboration Details**: Jack forces a dangerous tool to `Read-only`. When Ben attempts to use his Agent for a Write operation on that tool, the Agent blocks Ben and logs the interception.
-- **User Goal**: Strictly govern AI Agent access permissions to various tools, preventing unauthorized or destructive actions.
-- **Acceptance Criteria**:
-  1. Allows Platform Admins to view risk level recommendations (High/Low) for every tool.
-  2. Enforces global maximum permission boundaries, ensuring Agents cannot perform high-risk actions.
-  3. Intercepts and logs an Audit record whenever an Agent attempts to invoke a tool beyond its boundary.
-- **Operational Flow**: 1. Open Admin console. 2. Review new MCP tool. 3. **AI Reset/Manual Adjust**: "Partial Reset" asking AI to re-evaluate risk, or manually force it to `Read-only`.
-- **System Feedback**:
-  - **Success**: Top banner flashes green: "Permission boundaries successfully enforced globally." **Next Step**: Prompts "Return to MCP Catalog to review other tools."
-  - **Failure**: Yellow warning box: "Settings conflict with existing global security policies." **Next Step**: Prompts "Review global policy list" or "Contact Security Lead (Fiona) for exemptions."
-- **BDD**: `Given` AI suggests Deploy rights `When` Jack manually forces `Read-only` `Then` All Agents lose write access when calling this tool.
-
-#### H3. Global MCP Tool & Skill Lifecycle Management
-- **Multi-Role Collaboration**:
-  - **Roles Involved**: Elena (Platform Engineer, `Platform_Engineer`), Jack (Platform Admin, `Platform_Admin`)
-  - **Collaboration Details**: Elena registers a new MCP server and cloud provider connectors, defining their permission scopes. Following automated dependency and health checks, the tool is routed to Jack for approval. Once approved, it is integrated into the Agent Routing Layer for AI usage.
-- **User Goal**: Centrally manage and configure all external tools and workflows the AI relies on, ensuring Agents only invoke tools within safe, pre-approved boundaries.
-- **Acceptance Criteria**:
-  1. Supports full lifecycle management (Registration, Enable/Disable, Version Control) for MCP servers, Tools, AI Skills, Cloud Provider Connectors, and Reusable Workflows.
-  2. Features built-in automated Dependency Checks and recurring Health Checks, automatically flagging and disabling failing tools.
-  3. Integrates all compliant tools into an **Agent Routing Layer**, empowering the AI to safely and autonomously select appropriate tools for read-only analysis or human-approved operational actions.
-- **Operational Flow**: 1. Access MCP & Skill Management Center. 2. Register or update an MCP Server. 3. **AI Reset/Manual Adjust**: Manually adjust tool boundaries to strictly enforce Read-only limits.
-- **System Feedback**:
-  - **Success**: Tool card turns green displaying "ACTIVE" with a "Routing Layer Connected" badge. **Next Step**: Prompts "Test Agent tool invocation in Sandbox."
-  - **Failure**: Card turns red displaying "Health Check Failed" or "Missing Dependencies." **Next Step**: Prompts "Click to view error logs" or "Reconfigure connector credentials."
-- **BDD**: `Given` Elena registers a Cloud Connector with write permissions `When` AI successfully tests the connection, but Jack manually downgrades it to Read-only during approval `Then` Agents using the Routing Layer can only perform read actions via this tool.
+#### J3. 管理員專屬的權限編輯與指派面板
+- **多角色協作 (Multi-Role Collaboration)**:
+  - **參與角色**: Catherine (管理員, `Project_Admin`), Ian (開發者, `Developer`)
+  - **協作細節**: Catherine 進入權限面板，編輯 Ian 的角色。變更後，Ian 的系統權限將動態更新，且此動作將自動記錄至稽核日誌供 Fiona 審查。
+- **使用者需求/目標 (User Goal)**: 讓管理員可以方便地檢視所有帳戶，並根據項目職責即時調配或收回使用者權限。
+- **驗收標準 (Acceptance Criteria)**:
+  1. 提供管理員專屬的 RBAC 管理面板，能完整列出系統內所有使用者名稱、角色與權限範圍。
+  2. 允許管理員點擊編輯並動態變更任一使用者的角色，變更必須存入後端資料庫且在目標使用者下次重新整理時立即生效。
+  3. 每次權限的變更（升級或降級）必須被強制記錄至平台稽核日誌 (Audit Log)，內容需包含執行管理員、受影響帳戶、以及權限異動詳情。
+- **操作流程**: 1. 管理員進入「權限管理面板」。 2. 選擇使用者並修改其角色屬性後存檔。 3. **AI重置/人工微調**: 點擊「重置此使用者」可還原至系統預設權限。
+- **系統回饋 (System Feedback)**:
+  - **成功 (Success)**: 綠色彈窗提示「✔ 使用者角色已更新為 SRE」，該行狀態更新為最新角色。**後續引導**：引導「檢視稽核日誌確認變更已記錄」。
+  - **失敗 (Failure)**: 紅色提示「✘ 更新失敗：不能將最後一位管理員降級」。**後續引導**：提示「請先指派其他管理員後重試」。
+- **BDD**: `Given` 管理員 Catherine 登入權限管理面板 `When` 將 Ian 的角色改為 SRE 並點擊儲存 `Then` 使用者狀態更新，且 Audit Log 生成對應變更紀錄。

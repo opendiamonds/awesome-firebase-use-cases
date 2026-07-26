@@ -1,10 +1,5 @@
 # ADR 0004: MCP and Skill Management
 
-> 本文件必須同時包含中文版與英文版。
-> This document must include both Chinese and English versions.
-
-## 中文版
-
 - Status: Accepted
 - Date: 2026-05-02
 
@@ -95,11 +90,3 @@ Cloud-360 must be able to check:
 - Agents gain a governed source of truth for tool selection.
 - Operators can troubleshoot MCP / Skill health and permission issues.
 - Security reviewers can audit tool scope and high-risk capabilities.
-
-## English Version
-
-Decision: Cloud-360 includes first-class MCP and Skill Management. The platform maintains registries for MCP servers, MCP tools, AI Skills, cloud SDK/CLI wrappers, Terraform/OpenTofu tools, security scanners, internal platform tools, and workflows.
-
-Each registry entry tracks name, description, owner, version, status, environment scope, auth scope, risk level, dependencies, health check status, change history, and approval state.
-
-Every MCP tool and Skill must be classified as read-only, write, deploy, delete, permission-change, and/or production-impacting. The Agent Routing Layer must consult the registry before selecting tools. High-risk tools require approval before enablement or execution.

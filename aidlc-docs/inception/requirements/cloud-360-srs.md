@@ -1,10 +1,5 @@
 # Cloud-360 System Requirement Specification
 
-> 本文件必須同時包含中文版與英文版。
-> This document must include both Chinese and English versions.
-
-## 中文版
-
 - Status: Draft v0.2
 - Date: 2026-05-22
 - Owner: Danniel Chung / Anita
@@ -118,7 +113,22 @@ Cloud-360 需提供 MCP servers、MCP tools、AI Skills 與 cloud provider conne
 - Versioning：記錄版本、schema、owner、相依性、變更紀錄與 rollback target。
 - Health Check：檢查 MCP server availability、tool schema、auth scope、latency、error rate 與最近執行狀態。
 - Approval Workflow：新增、升級、停用高風險 MCP / Skill 或擴權時需 human approval。
-- Agent Routing Integration：Routing Agent 需可依任務、上下文、風險與權限選擇合適 MCP / Skill。
+- Agent Tool Selection Observability：Agent Routing Layer 需可依任務、上下文、風險與權限選擇合適 MCP / Skill，且可追蹤調用原因。
+
+#### J. Identity Authentication & Role-Based Access Control
+
+基於角色的存取控制 (RBAC) 確保平台使用者身分之安全性與權限邊界。
+
+**J1. 功能需求 (Functional Requirements)**
+- **統一登入入口**：系統必須提供安全、獨立之登入介面供使用者輸入帳號密碼進行身分驗證。
+- **頁面權限控制**：使用者登入後，其側邊導航與可存取頁面必須嚴格限制在其角色權限範圍內。
+- **權限編輯面板**：提供專屬於系統管理員 (`Project_Admin`) 的管理控制台，供管理員檢視、編輯並動態更新不同使用者的角色與權限範圍。
+
+**J2. 技術約束 (Technical Constraints)**
+- **路由安全防護**：前端路由與後端 API 必須同步實施 RBAC 驗證，防止未授權使用者通過修改 URL 路由或發送直接 API 請求來繞過權限控制（Bypass）。
+- **機密資料保護**：身分憑證與 Session Token 的存取與傳輸必須符合安全傳輸協議 (HTTPS)，且密碼必須經過強雜湊算法 (e.g., bcrypt/Argon2) 加密儲存。
+- **變更即時生效**：管理員修改權限後，新的角色權限必須即刻套用至目標使用者。
+- **操作審計日誌**：所有使用者權限與角色的變更行為，必須被強制寫入系統審計日誌 (Audit Log)。
 
 ### 4. User Experience Requirements
 
@@ -190,206 +200,6 @@ Cloud-360 必須透過受控 integration layer 串接雲平台。
 - Reproducible IaC generation
 - Clear separation between recommendation and execution
 - Responsive Web support for desktop, tablet and mobile browsers
-- Governed MCP / Skill lifecycle management
-
-### 8. Initial Out of Scope
-
-- Native iOS application
-- Native Android application
-- Direct production deployment without approval workflow
-- Storing plaintext cloud credentials
-- Autonomous destructive cloud changes
-- Treating third-party collaborative branches as editable without explicit authorization
-
----
-
-## English Version
-
-- Status: Draft v0.2
-- Date: 2026-05-22
-- Owner: Danniel Chung / Anita
-
-### 1. Platform Vision
-
-Cloud-360 is an AI-native multi-cloud architecture and operations management platform designed specifically for Cloud Architects, SREs, FinOps, and Security teams.
-
-The platform deeply integrates LLMs, multi-agent collaboration frameworks, MCP servers, Cloud SDKs, Cloud CLIs, Terraform / OpenTofu, and reusable Skills. It also provides MCP and Skill management capabilities to deliver end-to-end lifecycle management across AWS, GCP, and Azure.
-
-### 2. Target Users
-
-- Cloud Architect
-- SRE / Platform Engineer
-- FinOps Analyst
-- Security Reviewer
-- Engineering Manager / Technical Decision Maker
-
-### 3. Core Pillars
-
-#### A. AI-Driven Architecture Design
-
-Cloud-360 translates natural language requirements into single-cloud or multi-cloud architecture blueprints.
-
-**A1. Functional Requirements**
-- **Natural Language Parsing**: Must recognize keyword tags including workload types (e.g., E-commerce, Data Processing), HA requirements (Multi-AZ, Multi-Region), and RTO/RPO targets.
-- **Architecture Diagram Generation**: Supports generating Mermaid, PlantUML, and formats compliant with `.drawio` XML specifications.
-- **Best Practice Validation**: Automatically checks for compliance against AWS / GCP / Azure Well-Architected Frameworks.
-- **Disaster Recovery Design**: Automatically generates recommendations for Active-Active or Active-Passive cross-cloud DR scenarios.
-
-**A2. Technical Constraints**
-- **Output Format**: draw.io XML must include the correct cloud provider shapes/icons and metadata.
-- **Architecture Context**: The generated architecture diagram must be parseable into an internal JSON format for subsequent Agent consumption.
-
-#### B. Cross-Cloud Component Selection
-
-Cloud-360 provides managed service selection recommendations across AWS / GCP / Azure based on workload profiles.
-
-**B1. Functional Requirements**
-- **Equivalent Service Comparison**: Core support for peer-to-peer comparison of Compute (VM/Container/Serverless), Database (SQL/NoSQL/Cache), and Storage (Object/Block/File).
-- **Selection Metrics**: Comparison parameters must include SLA, hardware limits (vCPU/Mem limits), regional availability, cost risks, and Vendor Lock-in index.
-- **Decision Matrix**: Generate a decision matrix containing rationale, pros, cons, and alternatives.
-
-**B2. Technical Constraints**
-- **Data Freshness**: Service specifications and limit data must remain synchronized with official cloud provider documentation (or define a cache expiration mechanism).
-- **Weighting Model**: The recommendation engine must support adjustable weights (e.g., performance-first vs. cost-first).
-
-#### C. Cost Estimation & FinOps
-
-Cloud-360 estimates multi-cloud TCO for architecture scenarios and cloud components.
-
-**C1. Functional Requirements**
-- **Multi-dimensional Cost Estimation**: Includes infrastructure (compute, storage), network (Data Transfer/Egress), data services (databases, caches), and operations tools.
-- **Billing Model Comparison**: Displays a side-by-side comparison of On-demand, Spot (AWS/Azure/GCP), and Reserved Instances (RI/Savings Plan).
-- **Cross-Cloud Transfer Analysis**: Accurately calculates cross-cloud and cross-region Data Egress costs, highlighting potential high-cost paths.
-
-**C2. Technical Constraints**
-- **API Integration**: Must integrate with AWS Price List API, GCP Cloud Billing Catalog API, and Azure Retail Prices API.
-- **Estimation Accuracy**: Estimates must annotate pricing assumptions and data source timestamps.
-
-#### D. Infrastructure as Code - Terraform / OpenTofu
-
-Cloud-360 converts the finalized architecture blueprint into Terraform / OpenTofu module drafts.
-
-**Required capabilities:**
-- Support `aws`, `google`, and `azurerm` providers.
-- Generate `providers.tf`, `main.tf`, `variables.tf`, `outputs.tf`, and `modules/` structure.
-- Do not generate production secrets.
-- All sensitive values must use variables, secret manager references, or workload identity.
-- Integrate tfsec, trivy, and Checkov for static scanning.
-
-#### E. Operations Optimization Review
-
-Cloud-360 continuously performs health checks and performance reviews on deployed or designed architectures.
-
-**Required capabilities:**
-- Analyze CPU, memory, IOPS, network, storage, latency, error rate, and SLO/SLA.
-- Provide right-sizing, autoscaling, backup, multi-AZ, multi-region, and observability recommendations.
-- Propose architecture modernization recommendations based on new cloud services.
-
-#### F. AI Multi-Cloud Operations
-
-Cloud-360 manages multi-cloud environments via AI Chat and Agentic AI.
-
-**Required capabilities:**
-- AI Chat Proactive Operations: Users query, analyze, and request operations using natural language.
-- Agentic AI Passive Monitoring and Proactive Analysis: Background agents monitor cost, security, performance, availability, and policy risks.
-- Connect with AWS / GCP / Azure MCPs, SDKs, CLIs, APIs, Skills, and Terraform providers.
-- All high-risk operations must have human approval.
-- All operations must be recorded in the audit log.
-
-#### G. Cloud Security Posture & Policy Advisory
-
-Cloud-360 reviews multi-cloud security strategies and provides actionable governance recommendations.
-
-**Required capabilities:**
-- Inspect IAM / RBAC, Security Group / Firewall / NSG, bucket / blob access, KMS / encryption, audit logging, and cloud-native policy guardrails.
-- Integrate data sources such as AWS IAM Access Analyzer, AWS Config, Security Hub, GuardDuty, GCP Security Command Center, GCP Organization Policy, Azure Policy, Defender for Cloud, and Azure Advisor.
-- Generate severity, evidence, impact, recommended policy, remediation plan, IaC patch suggestion, verification command, and rollback strategy for findings.
-- Support Policy-as-Code recommendations (e.g., OPA/Rego, Sentinel, Azure Policy, GCP Org Policy, AWS Config rules).
-
-#### H. MCP & Skill Management
-
-Cloud-360 must provide centralized management capabilities for MCP servers, MCP tools, AI Skills, and cloud provider connectors.
-
-**Required capabilities:**
-- MCP Server Registry: Register, configure, enable/disable, and inspect MCP servers.
-- Tool Catalog: List MCP tools, cloud SDK/CLI wrappers, Terraform tools, and internal tools.
-- Skill Catalog: Manage reusable AI Skills (e.g., architecture design, FinOps, security posture review, Terraform generation, incident response).
-- Permission & Risk Model: Label risk levels (read-only, write, deploy, delete, permission-change, production-impacting) for each MCP tool / Skill.
-- Versioning: Record version, schema, owner, dependencies, change log, and rollback target.
-- Health Check: Check MCP server availability, tool schema, auth scope, latency, error rate, and latest execution status.
-- Approval Workflow: Require human approval when adding, upgrading, disabling, or escalating privileges for high-risk MCPs/Skills.
-- Agent Routing Integration: Allow the Routing Agent to select appropriate MCPs/Skills based on task, context, risk, and permissions.
-
-### 4. User Experience Requirements
-
-#### Desktop Web
-The Desktop Web serves as the full workspace for Cloud-360 and must support:
-- AI Chat
-- draw.io / diagrams.net architecture canvas
-- Terraform / policy code editor
-- FinOps dashboard
-- Security posture dashboard
-- Operations dashboard
-- Agent trace
-- Audit log
-- Approval gate management
-
-#### Mobile Web / Responsive Web / PWA
-The mobile version is also delivered via Web. A native iOS / Android app is not planned for the first phase.
-
-Mobile Web focuses on:
-- AI Chat
-- Alerts
-- Approval / reject workflow
-- Cloud health digest
-- Cost / security / operations findings
-- Readonly architecture diagram view
-- Incident quick triage
-
-The Mobile Web is not intended as the primary interface for heavy draw.io diagram editing or deep Terraform development.
-
-### 5. Architecture Visualization Requirements
-
-Cloud-360's architecture diagram capabilities are centered around draw.io / diagrams.net compatible formats.
-
-**Required capabilities:**
-- Support `.drawio` / XML source format.
-- Support SVG / PNG / PDF export.
-- Support Mermaid / PlantUML derived output.
-- AI Chat can add/delete components, adjust connections, annotate data flows, and supplement HA/DR/security/observability components.
-- Generate a change summary and version history for each AI modification.
-- Diagrams must be parseable into an internal architecture graph for FinOps, IaC, Ops, and Security agents.
-
-### 6. Cloud Integration Requirements
-
-Cloud-360 must connect to cloud platforms via a controlled integration layer.
-
-**Integration types:**
-- MCP servers
-- Cloud SDKs
-- Cloud CLIs
-- Cloud APIs
-- Terraform / OpenTofu providers
-- AI Skills
-- MCP / Skill Registry and Management APIs
-
-**Safety requirements:**
-- Read-only operations may execute after policy classification.
-- Write / delete / deploy / permission change / production-impacting operations require human approval.
-- Before execution, the system must provide a plan, impact analysis, rollback strategy, affected resources, and verification steps.
-- Secrets must never be logged, committed, or returned to users.
-
-### 7. Non-Functional Requirements
-
-- Security by default
-- Auditability
-- RBAC and least privilege
-- Human approval gate for high-risk actions
-- Multi-cloud extensibility
-- Explainable AI decisions
-- Reproducible IaC generation
-- Clear separation between recommendation and execution
-- Responsive Web support for desktop, tablet, and mobile browsers
 - Governed MCP / Skill lifecycle management
 
 ### 8. Initial Out of Scope
