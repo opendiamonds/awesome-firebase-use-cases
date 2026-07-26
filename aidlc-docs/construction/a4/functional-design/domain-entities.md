@@ -3,7 +3,6 @@
 > Unit `U-A4` · Story A4  
 > Retrospective FD（對齊 `a4/code/chat-persistence-summary.md`、`database-schema.md`）
 
-## 中文版
 
 ### 實體關係
 
@@ -34,9 +33,3 @@ User 1 ──* UserDiagramChat *── 1 UserDiagram
 |---|---|
 | `last_opened_diagram` | 圖 metadata + xml |
 | `messages` | 該 user×diagram 聊天 |
-
----
-
-## English Version
-
-Chat keyed by `(user_id, diagram_id)`; `users.last_opened_diagram_id` drives workspace restore. Bootstrap returns diagram + messages.

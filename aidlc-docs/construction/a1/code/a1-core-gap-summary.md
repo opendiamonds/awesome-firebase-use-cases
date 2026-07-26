@@ -1,7 +1,5 @@
 # A1 Phase 2 — User Story Core Gap Summary
 
-## 中文版
-
 ### 結果
 
 在 Agent SDK 產圖路徑之上，補齊 User Story A1 核心 UX／prompt：
@@ -24,15 +22,3 @@
 ### 手動驗收
 
 見 `a1-agent-sdk-code-generation-plan.md` Step 8。
-
----
-
-## English Version
-
-### Result
-
-Phase 2 aligns User Story A1 core: stronger prompt; autosave only with existing `diagram_id`; Clear Chat vs Full Reset; success/failure stub CTAs (“coming soon”).
-
-### Files / Manual checks
-
-Same as Chinese section; acceptance in plan Step 8.

@@ -39,7 +39,7 @@ Once a week, check whether the things Cloud-360 is pinned to have moved, and tel
 
 ## What to watch
 
-**The AIDLC framework.** `.aidlc/aidlc-rules/VERSION` records the version this repo vendored from [`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows). Compare it against the latest release. An upgrade here is not a routine bump — per `CLAUDE.md` §7 it requires re-copying into `.aidlc/aidlc-rules/aws-aidlc-rule-details/`, preserving the custom `extensions/bilingual-docs/` files inside the upstream tree, leaving `.aidlc-overrides/` untouched, and recording the upgrade in a new ADR.
+**The AIDLC framework.** `.aidlc/aidlc-rules/VERSION` records the version this repo vendored from [`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows). Compare it against the latest release. An upgrade here is not a routine bump — per `CLAUDE.md` §7 it requires re-copying `.aidlc/aidlc-rules/aws-aidlc-rule-details/`, leaving `.aidlc-overrides/` untouched, and recording the upgrade in a new ADR.
 
 **gh-aw.** The agentic workflows under `.github/workflows/*.md` compile with `gh aw`. Check [`github/gh-aw`](https://github.com/github/gh-aw) releases for breaking changes to frontmatter, safe-outputs, or the engine contract.
 
@@ -51,7 +51,7 @@ Use the GitHub tools to read releases and changelogs. Read the actual release no
 
 Open **one** issue, and only if there is something worth acting on. Title it `Release watch: <date>`.
 
-The body is bilingual (Traditional Chinese first, then English) and, for each upgrade worth taking:
+The body is in Traditional Chinese (ADR-0009) and, for each upgrade worth taking:
 
 1. **What moved** — component, current version in this repo, latest version, and a link to the release notes.
 2. **Why it matters here** — the specific thing in *this* codebase that the change affects. Not the vendor's summary; your reading of it against these files. If you cannot name what it affects here, it does not belong in the issue.

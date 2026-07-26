@@ -3,7 +3,6 @@
 > Unit `U-A3` · Story A3 MVP  
 > Route: **`/assessment`** · Sidebar：「**評估儀表板**」（Q8=A）
 
-## 中文版
 
 ### 1. 路由與守衛
 
@@ -72,9 +71,3 @@
 ### 6. Out of scope UI
 
 SPOF 模擬動畫、畫布上故障標示（下期）。PDF 下載已納入本期（見 UI 區塊 7）。
-
----
-
-## English Version
-
-`/assessment` AssessmentPage behind A3.view; Sidebar label「評估儀表板». Page selects diagram, runs SSE review, shows weighted scores, findings, suggestions, history, suggestion retry, and **client-side PDF download** for `complete`/`rules_only` (A3.view). Workspace post-A1 CTA and Well-Architected button start review on current diagram. Non-aws may create unsupported rows. SPOF UI remains out of scope.

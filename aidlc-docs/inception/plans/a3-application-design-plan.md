@@ -4,7 +4,6 @@
 > Inputs: `a3-well-architected-requirements.md`, `stories.md` §A3, `a3-execution-plan.md`  
 > Hard constraint: LLM path = **same Anthropic Agent SDK + OpenRouter as A1**
 
-## 中文版
 
 ### 執行檢查清單
 
@@ -80,9 +79,3 @@ B) **Agent 主導**：Agent tool 內呼叫規則函式（較難測、耦合高�
 C) Other (please describe after [Answer]: tag below)
 
 [Answer]:A
-
----
-
-## English Version
-
-Same Q1–Q5: Agent module split vs shared runtime; sync vs SSE vs two-phase API; dashboard placement; API prefix; orchestration owner (ReviewService vs agent-led). Fill `[Answer]:` tags above.

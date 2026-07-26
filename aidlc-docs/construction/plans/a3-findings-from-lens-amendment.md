@@ -2,7 +2,6 @@
 
 > Status: **IMPLEMENTED** — Q1–Q5 locked (B/A/A/A/B)
 
-## 中文版
 
 ### 鎖定決策
 
@@ -28,9 +27,3 @@
 | security/baseline | N/A（無 IAM／網路變更） |
 | testing/property-based | compliant（單元測 Lens→Finding） |
 | bilingual-docs | compliant |
-
----
-
-## English Version
-
-**Status: IMPLEMENTED** with answers B/A/A/A/B. UI findings now come from offline Custom Lens HIGH+MEDIUM risks; heuristic findings only on lens failure. Agent consumes the same Lens findings. See `offline-lens-poc-summary.md`.

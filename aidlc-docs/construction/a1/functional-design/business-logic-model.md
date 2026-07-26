@@ -1,6 +1,5 @@
 # A1 Business Logic Model — Flows & API
 
-## 中文版
 
 ### 1. 自然語言產圖
 
@@ -41,9 +40,3 @@ sequenceDiagram
 ### 4. 狀態（Construction）
 
 Code done（Agent SDK Phase 1+2）；待手動 E2E。見 `a1/code/agent-sdk-summary.md`、`a1-core-gap-summary.md`。
-
----
-
-## English Version
-
-ChatBox posts to `/api/architecture/generate` (SSE); DesignAgent + DiagramBuilder return draw.io XML. File ownership and status: see Chinese section.

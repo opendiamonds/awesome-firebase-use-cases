@@ -1,6 +1,5 @@
 # A1 Business Rules — Architecture Design Generation
 
-## 中文版
 
 ### BR-A1-01 授權
 
@@ -36,9 +35,3 @@
 | P-A1-01 | 無 A1.edit → generate 一律拒絕 |
 | P-A1-02 | 合法 builder 輸出必含 `mxGraphModel` 根 |
 | P-A1-03 | `current_xml` 路徑不得丟棄全部既有 edge（oracle：合併後 edge 數 ≥ 閾值或保留 ID） |
-
----
-
-## English Version
-
-Generate requires approved JWT + A1.edit. Full and partial (`current_xml`) paths use Agent SDK with a single MCP draw tool; SSE returns XML or errors. A1 does not persist; security restricts tools and env mapping. PBT IDs in the Chinese table.

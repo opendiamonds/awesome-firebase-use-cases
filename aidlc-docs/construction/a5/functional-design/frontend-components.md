@@ -1,6 +1,5 @@
 # A5 Frontend Components
 
-## 中文版
 
 ### 元件
 
@@ -22,9 +21,3 @@
 ### 已知缺口
 
 - 多人游標渲染層：未做。
-
----
-
-## English Version
-
-`ShareModal`, `useCollaboration`, and `WorkspacePage` status/welcome handling cover A5 UI. Multi-user cursors not built.

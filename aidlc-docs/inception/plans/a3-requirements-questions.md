@@ -6,7 +6,6 @@
 
 Please answer with letter choices. Fill `[Answer]:` under each question.
 
-## 中文版
 
 ### Question 1
 本迭代 A3 的**交付範圍**要以哪一種為準？
@@ -111,11 +110,3 @@ C) **直接 Construction FD**：Inception 僅更新 unit-of-work 一列，其餘
 D) Other (please describe after [Answer]: tag below)
 
 [Answer]:
-
----
-
-## English Version
-
-Same eight questions as Chinese (scope MVP vs full AC, cloud framework, input source, engine type, persistence, UI entry, RBAC, inception depth). Answer with the same `[Answer]:` tags above.
-
-**Extensions**: security / property-based / bilingual-docs remain enabled per `aidlc-state.md` (not re-asked).

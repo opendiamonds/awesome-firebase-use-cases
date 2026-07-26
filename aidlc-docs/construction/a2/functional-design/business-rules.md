@@ -1,6 +1,5 @@
 # A2 Business Rules — Canvas Collaborative Editing
 
-## 中文版
 
 ### BR-A2-01 圖表 CRUD
 
@@ -30,9 +29,3 @@
 | P-A2-01 | 非 Owner／非編輯分享 → PUT diagram 403 |
 | P-A2-02 | 存檔後 GET 同 id 回傳相同 xml_data（round-trip） |
 | P-A2-03 | 切換 diagramId 不覆蓋另一張圖之 xml |
-
----
-
-## English Version
-
-CRUD and save/load for `UserDiagram`; AI partial edit preserves connections via A1. Multi-file switch isolates XML. AI change-history/undo and selection extraction remain open gaps vs story AC.

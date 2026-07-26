@@ -3,7 +3,6 @@
 > As-built stack discovered in the repository.  
 > 由 repo 盤點的現行技術棧。
 
-## 中文版
 
 ### Programming Languages
 
@@ -50,9 +49,3 @@
 | pytest（預期） | `backend/tests/test_rbac.py` 存在；CI 尚未跑完整 suite |
 | ESLint／tsc | Frontend CI |
 | `validate_repo_contract.py` | 契約／雙語檢查 |
-
----
-
-## English Version
-
-Python FastAPI + TypeScript React/Vite + PostgreSQL 15. Auth via JWT/bcrypt. AI via Claude Agent SDK → OpenRouter. Deploy: Docker Compose + Cloudflare Tunnel + GitHub Actions. Tests: thin RBAC unit tests + FE lint/typecheck; no full property-based suite yet.

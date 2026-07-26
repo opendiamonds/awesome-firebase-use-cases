@@ -5,8 +5,6 @@
 
 ---
 
-## 中文版
-
 ## 1. 系統架構簡介
 
 Cloud-360 是一個智慧型雲端架構設計與協同平台，旨在透過 AI Agent 協助架構師、開發人員與 SRE 快速設計雲端架構圖（基於 draw.io XML 格式），同時整合企業級 RBAC 權限控管與多人即時共編機制。
@@ -327,27 +325,3 @@ frontend/src/
     ```json
     { "type": "error", "content": "連線逾時，請重試。" }
     ```
-
----
-
-## English Version
-
-### 1. System Architecture Overview
-Cloud-360 is an AI-native multi-cloud architecture and operations platform. It features:
-- **Frontend SPA**: Built with React 19.2+, Vite 8.0+, TypeScript 6.0+, and TailwindCSS v4.3+. It renders the architecture canvas (integrating draw.io), chat workspace, and RBAC matrix.
-- **Backend**: Python FastAPI with SQLAlchemy ORM. It provides Web APIs, WebSocket broadcast for real-time collaboration, and SSE stream endpoints for AI design agents.
-
-### 2. Frontend Specifications
-- **Core Stack**: React, Vite, TS, TailwindCSS, React Router DOM.
-- **Authentication**: JWT token-based, persisted in local storage. `AuthContext` provides the permission matrix helper `can(storyId, action)` and `canArch(action)`.
-- **Key Components**: `WorkspacePage` (split view layout), `DrawioCanvas` (iframe postMessage integration, WebSocket sync), `ChatBox` (SSE stream parser).
-
-### 3. Backend Specifications
-- **Database Models**: `User` (credentials, active status), `UserDiagram` (draw.io mxGraph XML, sharing association), `UserDiagramChat` (A4 conversation persistence, compound key), `RolePermission` (RBAC permission matrix).
-- **RBAC Engine**: Mapped using the `rbac.py` framework, ensuring story alignment (`A1`, `A2`, `A4` mapped to `A1`).
-- **AI Agent**: Built with `claude-agent-sdk`, connected to OpenRouter. Securely locked to `draw_architecture_diagram` MCP tool.
-
-### 4. API Interface Contracts
-- `/api/auth`: Login credentials verification and fetching current user context with active permissions.
-- `/api/collab`: Workspace state bootstrapping, diagrams crud, diagram chat history fetch/save, and real-time collaboration WebSocket sync.
-- `/api/architecture`: SSE-based architecture diagram generation (`/api/architecture/generate`).

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 
 export const Sidebar: React.FC = () => {
   const { user, logout, can, canArch } = useAuth();

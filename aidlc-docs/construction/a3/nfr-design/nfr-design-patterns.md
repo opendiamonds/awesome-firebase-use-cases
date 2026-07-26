@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Decisions: `construction/plans/a3-nfr-design-plan.md`
 
-## 中文版
 
 ### 1. 決策摘要
 
@@ -65,9 +64,3 @@
 | NFR-A3-03／04 | Single-shot timeout + rules_only |
 | NFR-A3-04a／06 | 無併發閘 + GET 補齊 |
 | NFR-A3-07 | 結構化 timing／status log |
-
----
-
-## English Version
-
-Single-shot 60s Agent with explicit retry API; on SSE drop, client GETs persisted review (no resume). Rules run sync with lean mxCell parse and warn-on->2MB. Audit via structured Python logging (no table). `ReviewOrchestrator` owns state machine/timeout/audit. No application-level concurrency cap—document OS/worker risk.

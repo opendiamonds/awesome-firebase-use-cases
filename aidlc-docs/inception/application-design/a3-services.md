@@ -1,6 +1,5 @@
 # A3 Services
 
-## 中文版
 
 ### ReviewService（編排核心）
 
@@ -36,9 +35,3 @@
 
 - AssessmentPage / Workspace：開 SSE → 先渲染規則結果 → 再填建議  
 - Sidebar：A3.view → `/assessment`
-
----
-
-## English Version
-
-`ReviewService` owns the pipeline: ACL → rules → persist → ReviewAgent (same Agent SDK stack as A1, separate module) → SSE. On LLM failure, keep rule findings. Independent MCP/prompt from DesignAgent; shared OpenRouter/SDK env conventions.

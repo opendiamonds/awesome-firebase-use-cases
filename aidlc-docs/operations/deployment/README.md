@@ -3,7 +3,6 @@
 > Operations — deployment artifacts index.
 > Operations — 部署產出索引。
 
-## 中文版
 
 ### 範圍
 
@@ -22,25 +21,3 @@
 
 - 通用部署驗收清單（非 A3）與 rollback 步驟擴寫
 - 與 `aidlc-state.md` Operations 區塊同步的 stage-completion summary
-
----
-
-## English Version
-
-### Scope
-
-This directory indexes AIDLC artifacts for Cloud-360 **self-hosted staging** deployment. Implementation lives in:
-
-- `deploy/docker-compose.deploy.yml`
-- `deploy/cloudflared/config.yml`
-- `deploy/.env.example`
-- `.github/workflows/deploy.yml`
-
-Decision record: [`ADR-0007`](../../inception/decisions/0007-self-hosted-deployment-pipeline.md).  
-Manual env / DB seed guide: [`DEPLOY.md`](../../../DEPLOY.md).  
-**A3 go-live**: [`a3-go-live-checklist.md`](a3-go-live-checklist.md).
-
-### Pending artifacts
-
-- General (non-A3) deployment acceptance checklist expansion
-- Stage-completion summary aligned with the Operations section of `aidlc-state.md`

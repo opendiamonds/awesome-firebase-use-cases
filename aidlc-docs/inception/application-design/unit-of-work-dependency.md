@@ -3,7 +3,6 @@
 > Dependencies among Cloud-360 units covering stories A1 / A2 / A3 / A4 / A5 / J.  
 > Arrow meaning: **depends on** (consumer → provider).
 
-## 中文版
 
 ### 1. Mermaid
 
@@ -66,11 +65,3 @@ U-J  depends_on (none within this set)
 ### 5. 建議實作／驗收順序
 
 1. U-J → 2. U-A1 → 3. U-A2 → 4. U-A4／U-A5（可並行）→ 5. **U-A3**（依賴圖與 RBAC 已備）
-
----
-
-## English Version
-
-### Matrix & edges
-
-`U-A3` hard-depends on `U-J` and `U-A2`; soft/peer with `U-A1` (CTA + shared Agent SDK family, no DesignAgent call). Other edges unchanged. Suggested order: … then U-A3 after diagram + RBAC foundations exist.

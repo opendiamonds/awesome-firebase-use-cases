@@ -1,6 +1,5 @@
 # J5 Business Logic Model — Flows & API
 
-## 中文版
 
 ### 1. 註冊與等待授權
 
@@ -92,9 +91,3 @@ Admin 使用者設定頁
 | `AdminPage` 僅使用者列表 | + **授權申請** 頁／區塊 |
 | 無 waiting 頁 | `WaitingApprovalPage` |
 | 無 catalog API | `/roles/catalog` |
-
----
-
-## English Version
-
-Registration issues JWT with empty permissions and routes to `/waiting-approval`. Admins use a new **Authorization Requests** queue (`GET /authorization-requests`, approve/reject endpoints) visible from Admin navigation (BR-08). Deactivate-then-delete with diagram ownership guard. API table and state machine in Chinese section; implementation replaces current `/register` → `Developer` behavior.

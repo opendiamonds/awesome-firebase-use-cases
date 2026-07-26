@@ -4,7 +4,6 @@
 > 問答：`inception/plans/a3-lens-editor-questions.md` + `a3-lens-editor-clarification-questions.md`（2026-07-26）  
 > 基線：`a3-well-architected-requirements.md`；執行期 Lens：`backend/lenses/cloud360-core-mvp-lens.json`
 
-## 中文版
 
 ### 1. Intent Analysis
 
@@ -76,19 +75,3 @@
 | security/baseline | applicable | NFR-A3-L01；Code 強制角色閘 |
 | property-based | applicable | NFR-A3-L04；Code／Build 評估 |
 | resiliency | N/A | 未啟用 |
-
----
-
-## English Version
-
-### 1. Intent
-
-Enhancement so `Security_Reviewer` can dynamically edit the five-pillar Offline Custom Lens criteria for A3.
-
-### 2. Decisions
-
-DB-backed active lens with file fallback; writes require **A3.review** (default seed: Security_Reviewer VER); new reviews only; Assessment UI tab; add/remove questions under fixed five pillars with system templates (no hand-edit of riskRules); improvementPlan defaults from title; ≥1 question per pillar.
-
-### 3–5. Requirements
-
-See FR-A3-L01…L11, out-of-scope list, and NFR-A3-L01…L05 in the Chinese section.

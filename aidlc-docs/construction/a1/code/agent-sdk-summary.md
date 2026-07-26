@@ -1,7 +1,5 @@
 # A1 Agent SDK Implementation Summary
 
-## 中文版
-
 ### 結果
 
 A1 已改為 **Anthropic Agent SDK（`claude-agent-sdk`）+ OpenRouter**。畫圖邏輯（文字座標指南、`groups/nodes/edges`、n8n icon、`mxGraphModel`、SSE 契約）維持不變。
@@ -33,20 +31,4 @@ ANTHROPIC_API_KEY=      # 必須為空
 1. 設定 `.env` 後重啟 backend  
 2. alex 登入 → 明確產圖需求 → 畫布出現 XML  
 3. 局部修改（帶 current_xml）  
-4. A2 存檔／分享／WS  
-
----
-
-## English Version
-
-### Result
-
-A1 now uses **Anthropic Agent SDK + OpenRouter**. Drawing logic (text layout guide, groups/nodes/edges, n8n icons, mxGraphModel, SSE contract) is unchanged.
-
-### Modules
-
-Same table as Chinese section.
-
-### Env / Security / Manual checks
-
-Same as Chinese section (OpenRouter Agent SDK env mapping; single MCP draw tool; manual E2E for generate, partial edit, A2 regression).
+4. A2 存檔／分享／WS

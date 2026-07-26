@@ -3,7 +3,6 @@
 > As-built architecture from the current repository (not the aspirational full multi-agent SRS).  
 > 依現況 repo 反推的 as-built 架構（非完整 SRS 願景）。
 
-## 中文版
 
 ### 系統概覽
 
@@ -76,9 +75,3 @@ all APIs -> PostgreSQL; staging ingress via Cloudflare Tunnel -> frontend nginx
 | Database | PostgreSQL | users、diagrams、shares、chats、role_permissions |
 | Optional | `N8N_WEBHOOK_URL` | 架構圖 icon |
 | Deploy | Cloudflare Tunnel | 對外 `cloud360.danniel.cc` |
-
----
-
-## English Version
-
-Monolith FastAPI + React + PostgreSQL. Design generation via Agent SDK → OpenRouter. Staging via Docker Compose + Cloudflare Tunnel (ADR-0007). See Chinese section for diagrams, components, data flows, and integration points.

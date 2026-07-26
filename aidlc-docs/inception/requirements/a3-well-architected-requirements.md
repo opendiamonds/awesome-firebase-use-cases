@@ -5,7 +5,6 @@
 > Answers: `inception/plans/a3-requirements-questions.md`（2026-07-23）  
 > Baseline story: `user-stories/stories.md` §A3；現況 FE 有「Well-Architected」按鈕（`showComingSoon`）
 
-## 中文版
 
 ### 1. Intent Analysis
 
@@ -87,23 +86,3 @@
 | security/baseline | applicable | NFR-A3-01；FD／Code 強制 |
 | property-based | applicable | NFR-A3-02；規則輸出性質 |
 | resiliency | N/A | 未啟用 |
-
----
-
-## English Version
-
-### 1. Intent Analysis
-
-New feature A3 on brownfield Cloud-360: Well-Architected review MVP. Scope spans backend review service, persistence, Workspace + dashboard UI, and A3 RBAC. Complexity: complex (rules + LLM hybrid).
-
-### 2. Decisions
-
-MVP in-app scores and findings; **PDF download added as FR-A3-11** (client-side; complete/rules_only; A3.view). AWS-first with UI reserved for GCP/Azure. Hybrid entry and hybrid engine as before. Persist full review history. Dual UI. Use `role_permissions` A3 flags. SPOF animation and non-AWS rules remain out of scope.
-
-### 3–5. Requirements
-
-See Chinese FR-A3-01…10, out-of-scope list, and NFR-A3-01…05.
-
-### 6. Next Inception steps
-
-Revise A3 story AC for MVP markers, align SRS if needed, add `U-A3` unit, then Workflow Planning → Construction FD.

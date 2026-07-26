@@ -3,7 +3,6 @@
 > Operations — observability artifacts (placeholder).
 > Operations — 可觀測性產出（骨架）。
 
-## 中文版
 
 ### 狀態
 
@@ -14,17 +13,3 @@
 - 日誌／指標／追蹤的最小監控面
 - 告警門檻與通知通道（不含 production secret）
 - 與 Agent / API / DB 相關的健康檢查說明
-
----
-
-## English Version
-
-### Status
-
-⏳ **Pending**. Per `aidlc-docs/aidlc-state.md`, Observability / Incident Playbooks are not complete yet.
-
-Future artifacts in this directory should cover:
-
-- Minimum monitoring surface for logs / metrics / traces
-- Alert thresholds and notification channels (no production secrets)
-- Health-check notes for Agent / API / DB

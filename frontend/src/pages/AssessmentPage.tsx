@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
 import { SuggestionRichText } from '../components/SuggestionRichText';
 import { LensCriteriaEditor } from '../components/LensCriteriaEditor';
@@ -107,7 +107,9 @@ export const AssessmentPage = () => {
   const [mainTab, setMainTab] = useState<'reviews' | 'lens'>('reviews');
 
   const [diagrams, setDiagrams] = useState<DiagramItem[]>([]);
-  const [selectedDiagramId, setSelectedDiagramId] = useState<number | null>(null);
+  // URL 的 ?diagramId= 只作為初始值；使用者從下拉改選後以其選擇為準（derive，
+  // 不用 effect 從 searchParams 同步 state）。
+  const [diagramOverride, setDiagramOverride] = useState<number | null>(null);
   const [provider, setProvider] = useState('aws');
   const [replaceLatest, setReplaceLatest] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -115,7 +117,10 @@ export const AssessmentPage = () => {
   const [suggestionsLive, setSuggestionsLive] = useState('');
   const [phase, setPhase] = useState<string>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [loadingList, setLoadingList] = useState(false);
+  // 記錄「歷史評核已載入哪張圖」，loadingList 由此推導；如此 effect body 內不需
+  // 同步 setState（react-hooks/set-state-in-effect）。事件處理可直接設回 null 以
+  // 重新顯示載入中。
+  const [loadedFor, setLoadedFor] = useState<number | null>(null);
   const [openingId, setOpeningId] = useState<number | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
@@ -128,48 +133,62 @@ export const AssessmentPage = () => {
     [token]
   );
 
-  const loadDiagrams = useCallback(async () => {
+  // 純抓取，完全不碰 state。react-hooks/set-state-in-effect 會做過程間分析：
+  // 只要 effect 同步呼叫的函式內部有 setState 就會被擋，因此 state 更新一律留在
+  // 呼叫端的 callback 內（規則允許的形式）。
+  const fetchDiagrams = useCallback(async () => {
     const res = await fetch(apiUrl('/api/collab/diagrams'), {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return;
-    const data = await res.json();
-    setDiagrams(data);
+    if (!res.ok) return null;
+    return res.json();
   }, [token]);
 
-  const loadReviews = useCallback(
+  const fetchReviews = useCallback(
     async (diagramId: number) => {
-      setLoadingList(true);
-      try {
-        const res = await fetch(
-          apiUrl(`/api/architecture/reviews?diagram_id=${diagramId}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.ok) {
-          setReviews(await res.json());
-        }
-      } finally {
-        setLoadingList(false);
-      }
+      const res = await fetch(
+        apiUrl(`/api/architecture/reviews?diagram_id=${diagramId}`),
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return res.ok ? res.json() : null;
     },
     [token]
   );
 
-  useEffect(() => {
-    loadDiagrams();
-  }, [loadDiagrams]);
+  // 事件處理呼叫用：先切到 loading 再抓。
+  const loadReviews = useCallback(
+    (diagramId: number) => {
+      setLoadedFor(null);
+      return fetchReviews(diagramId)
+        .then((data) => { if (data) setReviews(data); })
+        .finally(() => setLoadedFor(diagramId));
+    },
+    [fetchReviews]
+  );
 
-  useEffect(() => {
+  const urlDiagramId = useMemo(() => {
     const q = searchParams.get('diagramId');
-    if (q) {
-      const id = Number(q);
-      if (!Number.isNaN(id)) setSelectedDiagramId(id);
-    }
+    if (!q) return null;
+    const id = Number(q);
+    return Number.isNaN(id) ? null : id;
   }, [searchParams]);
+  const selectedDiagramId = diagramOverride ?? urlDiagramId;
+  const loadingList = selectedDiagramId !== null && loadedFor !== selectedDiagramId;
 
   useEffect(() => {
-    if (selectedDiagramId) loadReviews(selectedDiagramId);
-  }, [selectedDiagramId, loadReviews]);
+    let cancelled = false;
+    fetchDiagrams().then((data) => { if (!cancelled && data) setDiagrams(data); });
+    return () => { cancelled = true; };
+  }, [fetchDiagrams]);
+
+  useEffect(() => {
+    if (!selectedDiagramId) return;
+    let cancelled = false;
+    fetchReviews(selectedDiagramId)
+      .then((data) => { if (!cancelled && data) setReviews(data); })
+      .finally(() => { if (!cancelled) setLoadedFor(selectedDiagramId); });
+    return () => { cancelled = true; };
+  }, [selectedDiagramId, fetchReviews]);
 
   const applySseEvent = (data: Record<string, unknown>) => {
     const type = String(data.type || '');
@@ -483,7 +502,7 @@ export const AssessmentPage = () => {
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-gray-800 min-w-[12rem]"
                 value={selectedDiagramId ?? ''}
                 onChange={(e) =>
-                  setSelectedDiagramId(e.target.value ? Number(e.target.value) : null)
+                  setDiagramOverride(e.target.value ? Number(e.target.value) : null)
                 }
               >
                 <option value="">— 選擇 —</option>

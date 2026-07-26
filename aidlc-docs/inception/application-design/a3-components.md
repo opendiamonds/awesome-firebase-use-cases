@@ -3,7 +3,6 @@
 > Unit preview: `U-A3` · Story A3 MVP  
 > Decisions: `a3-application-design-plan.md`（Q1=D 獨立 Agent＋Anthropic Agent SDK；Q2=B SSE；Q3=A 儀表板頁；Q4=A architecture/reviews；Q5=A ReviewService）
 
-## 中文版
 
 ### 元件一覽
 
@@ -32,9 +31,3 @@
 - `ReviewService` → `WaRuleEngine`：同步函式呼叫
 - `ReviewService` → `ReviewAgent`：async／串流建議
 - `ReviewService` → `ReviewRepository`：ORM
-
----
-
-## English Version
-
-Independent `ReviewAgent` using the same Anthropic Agent SDK + OpenRouter as A1 (not merged into `design_agent`). `ReviewService` owns orchestration; `WaRuleEngine` is deterministic; FE has Assessment dashboard page plus Workspace CTA/button with SSE. Depends on U-A2 diagrams, U-A1 CTA, U-J RBAC.

@@ -2,7 +2,6 @@
 
 > Consolidates `a3-components.md`, `a3-component-methods.md`, `a3-services.md`, `a3-component-dependency.md`.
 
-## 中文版
 
 ### 決策摘要
 
@@ -25,9 +24,3 @@
 ### 下一階段
 
 Units Generation：將 `U-A3` 寫入 `unit-of-work*.md`。Construction FD 再細化規則表與 schema。
-
----
-
-## English Version
-
-Independent ReviewAgent on the same Agent SDK stack as A1; ReviewService orchestration; SSE under `/api/architecture/reviews`; Assessment page + Workspace entry points. See sibling a3-* design files. Next: Units Generation for `U-A3`.

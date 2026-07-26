@@ -1,6 +1,5 @@
 # A4 Business Logic Model — Flows & API
 
-## 中文版
 
 ### 1. Bootstrap 還原
 
@@ -34,9 +33,3 @@ sequenceDiagram
 ### 4. 狀態
 
 Code done；待手動 E2E。見 `a4/code/chat-persistence-summary.md`。
-
----
-
-## English Version
-
-Bootstrap restores last-opened diagram and chat; chat CRUD + last-opened endpoints under `/api/collab`. See Chinese for paths and ownership.

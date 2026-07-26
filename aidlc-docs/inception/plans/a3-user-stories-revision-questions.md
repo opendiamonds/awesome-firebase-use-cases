@@ -4,7 +4,6 @@
 > Scope: `stories.md` §A3（中／英）  
 > Requirements: `requirements/a3-well-architected-requirements.md`（已核准）
 
-## 中文版
 
 ### 評估結論
 執行 **User Stories 修訂**（見 `user-stories-assessment.md`）。
@@ -82,9 +81,3 @@ A) 中文與 English **同步改**
 B) Other (please describe after [Answer]: tag below)
 
 [Answer]:Ａ
-
----
-
-## English Version
-
-Plan: revise A3 story to match approved MVP requirements. Answer Q1–Q5 above with the same `[Answer]:` tags (structure MVP markers vs split; entry points; persona collaboration; linked docs; bilingual sync).

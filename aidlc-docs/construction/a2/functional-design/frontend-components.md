@@ -1,6 +1,5 @@
 # A2 Frontend Components
 
-## 中文版
 
 ### 承載
 
@@ -20,9 +19,3 @@
 
 - 框選節點群組後自動抽取 selection 給 AI：未做。
 - AI 變更歷史時間軸／一鍵 Undo：未做。
-
----
-
-## English Version
-
-`WorkspacePage` + `DrawioCanvas` + `ChatBox` own save/switch/manual edit and AI partial prompts. Selection extraction and AI undo UI are open gaps.

@@ -3,7 +3,6 @@
 > Reverse-engineered from the Cloud-360 brownfield codebase (2026-07-17).  
 > 由現有程式碼反推的業務總覽。
 
-## 中文版
 
 ### 業務情境圖
 
@@ -58,22 +57,3 @@ Web <-> draw.io canvas; API streams SSE / WebSocket back to Web
 | `deploy/` | Staging 部署 | compose、cloudflared、環境範本 |
 | `scripts/` | Repo 契約 | `validate_repo_contract.py` |
 | `aidlc-docs/` | 方法論產物 | SRS、stories、ADRs、construction／operations 文件 |
-
----
-
-## English Version
-
-### Business context
-
-Cloud-360 is an AI-native multi-cloud architecture design and collaboration platform. The implemented core is natural-language generation/editing of draw.io diagrams, gated by JWT login and story-level RBAC.
-
-### Business transactions (implemented)
-
-1. Login / permission bootstrap  
-2. Generate architecture diagram (NL → XML via Agent SDK)  
-3. Edit / save diagrams (partial AI + CRUD + multi-file)  
-4. Persist chat per user×diagram + last-opened restore  
-5. Share + real-time XML collaboration  
-6. Admin role assignment + role×story matrix  
-
-See Chinese section for dictionary terms and component-level business descriptions.

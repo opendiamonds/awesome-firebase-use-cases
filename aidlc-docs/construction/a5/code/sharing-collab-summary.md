@@ -3,7 +3,6 @@
 > Retrospective code summary for the implemented A5 core.  
 > 已實作之 A5 核心的補寫 code summary。
 
-## 中文版
 
 ### 結果
 
@@ -59,15 +58,3 @@
 ### 已知缺口
 
 - cursor 廣播協定、WS JWT → 後續 plan
-
----
-
-## English Version
-
-### Result
-
-ShareModal grants per-user view/edit/review on a diagram; concurrent editors sync XML over WebSocket with a collab/solo status badge; welcome text and read-only chat differ by permission.
-
-### Known gaps
-
-Multi-user cursors and WS JWT hardening are pending. Ownership and AC status: see Chinese tables.

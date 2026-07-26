@@ -48,11 +48,11 @@ Use the GitHub tools:
 - **Issues** — opened and closed.
 - **CI** — runs of the `CI` workflow on `main` and `ut`. Which failed, and on what.
 - **Deploys** — runs of the `Deploy (ut → 192.168.10.10)` workflow. Did `ut` reach https://cloud360.danniel.cc, or did it fail?
-- **Agentic workflows** — did Contract Guard, PR Reviewer, Issue Triage, or Doc Sync fail? A silently broken agent is worse than no agent, and this digest is where that surfaces.
+- **Agentic workflows** — did Contract Guard, PR Reviewer, Issue Triage, Spec Sync, or Lint Fixer fail? A silently broken agent is worse than no agent, and this digest is where that surfaces.
 
 ## What to write
 
-Create **one** issue titled `Daily digest: <YYYY-MM-DD>`, bilingual (Traditional Chinese first, then English).
+Create **one** issue titled `Daily digest: <YYYY-MM-DD>`, in Traditional Chinese (ADR-0009).
 
 Lead with what a person would want to know first:
 

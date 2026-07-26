@@ -4,7 +4,6 @@
 > Status: **COMPLETE**（2026-07-23）— 已核准；下一階段 Build and Test  
 > Infrastructure Design: **SKIP**
 
-## 中文版
 
 ### Generation steps
 
@@ -20,9 +19,3 @@
 ### Approval gate
 
 Part 2 Generation finished. Awaiting user review → **Build and Test**.
-
----
-
-## English Version
-
-All eight code-generation steps for U-A3 are complete. See `aidlc-docs/construction/a3/code/well-architected-review-summary.md`. Next: Build and Test.

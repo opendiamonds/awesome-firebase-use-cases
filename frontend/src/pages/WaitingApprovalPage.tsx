@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
 
 interface CatalogRole {
@@ -13,7 +13,9 @@ export const WaitingApprovalPage: React.FC = () => {
   const { user, token, logout, refreshMe, isPending, isLoading } = useAuth();
   const navigate = useNavigate();
   const [catalog, setCatalog] = useState<CatalogRole[]>([]);
-  const [selectedRole, setSelectedRole] = useState('');
+  // 使用者是否手動改過下拉；未改過時直接沿用伺服器上的申請角色（derive，
+  // 不用 effect 同步 state — 送出後 refreshMe() 會讓兩者一致）。
+  const [roleOverride, setRoleOverride] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -31,11 +33,7 @@ export const WaitingApprovalPage: React.FC = () => {
       .catch(() => setCatalog([]));
   }, []);
 
-  useEffect(() => {
-    if (user?.pending_request?.requested_role) {
-      setSelectedRole(user.pending_request.requested_role);
-    }
-  }, [user?.pending_request?.requested_role]);
+  const selectedRole = roleOverride ?? user?.pending_request?.requested_role ?? '';
 
   const handleChangeRole = async () => {
     if (!selectedRole || !token) return;
@@ -87,7 +85,7 @@ export const WaitingApprovalPage: React.FC = () => {
           <label className="text-xs font-bold text-slate-400 uppercase">更改申請角色</label>
           <select
             value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
+            onChange={(e) => setRoleOverride(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm"
           >
             {catalog.map((r) => (

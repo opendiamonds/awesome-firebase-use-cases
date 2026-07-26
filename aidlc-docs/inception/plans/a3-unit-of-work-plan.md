@@ -3,7 +3,6 @@
 > Units Generation for story A3 → `U-A3` (2026-07-23).  
 > Incremental update to existing `unit-of-work*.md` (brownfield monolith).
 
-## 中文版
 
 ### 背景
 
@@ -28,16 +27,3 @@
 - [x] 更新 `unit-of-work-story-map.md`  
 - [x] A3 僅映射至 U-A3  
 - [x] 使用者確認 Units Generation 完成  
-
----
-
-## English Version
-
-### Adopted
-
-Single module **`U-A3`**; hard deps U-J + U-A2; soft/peer U-A1; construction folder `construction/a3/`.
-
-### Checklist
-
-- [x] All three unit artifacts updated  
-- [x] User confirms Units Generation complete  

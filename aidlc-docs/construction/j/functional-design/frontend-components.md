@@ -1,6 +1,5 @@
 # J5 Frontend Components
 
-## 中文版
 
 ### 路由
 
@@ -104,9 +103,3 @@ isPending: boolean;  // status === 'pending'
 | username | 3–20、英數底線（與 BE 一致） |
 | password | 6–30 |
 | requested_role | 必填 ∈ catalog |
-
----
-
-## English Version
-
-New pages: `WaitingApprovalPage`, **`AuthorizationRequestsPage`** (admin queue for pending role requests with approve/reject). Extended `LoginPage` (role catalog picker), `AdminPage` (status, deactivate-then-delete), `AuthContext` (`isPending`), `Sidebar` link with optional pending badge. Routes and API mapping in Chinese section.

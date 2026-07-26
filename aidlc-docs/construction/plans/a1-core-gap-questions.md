@@ -5,8 +5,6 @@
 > 目的：對齊 User Story A1 核心 AC／操作流程／系統回饋；不含 A3 Well-Architected 真功能、不含多角色留言協作（偏 A2）  
 > **Plan 已合併至** `a1-agent-sdk-code-generation-plan.md`（Phase 2 / Step 7–8）
 
-## 中文版
-
 請在各題 `[Answer]:` 後填入選項字母（可多題一次回覆，例如 `1.A 2.B 3.A`）。
 
 ### Question 1
@@ -55,11 +53,3 @@ C) 取消
 D) Other (please describe after [Answer]: tag below)
 
 [Answer]: B
-
----
-
-## English Version
-
-Same questions as Chinese: (1) scope of A1 core fill, (2) autosave behavior, (3) Full Reset vs Clear Chat, (4) CTA stubs vs toast-only, (5) approve now / plan first / cancel.
-
-Reply with letters after each `[Answer]:`, or one line like `1.A 2.A 3.A 4.A 5.A`.

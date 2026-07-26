@@ -3,7 +3,6 @@
 > Unit: `U-A3` (Well-Architected Review)  
 > Status: **COMPLETE**（2026-07-23）— 已核准；下一階段 NFR Design
 
-## 中文版
 
 ### Checklist
 
@@ -154,9 +153,3 @@ C) 需達到 WCAG 2.1 AA（請在 Answer 註範圍）
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]: A
-
----
-
-## English Version
-
-NFR Requirements for **U-A3** are **COMPLETE**. See `aidlc-docs/construction/a3/nfr-requirements/`. Awaiting approval → **NFR Design**.

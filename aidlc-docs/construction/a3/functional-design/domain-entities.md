@@ -3,7 +3,6 @@
 > Unit `U-A3` · Story A3 MVP  
 > Decisions: `construction/plans/a3-functional-design-plan.md`（Q1–Q10 + Q2b）
 
-## 中文版
 
 ### 1. 實體關係
 
@@ -96,11 +95,3 @@ User ──owns/shares──> UserDiagram (U-A2)
 | A3.review | 審核語意預留；MVP 不另開流程 |
 
 Pending 使用者（J5）→ 不可評核（FR-A3-10）。
-
----
-
-## English Version
-
-### Entities
-
-`ArchitectureReview` 1:N from `UserDiagram`; stores provider, status, weighted scores, findings JSON, suggestions, optional archive flag. Findings include `code`, pillar, severity, title, message, `node_ids`, `recommendation_hint`. Agent input is structured diagram summary + `RuleResult` (no full XML). Pillar weights (OE 10 / Sec 30 / Rel 30 / Perf 15 / Cost 15) are snapshotted per review. Read ACL = A3.view + diagram read access.

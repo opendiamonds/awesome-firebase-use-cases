@@ -3,7 +3,6 @@
 > Unit `U-A3` 增量 · Requirements: `a3-lens-editor-requirements.md`  
 > Execution: `a3-lens-editor-execution-plan.md`
 
-## 中文版
 
 ### 1. 實體：`wa_lenses`
 
@@ -42,9 +41,3 @@ Lens 標準：依柱展開題目，編 title／description／choices／improveme
 ### 5. 部署
 
 `schema_rbac.sql` 區塊 E 擴充 `wa_lenses`；`DEPLOY.md` 同步；`_ensure_a3_schema` 補表。
-
----
-
-## English Version
-
-Short FD: `wa_lenses` active JSON; DB-first resolve for reviews; **A3.review** gate for lens APIs; Assessment tab; schema_rbac + DEPLOY sync.

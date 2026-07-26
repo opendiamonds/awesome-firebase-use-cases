@@ -1,6 +1,5 @@
 # Unit Test Execution
 
-## 中文版
 
 ### 現況
 
@@ -44,23 +43,3 @@ python3 -m unittest discover -s tests -v
 |---|---|
 | FastAPI TestClient（reviews SSE HTTP） | ❌ 見 integration 手動場景 |
 | frontend 單元測試 | ❌ 無 test runner（CI：lint + tsc build） |
-
----
-
-## English Version
-
-### Current state
-
-`backend/tests/` covers RBAC, auth, collab, design agent, diagram builder, J5, and **A3** rule-engine PBT + review ACL. SQLite in-memory; `psycopg2` mocked.
-
-### Run
-
-```bash
-cd backend && pip install -r requirements.txt && python3 -m unittest discover -s tests -v
-```
-
-Expected (2026-07-23): `Ran 61 tests ... OK`.
-
-### Gaps
-
-HTTP TestClient for reviews SSE; frontend unit tests (CI covers lint + build).

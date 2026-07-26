@@ -75,7 +75,9 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # Import smoke: catches syntax / bad imports / router wiring.
+      # Import smoke: catches syntax errors, bad imports, and router wiring
+      # mistakes at CI time rather than on the deploy host. The unit suite below
+      # covers behaviour; this step still catches breakage the suite never imports.
       - name: Import FastAPI app
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cloud360

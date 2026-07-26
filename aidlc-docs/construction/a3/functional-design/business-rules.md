@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Story A3 MVP
 
-## 中文版
 
 ### BR-A3-01 發起評核
 
@@ -78,15 +77,3 @@ SPOF／AZ 模擬與動畫、連雲端 Live 檢查。
 | P-A3-04 | 無 diagram 讀取權 → GET／POST 403 |
 | P-A3-05 | Agent 失敗後 overall／findings 仍可讀；status=`rules_only` |
 | P-A3-06 | `replace_latest=true` 後舊 complete 列 `archived=true` 且仍可 get by id |
-
----
-
-## English Version
-
-Start review requires A3.edit + diagram read ACL. Non-aws providers create `unsupported` rows without engine/agent. Always insert new rows; optional `replace_latest` archives prior finished reviews. Reads need A3.view + diagram ACL.
-
-**Scoring authority**: offline Custom Lens `riskRules` (NO=100 / MEDIUM=70 / HIGH=40; weighted overall). Heuristic `WaRuleEngine` scores stay in `scores.heuristic` only.
-
-**Findings (UI)**: derived from Lens HIGH+MEDIUM risks (`findings_from_lens_score`); severity high/warn; codes `LENS-{question_id}`. Heuristic findings are not stored in authoritative `findings_json` except as Q5=B fallback when Lens fails (`source=heuristic`).
-
-**Agent**: consumes Lens findings (same as UI). SSE: `rules_done` (empty findings) → `lens_done` (scores+findings) → suggestion deltas → `complete`. **PDF**: client-side download for complete/rules_only with A3.view (FR-A3-11). SPOF remains out of scope.

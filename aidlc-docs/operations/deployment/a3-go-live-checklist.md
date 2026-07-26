@@ -3,7 +3,6 @@
 > Unit `U-A3` · 輕量 Operations 文件（非正式完整 Ops 階段）  
 > 詳部署：[`DEPLOY.md`](../../../DEPLOY.md) · 程式摘要：[`lens-editor-summary.md`](../../construction/a3/code/lens-editor-summary.md)、[`well-architected-review-summary.md`](../../construction/a3/code/well-architected-review-summary.md)
 
-## 中文版
 
 ### 0. 上線前前提
 
@@ -84,22 +83,3 @@ WHERE role = 'Security_Reviewer' AND story_id = 'A3';
 | DB／權限 | | | ☐ OK |
 | Smoke 3.1–3.7 | | | ☐ OK |
 | 回滾路徑已知 | | | ☐ OK |
-
----
-
-## English Version
-
-### Purpose
-
-Lightweight A3 go-live checklist (not a full AIDLC Operations stage). Covers DB (`architecture_reviews`, `wa_lenses`), RBAC (A3 view/edit/**review**), smoke tests for review / PDF / Lens editor, and simple rollback.
-
-### Checklist (summary)
-
-1. Env vars + build with A3 code  
-2. Run / verify `schema_rbac.sql`; confirm `wa_lenses` and Security_Reviewer `A3.can_review=true`  
-3. Start services; open `/assessment`  
-4. Smoke: start review, history, PDF, Lens edit (A3.review), new review uses new lens, 403 without review  
-5. Authz / change default passwords  
-6. Rollback: deactivate bad `wa_lenses` row → file fallback; redeploy previous image  
-
-See Chinese section for full commands and sign-off table.

@@ -4,7 +4,6 @@
 > Stories: **J5**（主）＋ **J3** AC6–7（核准申請、刪除使用者）  
 > Status: **COMPLETE**（2026-07-17；含管理員「授權申請」佇列 UI）
 
-## 中文版
 
 ### Checklist
 
@@ -162,9 +161,3 @@ C) 可以，但一天限改 N 次（請在 Answer 寫 N）
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]:Ａ
-
----
-
-## English Version
-
-Functional design plan for U-J / J5 (registration without default role, role catalog, admin approve/reject/delete). Checklist and questions are in the Chinese section; fill each `[Answer]:` before FD artifacts are generated.

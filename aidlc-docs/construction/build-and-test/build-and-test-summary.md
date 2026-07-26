@@ -3,7 +3,6 @@
 > Scope: Cloud-360 monolith incl. **U-A3** Well-Architected Review  
 > Verified: 2026-07-23
 
-## 中文版
 
 ### Build Status
 
@@ -55,11 +54,3 @@
 | Build | Success |
 | Automated tests | Pass |
 | Ready for Operations placeholder | Yes（A3 沿用現有 deploy；無新 infra） |
-
----
-
-## English Version
-
-### Summary
-
-Build OK: 61 backend unit tests (incl. A3 PBT/ACL), frontend production build, repo contract. No automated performance suite (NFR best-effort). Integration for A3 documented as manual Scenario 5. Ready for Operations placeholder on existing deploy path.

@@ -55,27 +55,43 @@ export function LensCriteriaEditor({ token }: Props) {
     [token]
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(apiUrl('/api/architecture/lens/active'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setLens(data.lens as Lens);
-      setSource(data.source || '');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '載入 Lens 失敗');
-    } finally {
-      setLoading(false);
-    }
+  // 純抓取，完全不碰 state。react-hooks/set-state-in-effect 會做過程間分析：
+  // 只要 effect 同步呼叫的函式內部有 setState 就會被擋，因此 state 更新一律留在
+  // 呼叫端的 callback 內（規則允許的形式）。
+  const fetchLens = useCallback(async () => {
+    const res = await fetch(apiUrl('/api/architecture/lens/active'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
   }, [token]);
 
+  // 使用者主動觸發的重載（存檔後）：先切回 loading 再抓。
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return fetchLens()
+      .then((data) => {
+        setLens(data.lens as Lens);
+        setSource(data.source || '');
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : '載入 Lens 失敗'))
+      .finally(() => setLoading(false));
+  }, [fetchLens]);
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    // 初次載入時 loading 已是 true，不需要再設一次。
+    let cancelled = false;
+    fetchLens()
+      .then((data) => {
+        if (cancelled) return;
+        setLens(data.lens as Lens);
+        setSource(data.source || '');
+      })
+      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : '載入 Lens 失敗'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [fetchLens]);
 
   const updateQuestion = (
     pillarId: string,

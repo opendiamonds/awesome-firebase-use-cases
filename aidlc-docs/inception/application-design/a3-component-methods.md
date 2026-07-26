@@ -2,7 +2,6 @@
 
 > High-level signatures only; business rules → Construction FD.
 
-## 中文版
 
 ### ReviewRouter
 
@@ -47,9 +46,3 @@
 | `AssessmentPage.runReview(diagramId)` | EventSource／fetch stream 消費 SSE |
 | `WorkspacePage.openWellArchitected()` | 對 current diagram POST reviews |
 | post-A1 CTA handler | 產圖成功後同 POST |
-
----
-
-## English Version
-
-Router exposes SSE start + list/get under `/api/architecture/reviews`. `ReviewService.start_review` orchestrates. `WaRuleEngine.evaluate` is pure. `ReviewAgent.run_suggestions` streams via Agent SDK. Repository persists. FE AssessmentPage and Workspace CTA consume SSE.

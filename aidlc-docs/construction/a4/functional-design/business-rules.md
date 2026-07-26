@@ -1,6 +1,5 @@
 # A4 Business Rules — Chat & Last-Opened Persistence
 
-## 中文版
 
 ### BR-A4-01 鍵值隔離
 
@@ -30,9 +29,3 @@
 | P-A4-01 | 同 user 兩 diagram 的 messages 互不出現 |
 | P-A4-02 | clear chat 後 xml_data 不變 |
 | P-A4-03 | bootstrap 回傳之 diagram.id == last_opened（若仍存在） |
-
----
-
-## English Version
-
-Isolate chat by user×diagram; persist after turns; clear deletes messages only; last-opened drives bootstrap; unauthorized → 403.

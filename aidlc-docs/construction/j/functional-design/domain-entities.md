@@ -3,7 +3,6 @@
 > Unit `U-J` · Stories J5 + J3 (approve / delete)  
 > Decisions: `j5-functional-design-plan.md` (2026-07-17) + admin **授權申請佇列** UI
 
-## 中文版
 
 ### 實體關係
 
@@ -64,23 +63,3 @@ User 1 ──* RoleAuthorizationRequest
 | `role` | handle |
 | `display_name` | 中文顯示名（personas 對照） |
 | `features` | 有 view/edit/review 的 story 列表（合併 A1/A2/A4 為「架構圖生成」） |
-
----
-
-## English Version
-
-### Relationships
-
-`User` has many `RoleAuthorizationRequest` rows; owned diagrams block hard delete.
-
-### User (extended)
-
-`authorization_status` ∈ {pending, approved, rejected} is authoritative (Q1=C). `role` is a canonical role only when approved; pending users get JWT but no business permissions.
-
-### RoleAuthorizationRequest (new table)
-
-Tracks requested role, pending/approved/rejected, timestamps, and admin decision. At most one pending request per user; pending users may change `requested_role` (Q8=A).
-
-### RoleCatalogEntry (DTO)
-
-Built dynamically from default `role_permissions` matrix for registration UI (Q7=B).

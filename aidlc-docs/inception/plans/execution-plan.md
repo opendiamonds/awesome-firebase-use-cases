@@ -3,7 +3,6 @@
 > AIDLC Workflow Planning for Cloud-360 (brownfield, developed scope A1/A2/A4/A5/J).  
 > Generated 2026-07-17 after reverse-engineering artifacts.
 
-## 中文版
 
 ### Detailed Analysis Summary
 
@@ -139,19 +138,3 @@ OPERATIONS: Deploy done; Observability/playbooks pending
 | security/baseline | N/A→watch | RE／WP 文件階段；實作缺口見 WS JWT |
 | property-based | non-compliant（deferred） | 核心模組尚無 PBT；列入 Build-and-Test |
 | resiliency/baseline | undecided | 1.0.1 新增；尚未寫入 `aidlc-state` opt-in |
-
----
-
-## English Version
-
-### Summary
-
-Brownfield Cloud-360: close Inception by completing reverse-engineering and this execution plan. Application design and units for A1/A2/A4/A5/J already exist. Next: Construction functional/NFR docs for thin units, finish AC gaps (WS JWT, E2E), build-and-test, then observability.
-
-### Risk
-
-Medium — external LLM dependency, incomplete WS auth, thin tests. Rollback via git + staging image revert.
-
-### Phase checklist
-
-Inception stages marked completed in the Chinese section. Construction: FD/NFR/BT pending; CG partial; Infrastructure Design skip. Operations: deploy done; observability pending.

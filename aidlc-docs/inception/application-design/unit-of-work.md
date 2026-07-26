@@ -4,7 +4,6 @@
 > Brownfield monolith：以 Module 切分；部署上仍為單一 backend + frontend。  
 > Scope: **A1 / A2 / A3 / A4 / A5 / J**（A3 於 2026-07-23 Units Generation 新增）。
 
-## 中文版
 
 ### 1. 拆分原則
 
@@ -82,19 +81,3 @@
         |                                        |
         +-- Assessment UI / SSE reviews          +-- share / WS --> [U-A5]
 ```
-
----
-
-## English Version
-
-### 1–2. Principles & catalogue
-
-Monolith modules. Catalogue includes **`U-A3` Well-Architected Review** (story A3) alongside U-J, U-A1, U-A2, U-A4, U-A5. B–H still unassigned.
-
-### 3. U-A3
-
-Owns architecture review pipeline (rules + independent ReviewAgent on same Agent SDK as A1), `/api/architecture/reviews` SSE, persistence, Assessment page + Workspace/post-A1 CTA, PDF. **Incremental**: Security_Reviewer maintains five-pillar offline Lens in DB (`wa_lenses`). Depends on U-J, U-A2; soft/peer with U-A1. MVP Code done; Lens Editor Inception complete — Construction FD/Code pending approval.
-
-### 4. Structure
-
-See Chinese text diagram.

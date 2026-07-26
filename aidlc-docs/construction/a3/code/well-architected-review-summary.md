@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Story A3 MVP · Code Generation 2026-07-23
 
-## 中文版
 
 ### 已實作
 
@@ -38,9 +37,3 @@
 2. 選圖執行評核 → 見分數與發現 → 有 key 時見建議串流  
 3. Workspace 產圖 CTA／Well-Architected 按鈕進 `/assessment?diagramId=`  
 4. Fiona 對分享圖可開啟同一報告（A3.view）  
-
----
-
-## English Version
-
-U-A3 MVP implemented: `ArchitectureReview` table, deterministic WA rule engine, independent ReviewAgent on the same Agent SDK stack as A1, ReviewOrchestrator (60s / audit / SSE), REST+SSE under `/api/architecture/reviews*`, Assessment page + Workspace entry points, Hypothesis PBT and ACL tests. No PDF/SPOF/non-AWS rules. Manual acceptance: run review from Assessment and Workspace CTA; shared-diagram read for Security_Reviewer.

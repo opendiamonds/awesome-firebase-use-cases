@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Decisions: `construction/plans/a3-nfr-requirements-plan.md`
 
-## 中文版
 
 ### 1. 決策摘要
 
@@ -48,11 +47,3 @@
 - 正式 99% SLO／外部 APM 強制  
 - WCAG 2.1 AA 驗收  
 - 同使用者評核併發上限  
-
----
-
-## English Version
-
-### Summary
-
-Rule phase p95 ≤ 5s; Agent 60s timeout with unlimited per-user concurrency; JWT+A3 RBAC plus structured audit without XML/suggestion bodies; best-effort availability; ≥3 Hypothesis properties on the rule engine; structured logs and optional metrics counters; reuse existing stack; Workspace-parity UX without formal WCAG. See Chinese table for ID-level acceptance notes.

@@ -3,7 +3,6 @@
 > Retrospective code summary for the already-implemented A2 core.  
 > 已實作之 A2 核心的補寫 code summary。
 
-## 中文版
 
 ### 結果
 
@@ -52,15 +51,3 @@
 ### 已知缺口（轉入後續計畫）
 
 - selection 抽取、AI 變更歷史／Undo → 需另立 code generation plan
-
----
-
-## English Version
-
-### Result
-
-draw.io-compatible canvas with manual editing, AI partial updates on existing XML (connections preserved), XML persistence with multi-diagram switching; last draft auto-loads via A4 bootstrap.
-
-### Known gaps
-
-Box-selection extraction and AI change-history/undo are not implemented; track in a follow-up code generation plan. Other AC status and file ownership: see Chinese tables.

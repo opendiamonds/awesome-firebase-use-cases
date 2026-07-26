@@ -3,7 +3,6 @@
 > Reverse-engineered from routers; detailed contracts also in `frontend-backend-specification.md`.  
 > 由 routers 反推；細節合約見 `frontend-backend-specification.md`。
 
-## 中文版
 
 ### REST — `/api/auth`
 
@@ -43,9 +42,3 @@
 | DiagramShare | diagram ↔ user、權限 |
 | UserDiagramChat | user_id + diagram_id → messages |
 | RolePermission | role × story_id × can_view／edit／review |
-
----
-
-## English Version
-
-As-built surfaces: `/api/auth` (login, me, admin), `/api/architecture/generate` (SSE), `/api/collab` (bootstrap, diagrams, chat, share, WebSocket). Models: User, UserDiagram, DiagramShare, UserDiagramChat, RolePermission. See Chinese tables for detail.

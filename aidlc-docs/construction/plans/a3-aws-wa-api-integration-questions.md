@@ -6,7 +6,6 @@
 > - [WA Tool API PDF](https://docs.aws.amazon.com/pdfs/wellarchitected/latest/APIReference/wellarchitected-api.pdf)
 > - [aws-samples/sample-well-architected-custom-lens](https://github.com/aws-samples/sample-well-architected-custom-lens)
 
-## 中文版
 
 ### 重要前情（務必讀）
 
@@ -189,14 +188,3 @@ C) 打包 **多個** sample lenses，UI 可選
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]: Ｂ
-
----
-
-## English Version
-
-**Status: POC DONE (fully offline; no AWS API).**
-
-**You cannot call the AWS WA Tool cloud service without AWS credentials.**  
-You **can** use lens JSON from [sample-well-architected-custom-lens](https://github.com/aws-samples/sample-well-architected-custom-lens) **offline** inside Cloud-360 (Agent answers questions from the diagram; local scoring). That repo’s documented import path targets the Console and needs an AWS account; offline reuse of the JSON does not.
-
-Locked answers: Q0=A, Q1=D, Q2=B, Q3=A, Q4=D, Q5=C, Q6=A, Q7=B, Q8=B. See `aidlc-docs/construction/a3/code/offline-lens-poc-summary.md`.

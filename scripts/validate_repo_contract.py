@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -37,6 +38,8 @@ REQUIRED_FILES = (
     ".aidlc-overrides/branch-naming.md",
     ".aidlc-overrides/decisions-log.md",
     "aidlc-docs/decisions-log.md",
+    "aidlc-docs/inception/decisions/0009-traditional-chinese-docs.md",
+    ".aidlc-overrides/traditional-chinese-docs.md",
 )
 
 REQUIRED_TEXT = {
@@ -102,8 +105,6 @@ REQUIRED_TEXT = {
     ),
     "aidlc-docs/inception/decisions/0005-bilingual-documentation.md": (
         "Bilingual Documentation",
-        "## 中文版",
-        "## English Version",
     ),
     "aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md": (
         "Adopt AIDLC",
@@ -112,8 +113,6 @@ REQUIRED_TEXT = {
         "extensions/security/baseline/",
         "extensions/testing/property-based/",
         "extensions/bilingual-docs/",
-        "## 中文版",
-        "## English Version",
     ),
     "CLAUDE.md": (
         "AIDLC",
@@ -121,8 +120,6 @@ REQUIRED_TEXT = {
         ".aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md",
         "Pre-enabled Extensions",
         "validate_repo_contract.py",
-        "## 中文版",
-        "## English Version",
     ),
     "aidlc-docs/aidlc-state.md": (
         "Project Type",
@@ -130,20 +127,12 @@ REQUIRED_TEXT = {
         "Extension Configuration",
         "extensions/security/baseline/",
         "extensions/testing/property-based/",
-        "extensions/bilingual-docs/",
-        "## 中文版",
-        "## English Version",
     ),
     "aidlc-docs/README.md": (
         "AIDLC",
-        "Bilingual",
-        "## 中文版",
-        "## English Version",
     ),
     ".aidlc-overrides/README.md": (
         "Cloud-360 AIDLC Overrides",
-        "## 中文版",
-        "## English Version",
     ),
     ".aidlc-overrides/branch-naming.md": (
         "Branch Naming Convention",
@@ -155,8 +144,6 @@ REQUIRED_TEXT = {
         "refactor",
         "test",
         "danniel",
-        "## 中文版",
-        "## English Version",
     ),
     ".aidlc-overrides/decisions-log.md": (
         "Project Decisions Log Rule",
@@ -164,13 +151,9 @@ REQUIRED_TEXT = {
         "explicit user request",
         "Trigger",
         "Decision",
-        "## 中文版",
-        "## English Version",
     ),
     "aidlc-docs/decisions-log.md": (
         "Project Decisions Log",
-        "## 中文版",
-        "## English Version",
     ),
 }
 
@@ -223,19 +206,20 @@ def validate_required_text() -> int:
     return 0
 
 
-def validate_docs_are_bilingual() -> int:
-    """Bilingual enforcement applies to all AIDLC artifacts under aidlc-docs/."""
+def validate_docs_traditional_chinese() -> int:
+    """AIDLC docs are Traditional-Chinese-only (see ADR-0009). Reject any leftover
+    English-version heading so retrofitted docs stay single-language."""
     violations: list[str] = []
     root_dir = ROOT / "aidlc-docs"
     if root_dir.is_dir():
         for path in sorted(root_dir.rglob("*.md")):
             rel_path = path.relative_to(ROOT).as_posix()
             text = path.read_text(encoding="utf-8", errors="ignore")
-            if "## 中文版" not in text or "## English Version" not in text:
+            if re.search(r"(?m)^##\s+English Version", text):
                 violations.append(rel_path)
     if violations:
         return fail(
-            "Docs must include both '## 中文版' and '## English Version': "
+            "Docs are Traditional-Chinese-only; remove the English section from: "
             + ", ".join(violations)
         )
     return 0
@@ -277,7 +261,7 @@ def main() -> int:
     checks = (
         validate_required_files,
         validate_required_text,
-        validate_docs_are_bilingual,
+        validate_docs_traditional_chinese,
         validate_no_production_config_added,
         validate_no_obvious_secrets,
     )

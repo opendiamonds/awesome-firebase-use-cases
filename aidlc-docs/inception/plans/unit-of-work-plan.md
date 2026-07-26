@@ -3,7 +3,6 @@
 > Retrospective plan for Units Generation (developed scope: A1 / A2 / A4 / A5 / J).  
 > 因功能已先落地，本計畫採 **補文件** 模式：記錄已採納的拆分決策，不再重跑問答。
 
-## 中文版
 
 ### 背景
 
@@ -32,28 +31,3 @@
 
 - 補 `construction/a2/`、`construction/a5/`、`construction/j/` 的 code summary  
 - 擴充 B–H 時再跑完整 Units Generation Part 1 問答  
-
----
-
-## English Version
-
-### Background
-
-Retrospective Units Generation for developed stories A1 / A2 / A4 / A5 / J on a brownfield monolith.
-
-### Adopted decisions
-
-| Topic | Decision |
-|---|---|
-| Deployment | Monolith; Unit = Module |
-| Mapping | A1→U-A1; A2→U-A2; A4→U-A4; A5→U-A5; J1–J4→U-J |
-| RBAC matrix | Product merges A1=A2=A4; dev units stay separate |
-| A3 / B–H | A3 → see `a3-unit-of-work-plan.md` (U-A3 added); B–H still none |
-
-### Generation checklist
-
-- [x] `unit-of-work.md`
-- [x] `unit-of-work-dependency.md`
-- [x] `unit-of-work-story-map.md`
-- [x] Coverage check for developed stories
-- [ ] User review / approve Units Generation complete

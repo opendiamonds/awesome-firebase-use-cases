@@ -1,6 +1,5 @@
 # A5 Business Rules — Sharing & Real-time Collab
 
-## 中文版
 
 ### BR-A5-01 分享
 
@@ -35,9 +34,3 @@
 | P-A5-01 | 非成員不可 GET diagram／連 WS |
 | P-A5-02 | view-only 不可成功 PUT xml |
 | P-A5-03 | 一編輯者廣播後其他連線者收到相同 XML payload |
-
----
-
-## English Version
-
-Owner shares via ShareModal; view/edit/review change canvas and welcome text. WS syncs XML with collab/solo badge. Cursors and WS JWT hardening remain open.

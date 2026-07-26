@@ -1,6 +1,5 @@
 # A4 Frontend Components
 
-## 中文版
 
 ### 行為對照
 
@@ -17,9 +16,3 @@
 | 無法還原 | 歡迎訊息 + 提示，不擋產圖 |
 | 清空成功 | Toast；歡迎訊息；XML 不變 |
 | 403 | 錯誤提示 |
-
----
-
-## English Version
-
-`WorkspacePage` owns bootstrap/switch/persist/clear; `ChatBox` shows history and clear-chat. Feedback cases in Chinese table.

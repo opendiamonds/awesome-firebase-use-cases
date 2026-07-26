@@ -3,7 +3,6 @@
 > Maps Cloud-360 user stories to development units.  
 > Focus: **A1 / A2 / A3 / A4 / A5 / J**. Other stories listed as unassigned.
 
-## 中文版
 
 ### 1. 已開發／進行中 Story → Unit
 
@@ -63,23 +62,3 @@
 
 - [x] A1, A2, **A3**, A4, A5, J1–J5 皆已指派且僅一個開發 unit  
 - [x] A3 已自「未指派」移除  
-
----
-
-## English Version
-
-### Story → unit
-
-A3 → **`U-A3`** (MVP Code done; Lens Editor Inception complete — Construction FD/Code pending). J1–J5 → U-J; A1→U-A1; A2→U-A2; A4→U-A4; A5→U-A5. B–H still unassigned.
-
-### A3 AC mapping
-
-MVP review pipeline + PDF done; Lens five-pillar editor Inception done / Construction pending; SPOF simulation and riskRules UI later.
-
-### Product matrix
-
-A3 is its own permission column mapped to `U-A3`. A1=A2=A4 remain merged for “architecture generation” only.
-
-### Coverage
-
-- [x] A1–A5 and J1–J5 each map to exactly one unit  

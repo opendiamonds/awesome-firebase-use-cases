@@ -3,7 +3,6 @@
 > Unit `U-A5` · Story A5  
 > Retrospective FD（對齊 `a5/code/sharing-collab-summary.md`）
 
-## 中文版
 
 ### 實體關係
 
@@ -29,9 +28,3 @@ UserDiagram *──* User  （via diagram_shares）
 | `CollabSession` | WS `/api/collab/ws/{workspace_id}` |
 | `XmlBroadcast` | 畫布 XML 雙向廣播 |
 | `CursorPresence` | **未實作**（故事 AC） |
-
----
-
-## English Version
-
-M2M `diagram_shares` links users to diagrams; WebSocket room broadcasts XML. Cursor presence is not implemented.

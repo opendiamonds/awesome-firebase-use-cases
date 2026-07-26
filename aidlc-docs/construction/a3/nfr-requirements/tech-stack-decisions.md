@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Q7=A — reuse brownfield stack only
 
-## 中文版
 
 ### 1. 決策
 
@@ -34,9 +33,3 @@
 
 - 共用 Agent SDK client／OpenRouter 環境變數模式  
 - **獨立** MCP／system prompt／模組檔（不合併 `design_agent`）  
-
----
-
-## English Version
-
-Reuse FastAPI, SQLAlchemy/Postgres, JWT+RBAC, React/Vite, unittest+Hypothesis, and the same Anthropic Agent SDK + OpenRouter path as A1 (separate `review_agent`). No new infra (no queue/APM mandate). No parallel LLM SDK. Structured logging required; metrics counters optional if the existing stack already supports them.

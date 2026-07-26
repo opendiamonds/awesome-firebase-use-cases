@@ -1,6 +1,5 @@
 # A2 Business Logic Model — Flows & API
 
-## 中文版
 
 ### 1. 儲存與切圖
 
@@ -45,9 +44,3 @@ WorkspacePage/ChatBox
 ### 5. 狀態
 
 核心完成；框選抽取、AI Undo 待補。見 `a2/code/canvas-editing-summary.md`。
-
----
-
-## English Version
-
-Diagram CRUD under `/api/collab/diagrams`; partial AI via A1 generate. Status and file map: see Chinese section.

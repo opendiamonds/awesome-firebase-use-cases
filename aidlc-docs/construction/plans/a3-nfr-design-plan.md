@@ -3,7 +3,6 @@
 > Unit: `U-A3`  
 > Status: **COMPLETE**（2026-07-23）— 已核准；下一階段 Code Generation
 
-## 中文版
 
 ### Checklist
 
@@ -114,9 +113,3 @@ C) 僅限制 **每 diagram** 同時 1 個進行中（跨使用者）
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]: A
-
----
-
-## English Version
-
-NFR Design for **U-A3** is **COMPLETE**. See `aidlc-docs/construction/a3/nfr-design/`. Next after approval: **Code Generation** (Infrastructure Design skipped).

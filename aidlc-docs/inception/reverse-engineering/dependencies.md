@@ -3,7 +3,6 @@
 > Internal and external dependency map (as-built).  
 > 內部／外部相依關係（現況）。
 
-## 中文版
 
 ### Internal Dependencies
 
@@ -40,9 +39,3 @@ frontend --> backend --> PostgreSQL
 backend.architecture --> OpenRouter
 deploy --> Cloudflare --> frontend
 ```
-
----
-
-## English Version
-
-Runtime: frontend → backend → PostgreSQL; architecture path → OpenRouter; staging via Cloudflare Tunnel. Internal coupling: routers → auth/rbac; agent_router → design_agent/diagram_builder; collab owns diagrams/chat/share/WS. Key risks: model availability, incomplete WS JWT, thin tests. See Chinese section for tables.

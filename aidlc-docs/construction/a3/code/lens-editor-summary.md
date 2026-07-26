@@ -2,7 +2,6 @@
 
 > Unit `U-A3` 增量 · FD: `construction/a3/functional-design/lens-editor-fd.md`
 
-## 中文版
 
 ### 已實作
 
@@ -30,9 +29,3 @@
 | bilingual-docs | compliant（本摘要） |
 | security/baseline | compliant（A3.review 閘） |
 | property-based | N/A 本期（unit 覆蓋驗證／preserve） |
-
----
-
-## English Version
-
-Lens editor gated by **A3.review** (default seed: Security_Reviewer VER). DB-first `wa_lenses`, Assessment tab, schema_rbac + DEPLOY sync. Users without review cannot edit; Admin can grant A3 review to other roles.

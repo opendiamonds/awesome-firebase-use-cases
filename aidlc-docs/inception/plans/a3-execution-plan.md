@@ -5,7 +5,6 @@
 > Context: `a3-well-architected-requirements.md` + revised `stories.md` §A3  
 > Generated: 2026-07-23
 
-## 中文版
 
 ### Detailed Analysis Summary
 
@@ -160,15 +159,3 @@ flowchart TD
 | security/baseline | applicable → Construction 強制 |
 | property-based | applicable → 規則引擎 |
 | resiliency | N/A（未啟用） |
-
----
-
-## English Version
-
-### Summary
-
-A3 MVP adds a Well-Architected review module inside the existing monolith: hybrid rules + LLM suggestions on the **same Anthropic Agent SDK + OpenRouter framework as A1**, persisted reviews, three UI entry points, AWS-first with reserved multi-cloud toggles. Risk medium. Execute Application Design + Units Generation (`U-A3`), then Construction FD → NFR → Code → Build/Test. Skip Reverse Engineering refresh and Infrastructure Design. Operations remains placeholder (existing deploy).
-
-### Stage table
-
-See Chinese tables for COMPLETED / EXECUTE / SKIP decisions and package sequence.

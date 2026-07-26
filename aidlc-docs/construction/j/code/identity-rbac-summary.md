@@ -3,7 +3,6 @@
 > J1–J4 core + **J5 code generated 2026-07-17**.  
 > FD：`construction/j/functional-design/` · Plan：`construction/plans/j5-code-generation-plan.md`
 
-## 中文版
 
 ### 結果
 
@@ -45,9 +44,3 @@ JWT 登入、11 角色矩陣、Admin 兩頁（使用者／細項）已有。**J5
 2. admin 開「授權申請」→ 核准 → 使用者重新整理後有選單  
 3. Project_Admin 無法核准 Platform_Admin 申請  
 4. 停用後才可刪除；有圖則刪除失敗  
-
----
-
-## English Version
-
-J5 implemented: pending registration, role catalog, waiting page, admin authorization queue, approve/reject (reject deletes), deactivate-then-delete. See Chinese tables for paths and manual checks. WS JWT still pending.

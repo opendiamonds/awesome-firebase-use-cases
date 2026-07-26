@@ -4,7 +4,6 @@
 > Scope: 「發現」改與離線 Custom Lens 計分一致（U-A3 Construction 增量）  
 > 實作摘要：`a3-findings-from-lens-amendment.md`
 
-## 中文版
 
 ### 背景（已鎖定）
 
@@ -110,9 +109,3 @@ C) 整次評核失敗（與既有 Q6=A 衝突，不建議）
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]: B
-
----
-
-## English Version
-
-**Amendment**: Drive Assessment「findings」from offline Custom Lens risk outcomes (same answers / riskRules as scores). Heuristic engine stays for answer-fill only (recommended). Complete Q1–Q5 (draft answers pre-filled B/A/A/A/B — change if needed), then reply done.

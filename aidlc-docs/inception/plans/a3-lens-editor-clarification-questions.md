@@ -3,7 +3,6 @@
 > 偵測到答題矛盾，需先釐清後才能鎖定需求並進入完整 Inception（Q7=B）。  
 > 請在每個 `[Answer]:` 後填寫選項字母。
 
-## 中文版
 
 ### Contradiction 1：編輯深度 vs 增刪題目
 
@@ -61,9 +60,3 @@ C) **本期不可刪**，只能新增與改文案（增題可，刪題下期）
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]:
-
----
-
-## English Version
-
-Contradiction: Q1=A (text-only, no id/riskRules changes) vs Q6=B (add/remove questions under five pillars). Clarification Q1–Q3 resolve edit depth, meaning of “default suggestions”, and delete behavior. Fill each `[Answer]:`.

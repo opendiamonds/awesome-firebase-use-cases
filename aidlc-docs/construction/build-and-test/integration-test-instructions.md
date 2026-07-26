@@ -1,6 +1,5 @@
 # Integration & E2E Test Instructions
 
-## 中文版
 
 ### 目的
 
@@ -57,19 +56,3 @@ docker compose down -v       # 連 volume 一併清除
 ### 缺口
 
 - pytest + httpx TestClient 的 API 整合測試、Playwright E2E → 待後續 plan
-
----
-
-## English Version
-
-### Purpose
-
-Cross-unit verification for FastAPI+PostgreSQL backend and React frontend. No automated integration tests yet; manual E2E covers login/RBAC, canvas+persistence, sharing, AI generate, and **A3 Well-Architected review** (Assessment + Workspace CTA).
-
-### Setup / cleanup
-
-`docker compose up -d db adminer`, run uvicorn and vite dev servers (empty DB auto-seeds admin/matrix); clean with `docker compose down [-v]`.
-
-### Gaps
-
-Automated API integration tests (pytest + TestClient) and Playwright E2E are pending follow-up plans.

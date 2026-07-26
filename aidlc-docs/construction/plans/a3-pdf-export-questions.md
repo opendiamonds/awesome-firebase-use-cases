@@ -3,7 +3,6 @@
 > Status: **ANSWERS LOCKED / IMPLEMENTED** — Q1=B, Q2=B, Q3=B, Q4=A  
 > Context: 原 MVP 不做 PDF；已補回 FR-A3-11（前端 html2canvas＋jsPDF）
 
-## 中文版
 
 ### 背景
 
@@ -85,9 +84,3 @@ B) 僅 **A3.edit**
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]: A
-
----
-
-## English Version
-
-PDF was **out of scope** for A3 MVP by design. This amendment brings downloadable PDF reports back. Complete Q1–Q4 (draft: B/B/B/A), then reply done to proceed FD + Code Gen.

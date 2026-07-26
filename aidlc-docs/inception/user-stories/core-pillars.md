@@ -3,8 +3,6 @@
 > 本文件必須同時包含中文版與英文版。
 > This document must include both Chinese and English versions.
 
-## 中文版
-
 ## A. Architecture Design
 
 ### A1. Natural Language to Architecture
@@ -307,21 +305,3 @@ Acceptance criteria:
 - Provides an administrator-only control panel listing all users and their assigned roles.
 - Allows administrators to dynamically update a user's role, taking effect immediately upon the next user refresh.
 - Enforces mandatory audit logging for every role change event, specifying the administrator, the target user, and the role changes.
-
-## English Version
-
-This document defines Cloud-360 user stories across the core platform pillars:
-
-- Architecture Design.
-- Cross-Cloud Component Selection.
-- Cost Estimation and FinOps.
-- Terraform/OpenTofu IaC Generation.
-- Operations Optimization Review.
-- AI Multi-Cloud Operations.
-- Cloud Security Posture and Policy Advisory.
-- Web-Based Desktop and Mobile Experience.
-- MCP and Skill Management.
-- Identity Authentication and Role-Based Access Control.
-
-Each story includes acceptance criteria so implementation work can be validated through Spec-Driven Development. The MCP and Skill Management stories require registries, catalogs, permission/risk classification, approval workflow, and observability for agent tool selection.
-

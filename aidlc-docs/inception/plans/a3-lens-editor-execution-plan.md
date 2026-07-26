@@ -4,7 +4,6 @@
 > Requirements: `inception/requirements/a3-lens-editor-requirements.md`  
 > Answers: `a3-lens-editor-questions.md` + `a3-lens-editor-clarification-questions.md`
 
-## 中文版
 
 ### 1. 範圍與影響
 
@@ -60,23 +59,3 @@
 | security/baseline | applicable → Code |
 | property-based | applicable → Code／Build |
 | resiliency | N/A |
-
----
-
-## English Version
-
-### Scope
-
-DB table for active lens, Assessment UI tab, `load_lens` DB-first, Security_Reviewer-only writes, schema_rbac + DEPLOY sync. No full AD rewrite — lean FD then Code Gen.
-
-### Stages
-
-Inception RA/US/WP/UG done this round; Construction: short FD → Code → Build&Test; Ops placeholder.
-
-### Work packages
-
-DDL → engine resolve → API/validation/templates → Assessment UI → tests.
-
-### Approval
-
-Approve to proceed to Construction FD + Code Gen.

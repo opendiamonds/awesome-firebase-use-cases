@@ -1,6 +1,5 @@
 # A5 Business Logic Model — Flows & API
 
-## 中文版
 
 ### 1. 分享
 
@@ -45,9 +44,3 @@ sequenceDiagram
 ### 5. 狀態
 
 分享＋XML 同步 ✅；游標 ❌；WS JWT ⏳。見 `a5/code/sharing-collab-summary.md`。
-
----
-
-## English Version
-
-Share REST + WS XML fan-out. File map and gaps in Chinese section.

@@ -1,6 +1,5 @@
 # J5 Business Rules — Registration & Authorization Gate
 
-## 中文版
 
 ### BR-01 註冊
 
@@ -88,9 +87,3 @@ UI：僅在 `is_active=false` 時顯示「刪除」按鈕。
 | P-J5-02 | Idempotence | 重複核准同一 pending 申請第二次應 409 |
 | P-J5-03 | Oracle | catalog features ⊆ stories with any flag in matrix |
 | P-J5-04 | Round-trip | pending 改選 role → GET 申請反映新值 |
-
----
-
-## English Version
-
-Registration creates pending users without a formal role. JWT is issued but `/me` permissions are empty until approval. **Platform_Admin** may approve any role; **Project_Admin** may not approve `Platform_Admin` or `Platform_Owner`. Reject deletes the account. Delete requires prior deactivation and no owned diagrams. Admins get a dedicated **Authorization Requests** queue (BR-08) with pending list and approve/reject actions. Role catalog is dynamic from `role_permissions` (Q7=B). PBT properties listed in the Chinese table.

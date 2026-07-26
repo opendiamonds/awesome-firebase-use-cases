@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
 
 interface AuthRequestRow {
@@ -25,27 +25,39 @@ export const AuthorizationRequestsPage: React.FC = () => {
 
   const restricted = new Set(['Platform_Admin', 'Platform_Owner']);
 
-  const fetchRows = async () => {
+  // 純抓取，完全不碰 state。react-hooks/set-state-in-effect 會做過程間分析：
+  // 只要 effect 同步呼叫的函式內部有 setState 就會被擋，因此 state 更新一律留在
+  // 呼叫端的 .then／.catch／.finally callback 內（規則允許的形式）。
+  const fetchRequests = useCallback(async () => {
+    const res = await fetch(
+      apiUrl(`/api/auth/authorization-requests?status=${statusFilter}`),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '載入失敗');
+    return data;
+  }, [token, statusFilter]);
+
+  // 使用者主動觸發的重載（核准／拒絕後）：先切回 loading 再抓。
+  const fetchRows = useCallback(() => {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch(
-        apiUrl(`/api/auth/authorization-requests?status=${statusFilter}`),
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || '載入失敗');
-      setRows(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '載入失敗');
-    } finally {
-      setLoading(false);
-    }
-  };
+    return fetchRequests()
+      .then(setRows)
+      .catch((err) => setError(err instanceof Error ? err.message : '載入失敗'))
+      .finally(() => setLoading(false));
+  }, [fetchRequests]);
 
   useEffect(() => {
-    if (token) fetchRows();
-  }, [token, statusFilter]);
+    if (!token) return;
+    // 初次載入時 loading 已是 true，不需要再設一次。
+    let cancelled = false;
+    fetchRequests()
+      .then((data) => { if (!cancelled) setRows(data); })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : '載入失敗'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token, fetchRequests]);
 
   const showToast = (msg: string) => {
     setToast(msg);

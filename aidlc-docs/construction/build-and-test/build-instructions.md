@@ -1,6 +1,5 @@
 # Build Instructions
 
-## 中文版
 
 ### 先決條件
 
@@ -57,23 +56,3 @@ cd frontend && npm run build   # tsc -b + vite build → dist/
 | AI 生成 500 | `OPENROUTER_API_KEY` 未設 |
 | A3 評核建議 `rules_only` | 無 OpenRouter key 或 Agent 逾時／失敗；規則分數仍應可見 |
 | 既有 DB 無 reviews 表 | 重啟 backend 觸發 `_ensure_a3_schema` |
-
----
-
-## English Version
-
-### Prerequisites
-
-Python 3.11+, Node 20+/npm, Docker Desktop; env vars `JWT_SECRET`, `DATABASE_URL`, `OPENROUTER_API_KEY` (see `DEPLOY.md`).
-
-### Steps
-
-1. `pip install -r backend/requirements.txt`; `npm install` in `frontend/`
-2. `docker compose up -d db adminer`
-3. Dev: `uvicorn main:app --reload --port 8000` (auto-creates tables and seeds RBAC + admin on empty DB); `npm run dev`
-4. Prod frontend build: `npm run build` (tsc + vite → `dist/`)
-5. Verify: `/docs` reachable, clean build output, `python scripts/validate_repo_contract.py` passes
-
-### Troubleshooting
-
-Docker daemon not running → start Docker Desktop; DB connection errors → check `DATABASE_URL`/container; AI 500 → missing `OPENROUTER_API_KEY`. A3 suggestions `rules_only` without key/agent timeout (rules scores still visible); restart backend to apply `_ensure_a3_schema` on existing DBs.

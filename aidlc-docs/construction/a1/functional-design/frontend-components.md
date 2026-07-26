@@ -1,6 +1,5 @@
 # A1 Frontend Components
 
-## 中文版
 
 ### 路由／承載頁
 
@@ -27,9 +26,3 @@ A1 **無獨立路由**；能力閘道依 AuthContext `can('A1','edit')`（或合
 | 存檔／多圖切換 | A2 |
 | 聊天持久化／上次開啟 | A4 |
 | 分享／WS | A5 |
-
----
-
-## English Version
-
-No dedicated A1 route: `ChatBox` + `DrawioCanvas` inside `WorkspacePage` drive generate/partial-update SSE. Persistence, multi-diagram, share/WS belong to A2/A4/A5.

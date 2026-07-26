@@ -3,7 +3,6 @@
 > Unit `U-A2` · Story A2  
 > Retrospective FD（對齊 `a2/code/canvas-editing-summary.md`、`database-schema.md`）
 
-## 中文版
 
 ### 實體關係
 
@@ -39,11 +38,3 @@ User 1 ──* UserDiagram
 | Owner | ✅ | ✅（需 A2.edit） |
 | 被分享且可編輯（A5） | ✅ | ✅ |
 | 僅檢視／審核 | ✅ | ❌ |
-
----
-
-## English Version
-
-### Relationships
-
-`User` owns many `UserDiagram` rows (`title`, `xml_data`). Share/chat belong to A5/A4. Partial AI updates reuse A1 generate with `current_xml`.

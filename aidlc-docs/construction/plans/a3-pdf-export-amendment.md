@@ -2,7 +2,6 @@
 
 > Status: **IMPLEMENTED** — Q1=B, Q2=B, Q3=B, Q4=A
 
-## 中文版
 
 ### 決策
 
@@ -27,9 +26,3 @@
 | security/baseline | compliant（僅授權可讀評核之客戶端匯出；無新公網 API） |
 | testing/property-based | N/A（UI 匯出） |
 | bilingual-docs | compliant |
-
----
-
-## English Version
-
-**Implemented**: client-side PDF download for complete/rules_only reviews when the user has A3.view. Report includes scores, RiskCounts, pillars, findings, suggestions, and metadata. See FR-A3-11.

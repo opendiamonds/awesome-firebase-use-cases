@@ -3,7 +3,6 @@
 > Brownfield file inventory for Construction modifications.  
 > 供 Construction 修改時參考的現況檔案清單。
 
-## 中文版
 
 ### Build System
 
@@ -74,9 +73,3 @@ frontend/src/
 | PyJWT、bcrypt／passlib | 認證 |
 | claude-agent-sdk、httpx | Agent／HTTP |
 | React 19、react-router、Vite 8、Tailwind 4 | 前端 |
-
----
-
-## English Version
-
-Build: npm/Vite frontend, pip FastAPI backend, Docker Compose, GitHub Actions CI. See Chinese section for module tree, file inventory, patterns, and dependencies.

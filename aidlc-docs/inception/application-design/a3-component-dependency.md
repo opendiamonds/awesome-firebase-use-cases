@@ -1,6 +1,5 @@
 # A3 Component Dependency
 
-## 中文版
 
 ### 相依矩陣
 
@@ -39,9 +38,3 @@ ReviewRouter ----> ReviewService ----+----> WaRuleEngine
 
 - ReviewAgent **不得** import DesignAgent 產圖邏輯；僅可共用薄層 env／SDK bootstrap（若後續抽取）。  
 - 規則引擎不得依賴 Agent（保持可測）。
-
----
-
-## English Version
-
-Dependency matrix and SSE data flow as above. ReviewAgent is a peer of DesignAgent (same SDK family, no call edge). Rules stay free of Agent I/O. FE talks only to ReviewRouter over JWT + SSE.

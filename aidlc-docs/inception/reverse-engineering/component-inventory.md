@@ -3,7 +3,6 @@
 > Package-level inventory of the Cloud-360 workspace.  
 > Cloud-360 workspace 套件／元件盤點。
 
-## 中文版
 
 ### Application Packages
 
@@ -48,9 +47,3 @@
 | Shared／Spec | 6+ |
 | Test | 1（backend/tests；覆蓋不足） |
 | **Total（主要）** | **~13** |
-
----
-
-## English Version
-
-Application: `backend/`, `frontend/`. Infrastructure: local compose, `deploy/`, Dockerfiles, deploy workflow. Shared: `aidlc-docs/`, `.aidlc/`, schemas, `scripts/`. Tests: `backend/tests/` (thin). See Chinese tables for the full inventory.

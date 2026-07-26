@@ -4,7 +4,6 @@
 > 現況：Lens 固定讀取 `backend/lenses/cloud360-core-mvp-lens.json`（5 pillars：Security / Reliability / Cost / Performance / Operational Excellence）；評核引擎 `wa_lens_engine.load_lens()`。  
 > 請在每個 `[Answer]:` 後填寫選項字母（可複選時用逗號，例如 `A,C`）。
 
-## 中文版
 
 請回答下列問題，以鎖定本期範圍。
 
@@ -119,9 +118,3 @@ C) **先只做後端 API**（讀寫 active lens）；UI 下期
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]:
-
----
-
-## English Version
-
-Same questions as Chinese. Fill `[Answer]:` with A/B/C/… (comma-separated if multi-select). Context: enable `Security_Reviewer` to dynamically edit the offline Custom Lens five-pillar criteria currently loaded from `cloud360-core-mvp-lens.json`.

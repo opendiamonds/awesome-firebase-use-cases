@@ -4,7 +4,6 @@
 > Scope: `aidlc-docs/inception/user-stories/stories.md` §J (J1–J5)  
 > Context: 現況已實作 JWT 登入、Sidebar／RouteGuard、Admin 使用者角色頁、細項矩陣（A1=A2=A4 合併、矩陣 UI 僅含 J3a／J3b）；與原文部分 AC 可能不一致（如 MFA、重設密碼、Audit Log UI）。
 
-## 中文版
 
 請回答下列問題，以便精確修正 Pillar J 使用者故事。（已於 2026-07-17 依答案套用修訂。）
 
@@ -78,9 +77,3 @@ E) A + 你指定的項目（請在 Answer 列出）
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]:ＢＣＤ
-
----
-
-## English Version
-
-Answers recorded above: Q1=B (expand with status markers), Q2=X (registration without default role + admin approve/delete), Q3=A (bilingual sync), Q4=BCD (personas, role-permission-design, J summary). Revision applied 2026-07-17 to `stories.md` §J including new **J5**.

@@ -3,7 +3,6 @@
 > Unit `U-A1` · Story A1  
 > Retrospective FD（對齊既有實作與 `a1/code/*-summary.md`）
 
-## 中文版
 
 ### 實體關係
 
@@ -35,15 +34,3 @@ A1 **不擁有**資料表；產出物為暫態 XML／串流事件。持久化由
 | A1.view | 可進入工作區並檢視產圖結果 |
 | A1.edit | 可呼叫 `POST /api/architecture/generate` |
 | A1.review | 審核語意（與 A1/A2/A4 合併欄「架構圖生成」對齊 Admin 矩陣） |
-
----
-
-## English Version
-
-### Relationships
-
-A1 owns no tables. JWT-authenticated generate calls produce transient XML via DesignAgent → DiagramBuilder; persistence belongs to U-A2 / U-A4.
-
-### DTOs
-
-`GenerateRequest`, intermediate architecture graph (`groups`/`nodes`/`edges`), `MxGraphDocument`, and SSE events. Permission flags follow A1 view/edit/review (product matrix merges A1/A2/A4).

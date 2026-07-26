@@ -3,7 +3,6 @@
 > Operations — incident response playbooks (placeholder).
 > Operations — 事故應變手冊（骨架）。
 
-## 中文版
 
 ### 狀態
 
@@ -16,21 +15,4 @@
 - Cloudflare Tunnel / 對外入口異常
 - 高風險操作（IAM／destructive）誤觸後的回滾與通報
 
-所有 playbook 必須含 `## 中文版` 與 `## English Version`，且不得寫入密文。
-
----
-
-## English Version
-
-### Status
-
-⏳ **Pending**. Per `aidlc-docs/aidlc-state.md`, Observability / Incident Playbooks are not complete yet.
-
-Future playbooks in this directory may cover (examples):
-
-- Service fail-to-start / health-check failure
-- Database connectivity loss
-- Cloudflare Tunnel / public ingress outage
-- Rollback and notification after accidental high-risk actions (IAM / destructive)
-
-Every playbook must include `## 中文版` and `## English Version`, and must not embed secrets.
+所有 playbook 一律繁體中文（ADR-0009），且不得寫入密文。

@@ -6,8 +6,6 @@
 > Refs: [OpenRouter × Agent SDK](https://openrouter.ai/docs/guides/community/anthropic-agent-sdk) · [Custom Tools](https://code.claude.com/docs/en/agent-sdk/custom-tools)  
 > Phase 2 decisions: Q1-A · Q2-B · Q3-A · Q4-A（見 `a1-core-gap-questions.md`；原 `a1-core-gap-fill-plan.md` 已合併至此）
 
-## 中文版
-
 ### 1. 改動後結果（Target）
 
 #### 1.1 系統元件圖
@@ -324,30 +322,4 @@ Rollback：Phase 1 切回 `ut` / revert；Phase 2 單獨 revert 前端／prompt 
 
 - ~~**A)** 批准並執行 Step 7–8~~（已執行）  
 - **B)** 修改 plan（若驗收後需調整）  
-- **C)** 取消  
-
----
-
-## English Version
-
-### 1. Target Result
-
-#### 1.1–1.3 Agent SDK path
-
-Same as Chinese: Frontend → JWT router → design_agent (SDK + OpenRouter + MCP draw tool) → diagram_builder → SSE; Path A message-only / Path B draw; partial edit via `current_xml`.
-
-#### 1.4 User Story A1 core UX (Phase 2)
-
-Stronger prompt (WAF/Aurora/HA, VPC/AZ/edges); autosave **only when `diagram_id` exists**; **Full Reset** (canvas + chat) vs **Clear Chat** (A4); success/failure copy + stub CTAs (“coming soon”).
-
-#### 1.5–1.7 Modules, contracts, constraints
-
-Same as Chinese; Frontend now in scope for Phase 2 UX; autosave only with existing diagram id; Traditional Chinese comments on Python modules.
-
-### 2–5. Deliverables, Steps, Risk, Out of Scope
-
-Phase 1 Steps 1–6 (SDK) mostly done; Phase 2 Steps 7–8 (story core) pending approval. Out of scope includes real IaC/WAF pages, multi-role comments, auto-create without diagram id.
-
-### 6. Approval
-
-Phase 1 already approved. Phase 2 code done — manual Step 8 open. **B)** Change plan if needed after review.
+- **C)** 取消

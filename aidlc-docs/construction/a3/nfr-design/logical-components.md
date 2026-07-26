@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Q5=C — `ReviewOrchestrator` owns the state machine
 
-## 中文版
 
 ### 1. 邏輯元件圖
 
@@ -65,9 +64,3 @@ Application／Functional Design 原以 `ReviewService` 為編排核心。NFR Des
 - [ ] audit log 欄位齊、無 XML／suggestions  
 - [ ] 無全域併發計數器  
 - [ ] FE GET 補齊路徑  
-
----
-
-## English Version
-
-`ReviewRouter` → `ReviewOrchestrator` (state machine, timeout, audit, SSE) → `WaRuleEngine` (heuristic fill / fallback) / `WaLensEngine` (authoritative scores + findings) / `ReviewAgent` (Lens findings) / `ReviewRepository`. No queue, audit table, or SSE resume store. FE reconnects via GET, not SSE resume.

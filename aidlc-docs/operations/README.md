@@ -3,7 +3,6 @@
 > AIDLC 🟡 Operations phase artifacts for Cloud-360.
 > Cloud-360 Operations 階段產出根目錄。
 
-## 中文版
 
 ### 目的
 
@@ -30,39 +29,6 @@
 
 ### 維護準則
 
-- 本目錄下所有 `.md` 必須含 `## 中文版` 與 `## English Version`（ADR-0005）。
+- 本目錄下所有 `.md` 一律繁體中文（ADR-0009）。
 - 變更部署邊界、對外暴露或 secret 處理方式時，須更新或新增 ADR，並寫入 `aidlc-docs/audit.md`。
 - 禁止在本目錄放入 production credentials、private key 或環境專用密文（repo contract）。
-
----
-
-## English Version
-
-### Purpose
-
-`aidlc-docs/operations/` holds AIDLC Operations-phase artifacts: deployment docs, observability, and incident playbooks.  
-Executable deploy assets stay under repo-root `deploy/` and `.github/workflows/deploy.yml`; this directory is the **auditable Operations artifact tree**, with links to implementation locations.
-
-### Layout
-
-| Path | Purpose | Status |
-|---|---|---|
-| `deployment/` | Deployment summaries and staging pipeline index; includes **A3 go-live checklist** | 🔄 baseline + A3 checklist |
-| `observability/` | Monitoring, logging, alerting design and runbook index | ⏳ pending |
-| `incident-playbooks/` | Incident response playbooks | ⏳ pending |
-
-### Existing sources (not all migrated here yet)
-
-| Source | Purpose |
-|---|---|
-| [`deploy/`](../../deploy/) | Self-hosted compose, cloudflared, env examples |
-| [`DEPLOY.md`](../../DEPLOY.md) | Manual / env-var deployment guide |
-| [`deployment/a3-go-live-checklist.md`](deployment/a3-go-live-checklist.md) | **A3** Well-Architected go-live checklist (DB / RBAC / smoke / rollback) |
-| [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) | Push to `ut` → self-hosted runner deploy |
-| [`ADR-0007`](../inception/decisions/0007-self-hosted-deployment-pipeline.md) | Self-hosted + Cloudflare Tunnel decision |
-
-### Maintenance
-
-- Every `.md` under this tree must include `## 中文版` and `## English Version` (ADR-0005).
-- Changes to deployment boundaries, public exposure, or secret handling require an ADR update and an `aidlc-docs/audit.md` entry.
-- Do not place production credentials, private keys, or environment-specific secrets here (repo contract).

@@ -6,7 +6,6 @@
 > Branch: `luojingting/feat/a3-well-architected-review`  
 > Status: **COMPLETE**（2026-07-23）— 已核准；下一階段 NFR Requirements
 
-## 中文版
 
 ### Checklist
 
@@ -216,9 +215,3 @@ C) **安全／可靠優先**：OE 10% · Sec 30% · Rel 30% · Perf 15% · Cost 
 X) Other — 請在 Answer 後寫出五個百分比（加總 100）
 
 [Answer]: C
-
----
-
-## English Version
-
-Functional design for **U-A3** is **COMPLETE**. Artifacts under `aidlc-docs/construction/a3/functional-design/`. Decision table in Chinese section. Awaiting user approval → **NFR Requirements**.

@@ -5,8 +5,6 @@
 > Status: **APPROVED & IMPLEMENTED** — 待手動驗收 Step 5  
 > Decisions: 1-D 後端 DB（user × diagram）· 2-C 聊天 + 自動選上次圖 · 3-A 先 Story/plan  
 
-## 中文版
-
 ### 1. 改動後結果（Target）
 
 ```mermaid
@@ -100,24 +98,4 @@ localStorage 方案、跨使用者共用同一聊天串、A2 Undo／游標。
 
 - **A)** 批准並執行  
 - **B)** 修改 plan  
-- **C)** 取消  
-
----
-
-## English Version
-
-### 1. Target
-
-Persist chat in DB keyed by **user × diagram**; on workspace entry/refresh, auto-open **last-opened diagram** and restore its `messages[]`. See Mermaid/text flow in Chinese §1.
-
-### 2–4. Model, API, Frontend
-
-Same as Chinese: `user_diagram_chats`, `users.last_opened_diagram_id`, bootstrap/chat/last-opened endpoints including **DELETE chat**, WorkspacePage restore + save-after-turn + **Clear chat button**.
-
-### 5–8. Files, Steps, Risk, Out of Scope
-
-Same as Chinese sections.
-
-### 9. Approval
-
-**A)** Approve and execute · **B)** Change plan · **C)** Cancel  
+- **C)** 取消

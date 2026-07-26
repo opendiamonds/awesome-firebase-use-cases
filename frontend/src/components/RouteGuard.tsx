@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import type { StoryAction } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
+import type { StoryAction } from '../context/auth-context';
 
 const LoadingScreen: React.FC<{ label: string }> = ({ label }) => (
   <div className="flex h-screen w-screen items-center justify-center bg-gray-50 text-gray-500 font-medium">

@@ -2,7 +2,6 @@
 
 > Unit `U-A3` · Story A3 MVP
 
-## 中文版
 
 ### 1. 主流程（AWS）
 
@@ -99,9 +98,3 @@ Query 選項（list）：`include_archived=true` 可選。
 | U-A2 | 讀 `xml_data`、diagram 列表 ACL |
 | U-J | A3 RBAC、Pending 拒絕 |
 | U-A1 | 產圖後 CTA；**不**呼叫 DesignAgent；同 SDK 家族 |
-
----
-
-## English Version
-
-AWS path: ACL → create → rules → SSE `rules_done` → ReviewAgent deltas → `complete`. Failures yield `rules_only` + suggestion retry. Non-aws creates `unsupported` without engine. APIs under `/api/architecture/reviews` (+ retry-suggestions). Medium heuristic rule catalogue (~15–20). Depends on U-A2 XML/ACL, U-J RBAC, U-A1 CTA only.
