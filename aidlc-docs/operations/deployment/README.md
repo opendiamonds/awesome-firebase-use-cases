@@ -15,11 +15,12 @@
 - `.github/workflows/deploy.yml`
 
 決策依據：[`ADR-0007`](../../inception/decisions/0007-self-hosted-deployment-pipeline.md)。  
-人工環境變數與 DB seed 說明：[`DEPLOY.md`](../../../DEPLOY.md)。
+人工環境變數與 DB seed 說明：[`DEPLOY.md`](../../../DEPLOY.md)。  
+**A3 上線**：[`a3-go-live-checklist.md`](a3-go-live-checklist.md)。
 
 ### 待補 artifacts
 
-- 部署驗收清單（smoke test／rollback 步驟）寫成獨立 md
+- 通用部署驗收清單（非 A3）與 rollback 步驟擴寫
 - 與 `aidlc-state.md` Operations 區塊同步的 stage-completion summary
 
 ---
@@ -36,9 +37,10 @@ This directory indexes AIDLC artifacts for Cloud-360 **self-hosted staging** dep
 - `.github/workflows/deploy.yml`
 
 Decision record: [`ADR-0007`](../../inception/decisions/0007-self-hosted-deployment-pipeline.md).  
-Manual env / DB seed guide: [`DEPLOY.md`](../../../DEPLOY.md).
+Manual env / DB seed guide: [`DEPLOY.md`](../../../DEPLOY.md).  
+**A3 go-live**: [`a3-go-live-checklist.md`](a3-go-live-checklist.md).
 
 ### Pending artifacts
 
-- Standalone deployment acceptance checklist (smoke tests / rollback steps)
+- General (non-A3) deployment acceptance checklist expansion
 - Stage-completion summary aligned with the Operations section of `aidlc-state.md`

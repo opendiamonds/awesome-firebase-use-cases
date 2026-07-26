@@ -18,7 +18,7 @@
 | 部署模型 | Monolith；Unit = Module |
 | Story 分組 | A1→U-A1；A2→U-A2；A4→U-A4；A5→U-A5；J1–J4→U-J |
 | 與 RBAC 矩陣關係 | 產品上 A1＝A2＝A4 合併；開發 unit 仍分開 |
-| A3／B–H | 暫不建 unit |
+| A3／B–H | A3 → 見 `a3-unit-of-work-plan.md`（已建 U-A3）；B–H 仍暫不建 |
 
 ### Generation checklist
 
@@ -48,7 +48,7 @@ Retrospective Units Generation for developed stories A1 / A2 / A4 / A5 / J on a 
 | Deployment | Monolith; Unit = Module |
 | Mapping | A1→U-A1; A2→U-A2; A4→U-A4; A5→U-A5; J1–J4→U-J |
 | RBAC matrix | Product merges A1=A2=A4; dev units stay separate |
-| A3 / B–H | No units yet |
+| A3 / B–H | A3 → see `a3-unit-of-work-plan.md` (U-A3 added); B–H still none |
 
 ### Generation checklist
 

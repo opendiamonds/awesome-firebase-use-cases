@@ -106,6 +106,47 @@ class UserDiagramChat(Base):
     )
 
 
+class ArchitectureReview(Base):
+    """A3：Well-Architected 評核結果（規則分數／發現＋LLM 建議）。"""
+
+    __tablename__ = "architecture_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diagram_id = Column(
+        Integer, ForeignKey("user_diagrams.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    provider = Column(String(16), nullable=False, default="aws")
+    status = Column(String(32), nullable=False, default="pending")
+    overall_score = Column(Integer, nullable=True)
+    scores_json = Column(Text, nullable=True)
+    findings_json = Column(Text, nullable=True, default="[]")
+    suggestions_text = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+    rule_pack_version = Column(String(64), nullable=True)
+    archived = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class WaLens(Base):
+    """A3：Offline Custom Lens 現行標準（具 A3.review 者可編輯）。"""
+
+    __tablename__ = "wa_lenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lens_id = Column(String(64), nullable=False, default="cloud360-core-mvp", index=True)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    body_json = Column(Text, nullable=False)
+    updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class RolePermission(Base):
     """
     RBAC：角色 × User Story 細項權限（檢視／編輯／審核）。

@@ -55,6 +55,8 @@ cd frontend && npm run build   # tsc -b + vite build → dist/
 | `docker compose` 連不上 daemon | Docker Desktop 未啟動 → `open -a Docker.app` |
 | backend 啟動連不到 DB | `DATABASE_URL` 未設或 db 容器未起 |
 | AI 生成 500 | `OPENROUTER_API_KEY` 未設 |
+| A3 評核建議 `rules_only` | 無 OpenRouter key 或 Agent 逾時／失敗；規則分數仍應可見 |
+| 既有 DB 無 reviews 表 | 重啟 backend 觸發 `_ensure_a3_schema` |
 
 ---
 
@@ -74,4 +76,4 @@ Python 3.11+, Node 20+/npm, Docker Desktop; env vars `JWT_SECRET`, `DATABASE_URL
 
 ### Troubleshooting
 
-Docker daemon not running → start Docker Desktop; DB connection errors → check `DATABASE_URL`/container; AI 500 → missing `OPENROUTER_API_KEY`.
+Docker daemon not running → start Docker Desktop; DB connection errors → check `DATABASE_URL`/container; AI 500 → missing `OPENROUTER_API_KEY`. A3 suggestions `rules_only` without key/agent timeout (rules scores still visible); restart backend to apply `_ensure_a3_schema` on existing DBs.

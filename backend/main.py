@@ -6,6 +6,8 @@ import os
 from services.agent_router import router as agent_router
 from services.user_router import router as user_router
 from services.collab_router import router as collab_router
+from services.review_router import router as review_router
+from services.lens_router import router as lens_router
 from services.design_agent import configure_openrouter_env
 from database import init_db
 
@@ -43,6 +45,8 @@ def on_startup():
     init_db()
 
 app.include_router(agent_router, prefix="/api/architecture")
+app.include_router(review_router, prefix="/api/architecture")
+app.include_router(lens_router, prefix="/api/architecture")
 app.include_router(user_router, prefix="/api/auth")
 app.include_router(collab_router, prefix="/api/collab")
 

@@ -41,6 +41,7 @@ def init_db():
     # A4／J5：既有 DB 補欄位／新表（create_all 不會 ALTER 舊表）
     _ensure_a4_schema()
     _ensure_j5_schema()
+    _ensure_a3_schema()
 
     db = SessionLocal()
     try:
@@ -192,3 +193,61 @@ def _ensure_j5_schema():
             except Exception as e:
                 logger.warning("J5 schema 補丁略過/失敗: %s — %s", sql[:60], e)
     logger.info("J5 schema 檢查完成")
+
+
+def _ensure_a3_schema():
+    """為既有資料庫補上 architecture_reviews／wa_lenses（A3）。"""
+    from sqlalchemy import text
+
+    statements = [
+        """
+        CREATE TABLE IF NOT EXISTS architecture_reviews (
+            id SERIAL PRIMARY KEY,
+            diagram_id INTEGER NOT NULL REFERENCES user_diagrams(id) ON DELETE CASCADE,
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            provider VARCHAR(16) NOT NULL DEFAULT 'aws',
+            status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            overall_score INTEGER,
+            scores_json TEXT,
+            findings_json TEXT DEFAULT '[]',
+            suggestions_text TEXT,
+            error_message TEXT,
+            rule_pack_version VARCHAR(64),
+            archived BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_architecture_reviews_diagram_id
+        ON architecture_reviews (diagram_id)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_architecture_reviews_created_by
+        ON architecture_reviews (created_by)
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS wa_lenses (
+            id SERIAL PRIMARY KEY,
+            lens_id VARCHAR(64) NOT NULL DEFAULT 'cloud360-core-mvp',
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            body_json TEXT NOT NULL,
+            updated_by INTEGER REFERENCES users(id),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_wa_lenses_lens_id ON wa_lenses (lens_id)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_wa_lenses_is_active ON wa_lenses (is_active)
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning("A3 schema 補丁略過/失敗: %s — %s", sql[:60], e)
+    logger.info("A3 schema 檢查完成")

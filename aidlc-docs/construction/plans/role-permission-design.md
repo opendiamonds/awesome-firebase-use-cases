@@ -89,7 +89,7 @@ Admin／文件顯示名：**架構設計**
 | Story | 功能（中文） | 備註 | Arch | Dev | Edit | PAdm | Fin | SRE | Ops | PEng | Sec | Plat | Own |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | **A1／A2／A4** | **架構圖生成** | 三 story 同步；語意見 §3.1 | VE | VE | VE | V | V | V | V | V | V | V | V |
-| **A3** | Well-Architected 評核 | 獨立能力 | VE | V | VE | V | - | V | V | V | VE | V | V |
+| **A3** | Well-Architected 評核 | 獨立能力 | VE | V | VE | V | - | V | V | V | **VER** | V | V |
 
 底層仍保留三列 seed（與 stories 對齊），但 UI 合併為一欄「架構圖生成（A1／A2／A4）」：
 
