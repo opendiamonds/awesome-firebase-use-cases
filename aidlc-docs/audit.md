@@ -286,3 +286,32 @@
 
 **仍未驗證**：`needs.deploy.outputs.*` / `needs.rollback.outputs.*` 的 job outputs 串接，只有真實部署會行經該路徑。
 **Approver**: danniel
+
+---
+
+#### 2026-07-26 13:10 +08:00 — Staging 中斷：Error 1033（runner 離線）
+
+**User request (raw)**: "目前環境掛掉了，代表ut有異常"
+**Stage**: Operations → Incident Response
+**症狀**: `https://cloud360.danniel.cc/` 回 Cloudflare `Error 1033 Cloudflare Tunnel error`（Ray ID `a213a5c38f30ce41`）。
+
+**根因**: **不是 `ut` 的程式碼異常**。self-hosted runner `cloud360-10-10`（即 192.168.10.10）離線；該機同時承載應用容器與 `cloudflared` 容器，機器層失效導致 tunnel 斷線，Cloudflare 找不到出口而回 1033。
+
+**判斷依據**: deploy job 呈 `queued`／`pending` 而非 `failure` — 代表 job 從未被領走執行，而非執行後失敗。若為程式碼問題，deploy 會執行並失敗，並觸發 rollback 與 Deploy Doctor。GitHub API 查得 runner `status=offline` 佐證。
+
+**時間軸**:
+| 時間 | 事件 |
+|---|---|
+| 07-19 06:34 | 最後一次成功部署（`ea5d6b1d`） |
+| 07-25 18:08 | deploy 觸發（`2f0da31b`），卡在 queued |
+| 07-26 08:05 | deploy 被 cancelled（`03887005`） |
+| 07-26 09:08 | deploy 觸發（`0cae22ed`），卡在 pending |
+| 07-26 13:10 | 使用者回報 Error 1033 |
+
+**處置**: 依 `operations/runbooks.md` Playbook F（Self-hosted runner 離線）重啟 runner service。
+
+**結果**: runner 回到 `online`；兩個積壓 job 依時間序執行並全部 success（`2f0da31b` → `0cae22ed`，最新版最後落地）；`https://cloud360.danniel.cc/` 回 HTTP 200。附帶效果為 `ut` 自 07-19 起累積的 A3 Well-Architected 與 A1 chat UX 變更一併部署至 staging，**尚待手動驗收**。
+
+**暴露的缺口（未處理）**: 本次無任何自動告警。兩層原因：(1) Slack 通知目前只在 `main`，尚未同步至 `ut`；(2) 即使同步，`notify` job 掛在 `deploy` 之後，job 卡在 queued 時不會執行。現行設計能回報「部署失敗」，無法回報「部署未開始」或「站台不可用」。補法必須是**外部**健康檢查告警（例如 dc-infra 的 Prometheus blackbox 探測 `cloud360.danniel.cc`），機器自身失效時無法由其自行發出警報。對應 `runbooks.md` 第 4 章「告警去向」的待補項。
+
+**Approver**: danniel
