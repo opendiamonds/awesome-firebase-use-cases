@@ -151,9 +151,6 @@ All Cloud-360 documents are maintained under `aidlc-docs/`, generated and update
 - [ADR 0004: MCP and Skill Management](aidlc-docs/inception/decisions/0004-mcp-skill-management.md)
 - [ADR 0005: Bilingual Documentation](aidlc-docs/inception/decisions/0005-bilingual-documentation.md)
 - [ADR 0006: Adopt AIDLC Framework](aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md)
-- [Detailed Spec - Architecture Design](docs/srs/detailed/A-architecture-design-spec.md)
-- [Detailed Spec - Component Selection](docs/srs/detailed/B-component-selection-logic.md)
-- [Detailed Spec - FinOps Rules](docs/srs/detailed/C-finops-estimation-rules.md)
 
 ## Repository Contract
 
