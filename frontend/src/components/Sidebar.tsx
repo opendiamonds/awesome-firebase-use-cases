@@ -13,9 +13,10 @@ export const Sidebar: React.FC = () => {
 
   // 細項三旗標皆未勾選 → 不顯示該功能（can/canArch 的 view 已含 edit／review）
   const showArchWorkspace = canArch('view');
+  const showAssessment = can('A3', 'view');
   const showUsersAdmin = can('J3a', 'view');
   const showMatrixAdmin = can('J3b', 'view');
-  const showCoreSection = showArchWorkspace;
+  const showCoreSection = showArchWorkspace || showAssessment;
   const showAdminSection = showUsersAdmin || showMatrixAdmin;
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -61,6 +62,19 @@ export const Sidebar: React.FC = () => {
                     />
                   </svg>
                   架構圖生成
+                </NavLink>
+              )}
+              {showAssessment && (
+                <NavLink to="/assessment" className={linkClass}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  評估儀表板
                 </NavLink>
               )}
             </nav>

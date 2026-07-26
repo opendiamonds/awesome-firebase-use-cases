@@ -10,7 +10,7 @@
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
 - **AIDLC Version**: 1.0.1（見 `.aidlc/aidlc-rules/VERSION`；最初採用 0.1.8，見 ADR-0006）
 - **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1）→ `feat/aidlc-docs-migration`（PR2）→ `Doreen`（目錄重組）
-- **Current Stage**: INCEPTION 已開發範圍階段齊全 → 下一優先 **CONSTRUCTION**（補 FD／NFR／build-and-test、AC 缺口與 E2E；見 `inception/plans/execution-plan.md`）
+- **Current Stage**: **A3 Lens Editor Code Gen 完成** — 待手動驗收（Fiona 編輯／新評核／403）；摘要 `construction/a3/code/lens-editor-summary.md`；Operations PLACEHOLDER
 
 ### Workspace State
 
@@ -49,7 +49,11 @@
   - User Stories: ✅（A, B, C 三模組繁中版已完成；含 J 與 A4/A5）
   - Workflow Planning: ✅（`inception/plans/execution-plan.md`）
   - Application Design: ✅（baseline：`system-architecture.md`、`frontend-backend-specification.md`；units：`unit-of-work*.md`）
-  - Units Generation: ✅（已開發範圍 A1／A2／A4／A5／J → U-A1／U-A2／U-A4／U-A5／U-J；見 `application-design/unit-of-work*.md`；A3／B–H 尚未建 unit）
+  - Units Generation: ✅（A1／A2／**A3**／A4／A5／J → U-A1／U-A2／**U-A3**／U-A4／U-A5／U-J；見 `application-design/unit-of-work*.md`；B–H 尚未建 unit）
+  - **A3 增量 Inception**: WD ✅ → RA ✅ → US ✅ → WP ✅ → AD ✅ → UG ✅
+  - **A3／U-A3 Construction**: FD ✅ → NFR Req ✅ → NFR Design ✅ → Code Generation ✅ → Build&Test 🔄；**增量 Findings←Lens／PDF** Code Gen ✅
+  - **A3 Lens Editor 增量 Inception**: RA ✅ → US ✅ → WP ✅ → UG（併 U-A3）✅
+  - **A3 Lens Editor Construction**: FD ✅ → Code Gen ✅（待手動驗收）
 - 🟢 Construction
   - A1 Code Generation: ✅（舊版 httpx；已由 Agent SDK 路徑取代）
   - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — 待手動驗收 Step 6／8（見 `construction/plans/a1-agent-sdk-code-generation-plan.md`、`construction/a1/code/a1-core-gap-summary.md`）
@@ -58,7 +62,7 @@
   - A2 Code Generation: 🔄（核心功能已完成，部分 AC 待補 — 見下方驗收對照；summary：`construction/a2/code/canvas-editing-summary.md`）
   - A5 Sharing & Collaboration: ✅ Core done — 待 cursor 廣播／WS JWT（summary：`construction/a5/code/sharing-collab-summary.md`）
   - Pillar J Identity & RBAC: ✅ Core + **J5 done**（註冊 pending、授權申請頁、核准／拒絕、停用刪除；見 `construction/j/`）
-  - Build and Test: 🔄（`construction/build-and-test/` instructions 已建。backend unit suite：auth／collab／design_agent／diagram_builder／rbac，含 hypothesis PBT；`unittest discover` → 42 tests OK；CI backend job 已接上跑測試。仍缺：HTTP 整合測、WS JWT、前端 UT）
+  - Build and Test: 🔄（含 A3；backend **61** tests OK；frontend build OK；仍缺 HTTP 整合測／WS JWT／前端 UT）
 - 🟡 Operations: 🔄
   - Deployment: ✅ `.github/workflows/deploy.yml` — push 至 `ut` 觸發，於 192.168.10.10 的 self-hosted runner（`cloud360-10-10`）執行 `docker compose up -d --build`；對外經 Cloudflare Tunnel 開放 `cloud360.danniel.cc`（見 ADR-0007）
   - Agentic Automation: ✅ 六支 gh-aw workflow（contract-guard、pr-reviewer、issue-triage、doc-sync、release-watch、daily-digest）
@@ -89,7 +93,7 @@
 - **Project Type**: Brownfield (existing SRS / architecture / user stories / ADR baseline)
 - **AIDLC Version**: 1.0.1 (see `.aidlc/aidlc-rules/VERSION`; initially adopted 0.1.8 per ADR-0006)
 - **AIDLC Adoption Branch**: `Doreen` (restructuring: .agents/ → AIDLC three-layer architecture + docs/ → aidlc-docs/inception/ migration completed)
-- **Current Stage**: Inception complete for developed scope → next priority **CONSTRUCTION** (FD/NFR/build-and-test, AC gaps, E2E; see `inception/plans/execution-plan.md`)
+- **Current Stage**: **A3 Lens Editor Code Gen done** — awaiting manual acceptance (Fiona edit / new review / 403); summary `construction/a3/code/lens-editor-summary.md`; Operations PLACEHOLDER
 
 ### Workspace State
 
@@ -128,7 +132,9 @@
   - User Stories: ✅ (including J and A4/A5)
   - Workflow Planning: ✅ (`inception/plans/execution-plan.md`)
   - Application Design: ✅ (baseline + unit-of-work artifacts)
-  - Units Generation: ✅ (developed scope A1/A2/A4/A5/J → U-A1/U-A2/U-A4/U-A5/U-J; A3/B–H not unitised yet)
+  - Units Generation: ✅ (A1/A2/**A3**/A4/A5/J → U-A1/U-A2/**U-A3**/U-A4/U-A5/U-J; B–H still unassigned)
+  - **A3 incremental Inception**: WD ✅ → RA ✅ → US ✅ → WP ✅ → AD ✅ → UG ✅
+  - **A3 / U-A3 Construction**: FD ✅ → NFR Req ✅ → NFR Design ✅ → Code Generation ✅ → Build&Test 🔄; **Findings←Lens amendment** Code Gen ✅
 - 🟢 Construction
   - A1 Code Generation: ✅ (legacy httpx superseded by Agent SDK path)
   - A1 Agent SDK Refactor: ✅ Phase 1 + Phase 2 code done — pending manual Steps 6/8 (see `construction/plans/a1-agent-sdk-code-generation-plan.md`, `construction/a1/code/a1-core-gap-summary.md`)
@@ -137,7 +143,7 @@
   - A2 Code Generation: 🔄 (core features done; partial AC gaps — see acceptance table below; summary: `construction/a2/code/canvas-editing-summary.md`)
   - A5 Sharing & Collaboration: ✅ Core done — pending cursor broadcast / WS JWT (summary: `construction/a5/code/sharing-collab-summary.md`)
   - Pillar J Identity & RBAC: ✅ Core + **J5 done** (pending registration, authorization queue, approve/reject, deactivate-delete; see `construction/j/`)
-  - Build and Test: 🔄 (`construction/build-and-test/` instructions exist. Backend unit suite: auth / collab / design_agent / diagram_builder / rbac with Hypothesis PBT; `unittest discover` → 42 tests OK; CI backend job now runs tests. Still missing: HTTP integration tests, WS JWT, frontend UT)
+  - Build and Test: 🔄 (includes A3; backend **61** tests OK; frontend build OK; still missing HTTP integration / WS JWT / frontend UT)
 - 🟡 Operations: 🔄
   - Deployment: ✅ `.github/workflows/deploy.yml` — triggered by push to `ut`, runs `docker compose up -d --build` on the self-hosted runner at 192.168.10.10 (`cloud360-10-10`); exposed publicly at `cloud360.danniel.cc` through a Cloudflare Tunnel (see ADR-0007)
   - Agentic Automation: ✅ six gh-aw workflows (contract-guard, pr-reviewer, issue-triage, doc-sync, release-watch, daily-digest)

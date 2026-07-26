@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChatBox } from '../components/ChatBox';
 import type { Message } from '../components/ChatBox';
 import { DrawioCanvas } from '../components/DrawioCanvas';
@@ -40,10 +41,13 @@ function formatGenerateError(raw: string): string {
 }
 
 export const WorkspacePage = () => {
-  const { token, canArch } = useAuth();
+  const { token, canArch, can } = useAuth();
+  const navigate = useNavigate();
   const canEditArch = canArch('edit');
   const canReviewArch = canArch('review');
   const canViewOnly = canArch('view') && !canEditArch;
+  const canA3Edit = can('A3', 'edit');
+  const canA3View = can('A3', 'view');
   const canvasRef = useRef<DrawioCanvasRef>(null);
 
   const [xml, setXml] = useState<string>('');
@@ -292,6 +296,21 @@ export const WorkspacePage = () => {
     if (ms && ms > 0) {
       setTimeout(() => setToast(null), ms);
     }
+  };
+
+  const goWellArchitected = () => {
+    if (!canA3View && !canA3Edit) {
+      showToast('權限不足：需要 Well-Architected 評核權限', 'error', {
+        autoDismissMs: 4000,
+      });
+      return;
+    }
+    if (!currentDiagramIdRef.current) {
+      showToast('請先儲存或選擇一張架構圖再評核', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    setToast(null);
+    navigate(`/assessment?diagramId=${currentDiagramIdRef.current}`);
   };
 
   const handleGenerate = async (prompt: string) => {
@@ -641,6 +660,19 @@ export const WorkspacePage = () => {
             {isConnected && isShared ? '協作中' : '單機模式'}
           </span>
         </div>
+        {(canA3View || canA3Edit) && (
+          <>
+            <div className="w-px h-4 bg-gray-200 mx-1"></div>
+            <button
+              type="button"
+              onClick={goWellArchitected}
+              className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition-colors"
+              title="對目前架構圖執行 Well-Architected 評核"
+            >
+              Well-Architected
+            </button>
+          </>
+        )}
       </div>
 
       {toast?.type === 'error' && (
@@ -736,7 +768,7 @@ export const WorkspacePage = () => {
                   生成 IaC 代碼
                 </button>
                 <button
-                  onClick={() => showComingSoon('Well-Architected 評估')}
+                  onClick={goWellArchitected}
                   className="flex-1 py-3 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-100 transition-colors"
                 >
                   Well-Architected

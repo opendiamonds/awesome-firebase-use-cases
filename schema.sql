@@ -1,9 +1,9 @@
 -- Cloud-360 Database Schema
 --
--- 完整部署（含架構圖儲存／分享、A4 聊天、RBAC 預設矩陣、admin 帳號）請執行：
+-- 完整部署（含架構圖儲存／分享、A4 聊天、A3 評核、RBAC 預設矩陣、admin 帳號）請執行：
 --   psql "$DATABASE_URL" -f schema_rbac.sql
 --
--- 本檔保留為精簡核心 DDL 參考；與 schema_rbac.sql 的 A/B 段對齊。
+-- 本檔保留為精簡核心 DDL 參考；與 schema_rbac.sql 的 A/B／E 段對齊。
 
 CREATE TABLE IF NOT EXISTS users (
 	id SERIAL NOT NULL,
@@ -52,6 +52,27 @@ CREATE TABLE IF NOT EXISTS user_diagram_chats (
 	PRIMARY KEY (user_id, diagram_id),
 	FOREIGN KEY(user_id) REFERENCES users (id),
 	FOREIGN KEY(diagram_id) REFERENCES user_diagrams (id) ON DELETE CASCADE
+);
+
+-- A3: Well-Architected reviews（完整定義與索引見 schema_rbac.sql 區塊 E）
+CREATE TABLE IF NOT EXISTS architecture_reviews (
+	id SERIAL NOT NULL,
+	diagram_id INTEGER NOT NULL,
+	created_by INTEGER NOT NULL,
+	provider VARCHAR(16) NOT NULL DEFAULT 'aws',
+	status VARCHAR(32) NOT NULL DEFAULT 'pending',
+	overall_score INTEGER,
+	scores_json TEXT,
+	findings_json TEXT DEFAULT '[]',
+	suggestions_text TEXT,
+	error_message TEXT,
+	rule_pack_version VARCHAR(64),
+	archived BOOLEAN NOT NULL DEFAULT FALSE,
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+	PRIMARY KEY (id),
+	FOREIGN KEY(diagram_id) REFERENCES user_diagrams (id) ON DELETE CASCADE,
+	FOREIGN KEY(created_by) REFERENCES users (id)
 );
 
 -- RBAC 表與 seed、預設 admin：見 schema_rbac.sql

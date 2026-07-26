@@ -39,6 +39,14 @@ cd frontend && npm run dev
 
 1. 聊天輸入需求 → SSE 逐步回覆 → 畫布出現 mxGraph 圖
 
+#### 場景 5：U-A3（Well-Architected 評核）
+
+1. 具 A3.edit 帳號（如 alex／hannah）登入 → Sidebar「評估儀表板」  
+2. 選有權限圖 → 執行評核 → 見支柱分數與 findings；有 key 時見建議串流  
+3. Workspace：產圖成功 CTA「Well-Architected」或頂列按鈕 → `/assessment?diagramId=`  
+4. 無 key：規則完成後 `rules_only`，可之後重試建議  
+5. 分享圖給 Fiona（A3.view）→ 可開啟同一歷史報告  
+
 ### 清理
 
 ```bash
@@ -56,7 +64,7 @@ docker compose down -v       # 連 volume 一併清除
 
 ### Purpose
 
-Cross-unit verification for FastAPI+PostgreSQL backend and React frontend. No automated integration tests yet; the manual E2E scenarios above (login/RBAC gate, canvas edit + persistence, sharing + realtime co-edit, AI generation via SSE) are the current baseline.
+Cross-unit verification for FastAPI+PostgreSQL backend and React frontend. No automated integration tests yet; manual E2E covers login/RBAC, canvas+persistence, sharing, AI generate, and **A3 Well-Architected review** (Assessment + Workspace CTA).
 
 ### Setup / cleanup
 

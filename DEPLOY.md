@@ -91,8 +91,45 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 | A | `diagram_shares` | 圖分享（多對多） |
 | B | `users.last_opened_diagram_id` | 上次開啟的圖 |
 | B | `user_diagram_chats` | 使用者×圖 的聊天紀錄（A4） |
+| E | `architecture_reviews` | **A3** Well-Architected 評核結果（分數／發現／建議） |
+| E | `wa_lenses` | **A3** Offline Custom Lens 現行標準（具 A3 **審核** 者可編輯） |
 | C | `role_permissions` | 角色 × Story 的檢視／編輯／審核 |
 | D | 預設使用者 `admin` | 見下方 |
+
+#### 2.2.1 A3 `architecture_reviews`（DDL 摘要）
+
+| 欄位 | 說明 |
+|---|---|
+| `diagram_id` / `created_by` | FK → `user_diagrams`／`users` |
+| `provider` | 預設 `aws` |
+| `status` | `pending`／`rules_complete`／`complete`／`rules_only`／`unsupported` |
+| `overall_score` | 總分（整數） |
+| `scores_json` | JSON：Lens／啟發式支柱分、RiskCounts、`source_of_truth` 等 |
+| `findings_json` | JSON 陣列：發現（權威為離線 Lens；失敗時可啟發式備援） |
+| `suggestions_text` | Agent 改善建議全文 |
+| `error_message`／`rule_pack_version`／`archived` | 錯誤、規則包版本、是否封存 |
+| `created_at`／`updated_at` | 時間戳 |
+
+#### 2.2.2 A3 `wa_lenses`（Lens 標準編輯）
+
+| 欄位 | 說明 |
+|---|---|
+| `lens_id` | 預設 `cloud360-core-mvp` |
+| `is_active` | 現行標準列為 `true`（評核優先讀此） |
+| `body_json` | 完整 Offline Custom Lens JSON |
+| `updated_by` | 最後編輯者（具 A3 審核權限者） |
+
+**既有環境升級**：重跑 `schema_rbac.sql`（`CREATE IF NOT EXISTS`），或依賴後端啟動時 `database._ensure_a3_schema()`（會補 `architecture_reviews` 與 `wa_lenses`）。  
+無 `wa_lenses` 資料時，評核 fallback 至 `backend/lenses/cloud360-core-mvp-lens.json`。
+
+驗證：
+
+```bash
+psql "$DATABASE_URL" -c "\d architecture_reviews"
+psql "$DATABASE_URL" -c "\d wa_lenses"
+psql "$DATABASE_URL" -c "SELECT count(*) FROM architecture_reviews;"
+psql "$DATABASE_URL" -c "SELECT id, lens_id, is_active, updated_at FROM wa_lenses ORDER BY id DESC LIMIT 5;"
+```
 
 #### 2.3 預設資料會塞什麼
 
@@ -173,8 +210,10 @@ psql "$DATABASE_URL" -c "COPY role_permissions TO STDOUT WITH CSV HEADER" > role
 psql "$DATABASE_URL" -f schema_rbac.sql
 ```
 
-Creates: `users`, `user_diagrams`, `diagram_shares`, `user_diagram_chats`, `role_permissions`, plus `last_opened_diagram_id`.  
+Creates: `users`, `user_diagrams`, `diagram_shares`, `user_diagram_chats`, **`architecture_reviews` (A3)**, **`wa_lenses` (editable Offline Lens)**, `role_permissions`, plus `last_opened_diagram_id`.  
 Seeds ~**308** `role_permissions` rows and default user **`admin` / `admin123`** (`Platform_Admin`) if missing.
+
+**A3** `architecture_reviews` stores review scores/findings/suggestions. **`wa_lenses`** stores the active Custom Lens JSON editable by users with **A3.review** (default: Security_Reviewer VER; reviews resolve DB-first, then file fallback). Existing DBs: re-run `schema_rbac.sql` (`IF NOT EXISTS`) or rely on backend `_ensure_a3_schema()` on startup.
 
 **If you create empty tables without seeding `role_permissions`, the matrix is entirely empty** — no view/edit/review for any role, Sidebar stays empty, APIs return 403. Always run `schema_rbac.sql` (or confirm ~308 rows after backend empty-DB seed).
 

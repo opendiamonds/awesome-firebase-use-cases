@@ -12,6 +12,7 @@
 |---|---|
 | A | `users`、`user_diagrams`、`diagram_shares`（架構圖儲存與分享） |
 | B | `user_diagram_chats`、`last_opened_diagram_id`（A4 聊天／上次開啟） |
+| E | `architecture_reviews`（A3 評核）＋ `wa_lenses`（A3 可編輯 Offline Lens） |
 | C | `role_permissions` + 308 列預設細項權限 |
 | D | 預設帳號 `admin` / `admin123`（`Platform_Admin`） |
 
@@ -36,7 +37,7 @@ docker exec -i cloud360-db psql -U postgres -d cloud360 < schema_rbac.sql
 
 ### File
 
-**`schema_rbac.sql`** is the **full** portable deployment script: core diagram storage/sharing, A4 chat, RBAC matrix seed (308 rows), and default `admin` / `admin123` (`Platform_Admin`).
+**`schema_rbac.sql`** is the **full** portable deployment script: core diagram storage/sharing, A4 chat, **A3 `architecture_reviews` + `wa_lenses`**, RBAC matrix seed (308 rows), and default `admin` / `admin123` (`Platform_Admin`).
 
 ### Run
 

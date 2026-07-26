@@ -14,7 +14,7 @@
 
 | 路徑 | 說明 | 狀態 |
 |---|---|---|
-| `deployment/` | 部署流程摘要、與 staging 管線對照 | 🔄 有 baseline（見下方現有來源） |
+| `deployment/` | 部署流程摘要、與 staging 管線對照；含 **A3 上線檢查清單** | 🔄 baseline + A3 checklist |
 | `observability/` | 監控、日誌、告警設計與 runbook 索引 | ⏳ 待補 |
 | `incident-playbooks/` | 事故應變手冊 | ⏳ 待補 |
 
@@ -24,6 +24,7 @@
 |---|---|
 | [`deploy/`](../../deploy/) | self-hosted compose、cloudflared、環境變數範本 |
 | [`DEPLOY.md`](../../DEPLOY.md) | 人工／環境變數部署說明 |
+| [`deployment/a3-go-live-checklist.md`](deployment/a3-go-live-checklist.md) | **A3** Well-Architected 上線檢查清單（DB／權限／smoke／回滾） |
 | [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) | push `ut` → self-hosted runner 自動部署 |
 | [`ADR-0007`](../inception/decisions/0007-self-hosted-deployment-pipeline.md) | self-hosted + Cloudflare Tunnel 決策 |
 
@@ -46,7 +47,7 @@ Executable deploy assets stay under repo-root `deploy/` and `.github/workflows/d
 
 | Path | Purpose | Status |
 |---|---|---|
-| `deployment/` | Deployment summaries and staging pipeline index | 🔄 baseline present (see sources below) |
+| `deployment/` | Deployment summaries and staging pipeline index; includes **A3 go-live checklist** | 🔄 baseline + A3 checklist |
 | `observability/` | Monitoring, logging, alerting design and runbook index | ⏳ pending |
 | `incident-playbooks/` | Incident response playbooks | ⏳ pending |
 
@@ -56,6 +57,7 @@ Executable deploy assets stay under repo-root `deploy/` and `.github/workflows/d
 |---|---|
 | [`deploy/`](../../deploy/) | Self-hosted compose, cloudflared, env examples |
 | [`DEPLOY.md`](../../DEPLOY.md) | Manual / env-var deployment guide |
+| [`deployment/a3-go-live-checklist.md`](deployment/a3-go-live-checklist.md) | **A3** Well-Architected go-live checklist (DB / RBAC / smoke / rollback) |
 | [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) | Push to `ut` → self-hosted runner deploy |
 | [`ADR-0007`](../inception/decisions/0007-self-hosted-deployment-pipeline.md) | Self-hosted + Cloudflare Tunnel decision |
 
