@@ -44,6 +44,14 @@ class TestFormatUserPrompt(unittest.TestCase):
         out = format_user_prompt([])
         self.assertIn("對話歷史", out)
         self.assertIn("draw_architecture_diagram", out)
+        self.assertIn("不要使用 Markdown", out)
+
+    def test_loaded_prompt_forbids_markdown_in_chat(self):
+        from services.design_agent import load_system_prompt
+
+        prompt = load_system_prompt()
+        self.assertIn("禁止使用 Markdown", prompt)
+        self.assertIn("一般口語對答", prompt)
 
     def test_roles_labeled(self):
         out = format_user_prompt(

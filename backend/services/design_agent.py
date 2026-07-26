@@ -104,6 +104,7 @@ def format_user_prompt(messages: list[dict[str, str]]) -> str:
     lines.append(
         "\n若需求已足夠明確，請呼叫 draw_architecture_diagram 工具產圖；"
         "否則先用文字釐清需求。"
+        "回覆使用者時請用一般口語對答，不要使用 Markdown（不要 #、**、- 清單、程式碼區塊等）。"
     )
     return "\n".join(lines)
 

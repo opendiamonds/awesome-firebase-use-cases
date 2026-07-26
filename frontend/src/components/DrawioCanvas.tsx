@@ -1,15 +1,26 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  type ReactNode,
+} from 'react';
 
 export type DiagramSaveStatus = 'saved' | 'unsaved' | 'saving' | 'no-file';
 
 interface DrawioCanvasProps {
   xml: string;
-  /** 工具列顯示的架構圖標題 */
+  /** 架構圖標題（目前不在工具列顯示；保留 props 相容） */
   diagramTitle?: string;
   /** 儲存狀態徽章（修正先前寫死「未儲存」） */
   saveStatus?: DiagramSaveStatus;
   /** 僅檢視／審核：禁止操作畫布與儲存 */
   readOnly?: boolean;
+  /** 標題列正中央插槽（例如歷史架構圖選單），避免浮層擋住標題 */
+  headerCenter?: ReactNode;
+  /** 標題列下方提示條（例如僅檢視橫幅） */
+  headerBanner?: ReactNode;
   onLoadComplete?: () => void;
   onAutosave?: (xml: string) => void;
   onSaveClick?: (xml: string) => void;
@@ -48,9 +59,10 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
   (
     {
       xml,
-      diagramTitle = '未命名架構圖',
       saveStatus = 'unsaved',
       readOnly = false,
+      headerCenter,
+      headerBanner,
       onLoadComplete,
       onAutosave,
       onSaveClick,
@@ -160,48 +172,27 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
     }, [xml, onAutosave]);
 
     return (
-      <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative">
-        <div className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-200/60 flex items-center justify-between px-8 shrink-0 z-10 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-gray-100 rounded-lg text-gray-500">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                />
-              </svg>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-gray-900 tracking-tight truncate max-w-[240px]">
-                  {diagramTitle}
-                </h1>
-                <span
-                  className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-full border ${badge.className}`}
-                >
-                  {badge.label}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5 font-medium">
-                {saveStatus === 'saved'
+      <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative min-w-0">
+        <div className="min-h-14 bg-white/80 backdrop-blur-md border-b border-gray-200/60 flex items-center justify-between gap-3 px-6 py-2.5 shrink-0 z-10 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {headerCenter}
+            <span
+              className={`px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-full border shrink-0 ${badge.className}`}
+              title={
+                saveStatus === 'saved'
                   ? '已同步至資料庫'
                   : saveStatus === 'saving'
                     ? '正在寫入資料庫…'
                     : saveStatus === 'no-file'
                       ? '產圖後請按「儲存架構圖」建檔'
-                      : '有未寫入資料庫的變更'}
-              </p>
-            </div>
+                      : '有未寫入資料庫的變更'
+              }
+            >
+              {badge.label}
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-3 shrink-0">
             {onReviewClick && (
               <button
                 onClick={onReviewClick}
@@ -250,6 +241,7 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
             )}
           </div>
         </div>
+        {headerBanner}
 
         <div className="flex-1 p-8 overflow-hidden">
           <div className="w-full h-full bg-white rounded-3xl shadow-[0_12px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-200/50 overflow-hidden relative group">
