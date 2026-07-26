@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
 
 interface RolePermRow {
@@ -100,26 +100,31 @@ export const RolePermissionsPage: React.FC = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const load = async () => {
-    if (!token) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [metaRes, matrixRes] = await Promise.all([
-        fetch(apiUrl('/api/auth/roles'), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(apiUrl('/api/auth/role-permissions'), {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-      if (!metaRes.ok) throw new Error('無法取得角色清單');
-      if (!matrixRes.ok) {
-        const d = await matrixRes.json();
-        throw new Error(d.detail || '無法取得權限矩陣');
-      }
-      const meta = await metaRes.json();
-      const matrix: RolePermRow[] = await matrixRes.json();
+  // 純抓取，完全不碰 state。react-hooks/set-state-in-effect 會做過程間分析：
+  // 只要 effect 同步呼叫的函式內部有 setState 就會被擋，因此把 state 更新一律
+  // 留在呼叫端的 .then／.catch／.finally callback 內（規則允許的形式）。
+  const fetchMatrix = useCallback(async () => {
+    const [metaRes, matrixRes] = await Promise.all([
+      fetch(apiUrl('/api/auth/roles'), {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(apiUrl('/api/auth/role-permissions'), {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
+    if (!metaRes.ok) throw new Error('無法取得角色清單');
+    if (!matrixRes.ok) {
+      const d = await matrixRes.json();
+      throw new Error(d.detail || '無法取得權限矩陣');
+    }
+    const meta = await metaRes.json();
+    const matrix: RolePermRow[] = await matrixRes.json();
+    return { meta, matrix };
+  }, [token]);
+
+  // 套用抓回來的資料。兩處呼叫端共用，避免邏輯重複。
+  const applyMatrix = useCallback(
+    ({ meta, matrix }: { meta: { roles?: string[]; stories?: string[] }; matrix: RolePermRow[] }) => {
       setRoles(meta.roles || []);
       // Pillar J：矩陣只編 J3a／J3b（使用者設定／細項設定），不含 J1 登入
       setStories(
@@ -129,16 +134,31 @@ export const RolePermissionsPage: React.FC = () => {
       );
       setRows(matrix);
       setDirty({});
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '載入失敗');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    []
+  );
+
+  // 使用者主動觸發（存檔／還原後重載）：先切回 loading 再抓。
+  const load = useCallback(() => {
+    if (!token) return Promise.resolve();
+    setIsLoading(true);
+    setError(null);
+    return fetchMatrix()
+      .then(applyMatrix)
+      .catch((err) => setError(err instanceof Error ? err.message : '載入失敗'))
+      .finally(() => setIsLoading(false));
+  }, [token, fetchMatrix, applyMatrix]);
 
   useEffect(() => {
-    load();
-  }, [token]);
+    if (!token) return;
+    // 初次載入時 isLoading 已是 true，不需要再設一次。
+    let cancelled = false;
+    fetchMatrix()
+      .then((data) => { if (!cancelled) applyMatrix(data); })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : '載入失敗'); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [token, fetchMatrix, applyMatrix]);
 
   const visibleStories = useMemo(() => {
     const raw = stories.filter((s) => s.startsWith(pillar));

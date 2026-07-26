@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
 
 interface DbUser {
@@ -31,33 +31,42 @@ export const AdminPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const fetchUsers = async () => {
+  // 純抓取，完全不碰 state。react-hooks/set-state-in-effect 會做過程間分析：
+  // 只要 effect 同步呼叫的函式內部有 setState 就會被擋，因此把 state 更新一律
+  // 留在呼叫端的 .then／.catch／.finally callback 內（規則允許的形式）。
+  const fetchUserList = useCallback(async (): Promise<DbUser[]> => {
+    const res = await fetch(apiUrl('/api/auth/list'), {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || '取得使用者列表失敗');
+    }
+    return data;
+  }, [token]);
+
+  // 使用者主動觸發的重新整理：先切回 loading 再抓，事件處理內同步 setState 無妨。
+  const fetchUsers = useCallback(() => {
     setIsLoading(true);
     setError(null);
-    try {
-      const res = await fetch(apiUrl('/api/auth/list'), {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || '取得使用者列表失敗');
-      }
-      const data = await res.json();
-      setUsers(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '連線失敗');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    return fetchUserList()
+      .then(setUsers)
+      .catch((err) => setError(err instanceof Error ? err.message : '連線失敗'))
+      .finally(() => setIsLoading(false));
+  }, [fetchUserList]);
 
   useEffect(() => {
-    if (token) {
-      fetchUsers();
-    }
-  }, [token]);
+    if (!token) return;
+    // 初次載入時 isLoading 已是 true，不需要再設一次。
+    let cancelled = false;
+    fetchUserList()
+      .then((data) => { if (!cancelled) setUsers(data); })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : '連線失敗'); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [token, fetchUserList]);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });

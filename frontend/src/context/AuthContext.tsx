@@ -1,40 +1,7 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiUrl } from '../config/api';
-
-export type StoryAction = 'view' | 'edit' | 'review';
-
-export interface StoryPermission {
-  view: boolean;
-  edit: boolean;
-  review: boolean;
-  can_view?: boolean;
-  can_edit?: boolean;
-  can_review?: boolean;
-}
-
-export interface User {
-  id?: number;
-  username: string;
-  role: string;
-  is_active?: boolean;
-  permissions?: Record<string, StoryPermission>;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (username: string, token: string, role: string) => Promise<void>;
-  logout: () => void;
-  checkAuthSession: () => Promise<boolean>;
-  can: (storyId: string, action?: StoryAction) => boolean;
-  /** 架構圖生成（A1／A2／A4 同一功能） */
-  canArch: (action?: StoryAction) => boolean;
-  refreshMe: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './auth-context';
+import type { StoryAction, User } from './auth-context';
 
 /** A1／A2／A4 視為同一「架構圖生成」能力，以 A1 為準 */
 const ARCH_STORIES = new Set(['A1', 'A2', 'A4']);
@@ -60,7 +27,10 @@ async function fetchMe(tokenVal: string): Promise<User> {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // 只有「真的要打 /me」時才處於 loading。用 lazy initial state 讀 localStorage，
+  // 沒有 token 的情況第一次 render 就是 false，不必在 effect body 內同步 setState
+  // （react-hooks/set-state-in-effect），也省掉登入頁的載入畫面閃爍。
+  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('token'));
 
   const applyUser = (u: User, tokenVal: string) => {
     localStorage.setItem('token', tokenVal);
@@ -88,10 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 初始化：有 token 則打 /me 取得最新 role + permissions
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
-    if (!savedToken) {
-      setIsLoading(false);
-      return;
-    }
+    // isLoading 的初始值已由同一份 localStorage 判定，這裡直接返回即可。
+    if (!savedToken) return;
     fetchMe(savedToken)
       .then((me) => applyUser(me, savedToken))
       .catch(() => logout())
@@ -164,12 +132,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

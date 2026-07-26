@@ -4,7 +4,7 @@ import type { Message } from '../components/ChatBox';
 import { DrawioCanvas } from '../components/DrawioCanvas';
 import type { DiagramSaveStatus, DrawioCanvasRef } from '../components/DrawioCanvas';
 import { ShareModal } from '../components/ShareModal';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-context';
 import { useCollaboration } from '../hooks/useCollaboration';
 import { apiUrl } from '../config/api';
 
