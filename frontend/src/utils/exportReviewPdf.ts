@@ -32,6 +32,8 @@ export type PdfReviewExport = {
   };
   findings?: PdfFinding[];
   suggestions_text?: string | null;
+  /** data:image/png;base64,... 架構圖預覽（可選） */
+  diagramImageDataUrl?: string | null;
 };
 
 const PILLAR_LABELS: Record<string, string> = {
@@ -246,6 +248,12 @@ function buildReportHtml(data: PdfReviewExport): string {
       </div>
     </div>
 
+    ${
+      data.diagramImageDataUrl
+        ? `<p style="margin:20px 0 0;font-size:12px;color:#6b7280">架構圖對照頁見下一頁（或報告後附頁）。</p>`
+        : ''
+    }
+
     <h2 style="margin:28px 0 10px;font-size:15px;font-weight:800">支柱分數</h2>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <tbody>${pillars}</tbody>
@@ -284,14 +292,12 @@ export async function downloadReviewPdf(data: PdfReviewExport): Promise<void> {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    // Keep clear top/bottom (and side) margins on every page
     const marginX = 14;
     const marginTop = 16;
     const marginBottom = 16;
     const usableW = pageW - marginX * 2;
     const usableH = pageH - marginTop - marginBottom;
 
-    // Full report height in mm when scaled to usable width
     const fullImgH = (canvas.height * usableW) / canvas.width;
     const pageCount = Math.max(1, Math.ceil(fullImgH / usableH));
 
@@ -329,8 +335,112 @@ export async function downloadReviewPdf(data: PdfReviewExport): Promise<void> {
       pdf.addImage(sliceImg, 'PNG', marginX, marginTop, usableW, sliceH);
     }
 
+    // 架構圖獨立一頁（標題用 Canvas 畫中文，避免 jsPDF 預設字型亂碼）
+    if (data.diagramImageDataUrl) {
+      pdf.addPage();
+      const maxLabelPx = Math.round((usableW / 25.4) * 96); // mm → css px
+      const heading = renderCjkLabel('架構圖（對照）', {
+        fontSizePx: 16,
+        color: '#111827',
+        maxWidthPx: maxLabelPx,
+        fontWeight: '800',
+      });
+      let cursorY = marginTop;
+      pdf.addImage(
+        heading.dataUrl,
+        'PNG',
+        marginX,
+        cursorY,
+        pxToMm(heading.widthPx),
+        pxToMm(heading.heightPx)
+      );
+      cursorY += pxToMm(heading.heightPx) + 2;
+
+      if (data.diagramTitle) {
+        const sub = renderCjkLabel(String(data.diagramTitle).slice(0, 80), {
+          fontSizePx: 12,
+          color: '#6b7280',
+          maxWidthPx: maxLabelPx,
+          fontWeight: '500',
+        });
+        pdf.addImage(
+          sub.dataUrl,
+          'PNG',
+          marginX,
+          cursorY,
+          pxToMm(sub.widthPx),
+          pxToMm(sub.heightPx)
+        );
+        cursorY += pxToMm(sub.heightPx) + 4;
+      } else {
+        cursorY += 2;
+      }
+
+      const img = await loadImage(data.diagramImageDataUrl);
+      const maxW = usableW;
+      const maxH = pageH - cursorY - marginBottom;
+      const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+      const drawW = img.width * ratio;
+      const drawH = img.height * ratio;
+      const x = marginX + (usableW - drawW) / 2;
+      const fmt = data.diagramImageDataUrl.includes('image/jpeg') ? 'JPEG' : 'PNG';
+      pdf.addImage(data.diagramImageDataUrl, fmt, x, cursorY, drawW, drawH);
+    }
+
     pdf.save(`cloud360-wa-review-${data.id}.pdf`);
   } finally {
     document.body.removeChild(host);
   }
+}
+
+function pxToMm(px: number): number {
+  return (px * 25.4) / 96;
+}
+
+/** 用瀏覽器 Canvas 畫中文標籤（jsPDF 內建字型不支援 CJK） */
+function renderCjkLabel(
+  text: string,
+  opts: {
+    fontSizePx: number;
+    color: string;
+    maxWidthPx: number;
+    fontWeight?: string;
+  }
+): { dataUrl: string; widthPx: number; heightPx: number } {
+  const scale = 2;
+  const font = `${opts.fontWeight || '700'} ${opts.fontSizePx * scale}px system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif`;
+  const probe = document.createElement('canvas');
+  const probeCtx = probe.getContext('2d');
+  if (!probeCtx) {
+    return { dataUrl: '', widthPx: 0, heightPx: 0 };
+  }
+  probeCtx.font = font;
+  const measured = Math.ceil(probeCtx.measureText(text).width) + 16;
+  const w = Math.max(1, Math.min(opts.maxWidthPx * scale, measured));
+  const h = Math.max(1, Math.ceil(opts.fontSizePx * scale * 1.55));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  if (!ctx) {
+    return { dataUrl: '', widthPx: 0, heightPx: 0 };
+  }
+  ctx.font = font;
+  ctx.fillStyle = opts.color;
+  ctx.textBaseline = 'top';
+  ctx.fillText(text, 4, 4, w - 8);
+  return {
+    dataUrl: c.toDataURL('image/png'),
+    widthPx: w / scale,
+    heightPx: h / scale,
+  };
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('無法載入架構圖影像'));
+    img.src = src;
+  });
 }

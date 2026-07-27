@@ -4,7 +4,9 @@ import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
 import { SuggestionRichText } from '../components/SuggestionRichText';
 import { LensCriteriaEditor } from '../components/LensCriteriaEditor';
+import { DiagramPreviewPanel } from '../components/DiagramPreviewPanel';
 import { downloadReviewPdf } from '../utils/exportReviewPdf';
+import { exportDiagramToPngDataUrl } from '../utils/exportDiagramPng';
 
 type DiagramItem = {
   id: number;
@@ -33,7 +35,7 @@ type RiskCounts = {
 
 type Review = {
   id: number;
-  diagram_id: number;
+  diagram_id: number | null;
   status: string;
   overall_score: number | null;
   scores?: {
@@ -60,6 +62,8 @@ type Review = {
   error_message?: string | null;
   created_at?: string | null;
   provider?: string;
+  xml_snapshot?: string | null;
+  has_xml_snapshot?: boolean;
 };
 
 const PILLAR_LABELS: Record<string, string> = {
@@ -112,6 +116,12 @@ export const AssessmentPage = () => {
   const [diagramOverride, setDiagramOverride] = useState<number | null>(null);
   const [provider, setProvider] = useState('aws');
   const [replaceLatest, setReplaceLatest] = useState(false);
+  const [uploadedXml, setUploadedXml] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [saveDiagram, setSaveDiagram] = useState(false);
+  const [saveTitle, setSaveTitle] = useState('');
+  const [detectingProvider, setDetectingProvider] = useState(false);
+  const [selectedXml, setSelectedXml] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [active, setActive] = useState<Review | null>(null);
   const [suggestionsLive, setSuggestionsLive] = useState('');
@@ -124,6 +134,8 @@ export const AssessmentPage = () => {
   const [openingId, setOpeningId] = useState<number | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const saveDiagramRef = useRef(false);
 
   const authHeaders = useMemo(
     () => ({
@@ -190,17 +202,92 @@ export const AssessmentPage = () => {
     return () => { cancelled = true; };
   }, [selectedDiagramId, fetchReviews]);
 
+  useEffect(() => {
+    if (!selectedDiagramId || !token) {
+      setSelectedXml(null);
+      return;
+    }
+    if (uploadedXml) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl(`/api/collab/diagrams/${selectedDiagramId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          if (!cancelled) setSelectedXml(null);
+          return;
+        }
+        const data = await res.json();
+        if (!cancelled) setSelectedXml(data.xml_data || null);
+      } catch {
+        if (!cancelled) setSelectedXml(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDiagramId, token, uploadedXml]);
+
+  const previewXml = uploadedXml || selectedXml || active?.xml_snapshot || null;
+  const previewTitle =
+    uploadedFileName ||
+    diagrams.find((d) => d.id === selectedDiagramId)?.title ||
+    diagrams.find((d) => d.id === active?.diagram_id)?.title ||
+    '架構圖預覽';
+
   const applySseEvent = (data: Record<string, unknown>) => {
     const type = String(data.type || '');
+    const maybeAdoptSavedDiagram = (reviewId: number | null) => {
+      if (!saveDiagramRef.current) return;
+      saveDiagramRef.current = false;
+      const adopt = async () => {
+        const list = await fetchDiagrams();
+        if (list) setDiagrams(list);
+        let newId: number | null =
+          data.diagram_id != null && !Number.isNaN(Number(data.diagram_id))
+            ? Number(data.diagram_id)
+            : null;
+        if (newId == null && reviewId != null) {
+          try {
+            const res = await fetch(
+              apiUrl(`/api/architecture/reviews/${reviewId}`),
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (res.ok) {
+              const review = (await res.json()) as Review;
+              if (review.diagram_id) newId = review.diagram_id;
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+        if (newId != null) {
+          setDiagramOverride(newId);
+          setUploadedXml(null);
+          setUploadedFileName(null);
+          setSaveDiagram(false);
+        }
+      };
+      void adopt();
+    };
+
     if (type === 'rules_done') {
       setPhase('rules');
+      const reviewId = Number(data.review_id);
+      maybeAdoptSavedDiagram(Number.isNaN(reviewId) ? null : reviewId);
       setActive((prev) => ({
-        ...(prev || { id: Number(data.review_id), diagram_id: selectedDiagramId || 0, status: 'rules_complete' }),
-        id: Number(data.review_id),
+        ...(prev || { id: reviewId, diagram_id: selectedDiagramId || 0, status: 'rules_complete' }),
+        id: reviewId,
         status: 'rules_complete',
         overall_score: (data.overall_score as number) ?? null,
         scores: data.scores as Review['scores'],
         findings: data.findings as Finding[],
+        provider: (data.provider as string) || (data.resolved_provider as string) || prev?.provider,
+        diagram_id:
+          data.diagram_id != null
+            ? Number(data.diagram_id)
+            : (prev?.diagram_id ?? selectedDiagramId ?? 0),
       }));
     } else if (type === 'lens_done') {
       setPhase('lens');
@@ -226,6 +313,8 @@ export const AssessmentPage = () => {
       setPhase('done');
       const text = String(data.suggestions_text || '');
       if (text) setSuggestionsLive(text);
+      const reviewId = Number(data.review_id);
+      maybeAdoptSavedDiagram(Number.isNaN(reviewId) ? null : reviewId);
       setActive((prev) =>
         prev
           ? {
@@ -248,6 +337,7 @@ export const AssessmentPage = () => {
     } else if (type === 'unsupported') {
       setPhase('unsupported');
       setError(String(data.message || '未支援的雲端提供者'));
+      saveDiagramRef.current = false;
       if (selectedDiagramId) loadReviews(selectedDiagramId);
     } else if (type === 'error') {
       if (data.code === 'lens_error') {
@@ -267,6 +357,7 @@ export const AssessmentPage = () => {
       }
       setPhase('error');
       setError(String(data.message || '評核失敗'));
+      saveDiagramRef.current = false;
       const fallbackText = String(data.suggestions_text || '');
       if (fallbackText) setSuggestionsLive(fallbackText);
       setActive((prev) =>
@@ -288,21 +379,76 @@ export const AssessmentPage = () => {
     }
   };
 
+  const handleUploadFile = async (file: File | null) => {
+    if (!file) return;
+    setError(null);
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        setError('檔案內容為空');
+        return;
+      }
+      setUploadedXml(text);
+      setUploadedFileName(file.name);
+      setDetectingProvider(true);
+      try {
+        const res = await fetch(apiUrl('/api/architecture/reviews/detect-provider'), {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ xml_data: text }),
+        });
+        if (!res.ok) {
+          const detail = await res.text();
+          throw new Error(detail || `偵測雲端失敗（HTTP ${res.status}）`);
+        }
+        const data = (await res.json()) as { provider?: string };
+        if (data.provider) setProvider(data.provider);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '偵測雲端提供者失敗');
+      } finally {
+        setDetectingProvider(false);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '讀取檔案失敗');
+    }
+  };
+
+  const clearUpload = () => {
+    setUploadedXml(null);
+    setUploadedFileName(null);
+    setSaveDiagram(false);
+    setSaveTitle('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const canRunReview = Boolean(selectedDiagramId || uploadedXml) && canEdit;
+
   const runReview = async () => {
-    if (!selectedDiagramId || !canEdit) return;
+    if (!canRunReview) return;
     setError(null);
     setSuggestionsLive('');
     setActive(null);
     setPhase('running');
+    saveDiagramRef.current = Boolean(uploadedXml && saveDiagram);
     try {
+      const body: Record<string, unknown> = {
+        provider,
+        auto_detect_provider: false,
+        replace_latest: replaceLatest,
+      };
+      if (uploadedXml) {
+        body.xml_data = uploadedXml;
+        if (saveDiagram) {
+          body.save_diagram = true;
+          body.title = saveTitle.trim() || uploadedFileName || '上傳的架構圖';
+        }
+      } else if (selectedDiagramId) {
+        body.diagram_id = selectedDiagramId;
+      }
       const res = await fetch(apiUrl('/api/architecture/reviews'), {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({
-          diagram_id: selectedDiagramId,
-          provider,
-          replace_latest: replaceLatest,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const detail = await res.text();
@@ -312,6 +458,7 @@ export const AssessmentPage = () => {
     } catch (e) {
       setPhase('error');
       setError(e instanceof Error ? e.message : '發起評核失敗');
+      saveDiagramRef.current = false;
     }
   };
 
@@ -379,7 +526,43 @@ export const AssessmentPage = () => {
     try {
       const diagramTitle =
         diagrams.find((d) => d.id === active.diagram_id)?.title ||
-        diagrams.find((d) => d.id === selectedDiagramId)?.title;
+        diagrams.find((d) => d.id === selectedDiagramId)?.title ||
+        uploadedFileName ||
+        undefined;
+
+      let diagramImageDataUrl: string | null = null;
+      const xmlForPdf =
+        previewXml ||
+        active.xml_snapshot ||
+        selectedXml ||
+        uploadedXml ||
+        null;
+      if (xmlForPdf) {
+        try {
+          diagramImageDataUrl = await exportDiagramToPngDataUrl(xmlForPdf);
+        } catch {
+          // 後端轉圖備援（外部 API 常不可用）
+          try {
+            const renderRes = await fetch(
+              apiUrl('/api/architecture/diagrams/render-png'),
+              {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify({ xml_data: xmlForPdf }),
+              }
+            );
+            if (renderRes.ok) {
+              const rendered = await renderRes.json();
+              if (typeof rendered.data_url === 'string') {
+                diagramImageDataUrl = rendered.data_url;
+              }
+            }
+          } catch {
+            /* PDF 仍可匯出，僅缺圖 */
+          }
+        }
+      }
+
       await downloadReviewPdf({
         id: active.id,
         diagramTitle,
@@ -393,8 +576,11 @@ export const AssessmentPage = () => {
         risk_counts: active.scores?.risk_counts || active.scores?.lens?.risk_counts,
         findings: active.findings,
         suggestions_text: suggestionsLive || active.suggestions_text,
+        diagramImageDataUrl,
       });
-    } catch (e) {
+      if (xmlForPdf && !diagramImageDataUrl) {
+        setError('PDF 已下載，但架構圖匯出失敗（報告未附圖）。請確認可連線 diagrams.net 後重試。');
+      }    } catch (e) {
       setError(e instanceof Error ? e.message : 'PDF 匯出失敗');
     } finally {
       setExportingPdf(false);
@@ -451,7 +637,7 @@ export const AssessmentPage = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">評估儀表板</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Well-Architected 評核：離線 Lens 分數與風險計數＋AI 改善建議（本期 AWS／無 AWS API）
+              Well-Architected 評核：離線 Lens 分數與風險計數＋AI 改善建議（支援 AWS／GCP／Azure）
             </p>
           </div>
           <button
@@ -514,6 +700,29 @@ export const AssessmentPage = () => {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+              上傳 .drawio / .xml
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".drawio,.xml,application/xml,text/xml"
+                  className="block w-full max-w-[14rem] text-sm text-gray-700 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-gray-100 file:text-xs file:font-bold file:text-gray-700 hover:file:bg-gray-200"
+                  onChange={(e) => {
+                    void handleUploadFile(e.target.files?.[0] ?? null);
+                  }}
+                />
+                {uploadedXml && (
+                  <button
+                    type="button"
+                    onClick={clearUpload}
+                    className="text-xs font-semibold text-gray-500 hover:text-red-600 whitespace-nowrap"
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
               Provider
               <select
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-gray-800"
@@ -521,12 +730,8 @@ export const AssessmentPage = () => {
                 onChange={(e) => setProvider(e.target.value)}
               >
                 <option value="aws">AWS</option>
-                <option value="gcp" disabled>
-                  GCP（未實作）
-                </option>
-                <option value="azure" disabled>
-                  Azure（未實作）
-                </option>
+                <option value="gcp">GCP</option>
+                <option value="azure">Azure</option>
               </select>
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 pb-2">
@@ -539,13 +744,48 @@ export const AssessmentPage = () => {
             </label>
             <button
               type="button"
-              disabled={!selectedDiagramId || !canEdit || phase === 'running'}
+              disabled={!canRunReview || phase === 'running'}
               onClick={runReview}
               className="ml-auto px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold disabled:opacity-40"
             >
               {phase === 'running' ? '評核中…' : '執行評核'}
             </button>
           </div>
+          {uploadedFileName && (
+            <p className="text-xs text-gray-500">
+              已上傳：{uploadedFileName}
+              {detectingProvider ? ' · 偵測雲端中…' : ` · 將以 ${provider.toUpperCase()} 評核`}
+            </p>
+          )}
+          {uploadedXml && (
+            <div className="flex flex-wrap gap-3 items-end border-t border-gray-50 pt-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={saveDiagram}
+                  onChange={(e) => setSaveDiagram(e.target.checked)}
+                />
+                同時存成架構圖
+              </label>
+              {saveDiagram && (
+                <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+                  架構圖標題
+                  <input
+                    type="text"
+                    className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-gray-800 min-w-[12rem]"
+                    value={saveTitle}
+                    placeholder={uploadedFileName || '上傳的架構圖'}
+                    onChange={(e) => setSaveTitle(e.target.value)}
+                  />
+                </label>
+              )}
+            </div>
+          )}
+          {(provider === 'gcp' || provider === 'azure') && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              本期以 AWS Well-Architected 五支柱對照評核
+            </p>
+          )}
           {!canEdit && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
               您僅有檢視權限，可開啟歷史報告，無法發起新評核。
@@ -556,6 +796,12 @@ export const AssessmentPage = () => {
               {error}
             </p>
           )}
+          <DiagramPreviewPanel
+            xml={previewXml}
+            title={previewTitle}
+            heightClass="h-72"
+            emptyHint="選擇架構圖或上傳 .drawio／.xml 後，將在此預覽圖面"
+          />
         </div>
 
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
@@ -563,7 +809,11 @@ export const AssessmentPage = () => {
             歷史評核 {loadingList ? '（載入中）' : ''}
           </h2>
           {!selectedDiagramId && (
-            <p className="text-sm text-gray-400">請先選擇架構圖</p>
+            <p className="text-sm text-gray-400">
+              {uploadedXml
+                ? '上傳檔案可直接評核；選擇架構圖後可查看歷史紀錄'
+                : '請先選擇架構圖，或上傳 .drawio／.xml'}
+            </p>
           )}
           {selectedDiagramId && reviews.length === 0 && !loadingList && (
             <p className="text-sm text-gray-400">尚無評核紀錄</p>

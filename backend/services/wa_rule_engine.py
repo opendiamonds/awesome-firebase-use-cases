@@ -16,6 +16,12 @@ from typing import Any
 logger = logging.getLogger("cloud360.wa_rule_engine")
 
 RULE_PACK_VERSION = "wa-aws-mvp-1"
+RULE_PACK_BY_PROVIDER = {
+    "aws": "wa-aws-mvp-1",
+    "gcp": "wa-gcp-mvp-1",
+    "azure": "wa-azure-mvp-1",
+}
+SUPPORTED_PROVIDERS = frozenset(RULE_PACK_BY_PROVIDER)
 
 PILLARS = (
     "operational_excellence",
@@ -367,6 +373,332 @@ def _run_rules(summary: dict[str, Any]) -> list[Finding]:
     return findings
 
 
+def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
+    """GCP Architecture Framework–aligned heuristics (mapped to WA five pillars)."""
+    findings: list[Finding] = []
+    labels = _labels(summary)
+
+    def add(
+        code: str,
+        pillar: str,
+        severity: str,
+        title: str,
+        message: str,
+        node_ids: list[str],
+        hint: str,
+    ) -> None:
+        findings.append(
+            Finding(
+                code=code,
+                pillar=pillar,
+                severity=severity,
+                title=title,
+                message=message,
+                node_ids=node_ids,
+                recommendation_hint=hint,
+            )
+        )
+
+    zone_ids = _find_nodes(summary, "zone", "europe-", "us-", "asia-", "australia-")
+    compute = _find_nodes(
+        summary, "gce", "compute engine", "gke", "cloud run", "cloud sql", "spanner"
+    )
+    if len(zone_ids) <= 1 and (compute or "vpc" in labels):
+        add(
+            "GCP-REL-SINGLE-ZONE",
+            "reliability",
+            "high",
+            "疑似單一 zone／區域佈署",
+            "圖面未清楚標示多個 zone 或區域；高可用風險偏高。",
+            zone_ids,
+            "關鍵工作負載跨至少兩個 zone，資料層考慮多區域。",
+        )
+
+    db_ids = _find_nodes(
+        summary, "cloud sql", "spanner", "firestore", "bigtable", "alloydb", "database"
+    )
+    standby = _find_nodes(
+        summary, "replica", "standby", "regional", "multi-region", "high availability", "ha "
+    )
+    if db_ids and not standby:
+        add(
+            "GCP-REL-DB-NO-HA",
+            "reliability",
+            "critical",
+            "資料庫缺少 HA／複本標註",
+            "偵測到資料庫元件，但未見 replica／regional／HA 標註。",
+            db_ids,
+            "為 Cloud SQL 啟用高可用，或使用 Spanner／多區域資料服務並在圖上標示。",
+        )
+
+    if compute and not _find_nodes(
+        summary, "cloud armor", "armor", "load balancing", "https load", "glb"
+    ):
+        add(
+            "GCP-SEC-NO-EDGE",
+            "security",
+            "high",
+            "缺少邊緣防護／負載平衡標註",
+            "有運算層但未見 Cloud Armor 或全球負載平衡。",
+            compute,
+            "在對外入口加入 Cloud Load Balancing 與 Cloud Armor。",
+        )
+
+    if not _find_nodes(
+        summary, "kms", "cloud kms", "secret manager", "secretmanager"
+    ) and (
+        _find_nodes(summary, "sql", "storage", "bucket", "gcs") or "database" in labels
+    ):
+        add(
+            "GCP-SEC-NO-KMS",
+            "security",
+            "high",
+            "缺少 KMS／Secret Manager 標註",
+            "有資料儲存但未見加密金鑰或密鑰管理元件。",
+            [],
+            "使用 Cloud KMS 與 Secret Manager 管理金鑰與密文。",
+        )
+
+    if db_ids and not _find_nodes(
+        summary, "memorystore", "cdn", "cloud cdn", "cache"
+    ):
+        add(
+            "GCP-PERF-NO-CACHE",
+            "performance_efficiency",
+            "warn",
+            "讀路徑缺少快取標註",
+            "有資料層但未見 Memorystore／Cloud CDN。",
+            [],
+            "對讀多路徑加入快取或 CDN。",
+        )
+
+    if not _find_nodes(
+        summary,
+        "cloud monitoring",
+        "monitoring",
+        "cloud logging",
+        "logging",
+        "ops agent",
+        "cloud trace",
+    ):
+        add(
+            "GCP-OE-NO-MONITOR",
+            "operational_excellence",
+            "warn",
+            "缺少可觀測性標註",
+            "圖上未見 Cloud Monitoring／Logging／Trace。",
+            [],
+            "加入 Monitoring、Logging 與告警政策。",
+        )
+
+    if not _find_nodes(
+        summary, "cloud build", "cloud deploy", "cloudbuild", "tekton", "github actions"
+    ):
+        add(
+            "GCP-OE-NO-PIPELINE",
+            "operational_excellence",
+            "info",
+            "缺少 CI/CD 標註",
+            "圖上未標示 Cloud Build／Deploy 等管線。",
+            [],
+            "若含變更路徑，請標註 CI/CD。",
+        )
+
+    if _find_nodes(summary, "compute engine", "gce") and not _find_nodes(
+        summary, "committed use", "cud", "spot", "preemptible", "autoscal"
+    ):
+        add(
+            "GCP-COST-NO-COMMIT",
+            "cost_optimization",
+            "info",
+            "運算成本優化標註不足",
+            "有 GCE 但未見承諾使用折扣／Spot／自動伸縮標註。",
+            [],
+            "評估 CUD、Spot VM 或自動伸縮以降低成本。",
+        )
+
+    if summary.get("node_count", 0) == 0:
+        add(
+            "OE-EMPTY-DIAGRAM",
+            "operational_excellence",
+            "high",
+            "架構圖幾乎空白",
+            "未能解析出可辨識的架構節點。",
+            [],
+            "請確認已儲存含 GCP 元件標籤的 draw.io 圖再評核。",
+        )
+
+    return findings
+
+
+def _run_rules_azure(summary: dict[str, Any]) -> list[Finding]:
+    """Azure Well-Architected–aligned heuristics (mapped to WA five pillars)."""
+    findings: list[Finding] = []
+    labels = _labels(summary)
+
+    def add(
+        code: str,
+        pillar: str,
+        severity: str,
+        title: str,
+        message: str,
+        node_ids: list[str],
+        hint: str,
+    ) -> None:
+        findings.append(
+            Finding(
+                code=code,
+                pillar=pillar,
+                severity=severity,
+                title=title,
+                message=message,
+                node_ids=node_ids,
+                recommendation_hint=hint,
+            )
+        )
+
+    az_ids = _find_nodes(
+        summary, "availability zone", "availabilityzone", "az-", "zone"
+    )
+    compute = _find_nodes(
+        summary,
+        "app service",
+        "aks",
+        "virtual machine",
+        "vmss",
+        "functions",
+        "azure sql",
+        "cosmos",
+    )
+    if len(az_ids) <= 1 and (compute or "vnet" in labels or "virtual network" in labels):
+        add(
+            "AZ-REL-SINGLE-ZONE",
+            "reliability",
+            "high",
+            "疑似單一 Availability Zone 佈署",
+            "圖面未清楚標示多個 AZ；高可用風險偏高。",
+            az_ids,
+            "關鍵工作負載跨至少兩個 Availability Zone。",
+        )
+
+    db_ids = _find_nodes(
+        summary, "azure sql", "cosmos", "sql database", "database", "synapse"
+    )
+    standby = _find_nodes(
+        summary, "geo-replica", "failover", "zone redundant", "replica", "secondary"
+    )
+    if db_ids and not standby:
+        add(
+            "AZ-REL-DB-NO-HA",
+            "reliability",
+            "critical",
+            "資料庫缺少備援／區域備援標註",
+            "偵測到資料庫元件，但未見 replica／failover／zone-redundant 標註。",
+            db_ids,
+            "啟用 zone-redundant 或 geo-replication 並在圖上標示。",
+        )
+
+    if compute and not _find_nodes(
+        summary,
+        "application gateway",
+        "front door",
+        "waf",
+        "azure firewall",
+        "load balancer",
+    ):
+        add(
+            "AZ-SEC-NO-EDGE",
+            "security",
+            "high",
+            "缺少邊緣防護／閘道標註",
+            "有運算層但未見 Application Gateway／Front Door／WAF。",
+            compute,
+            "在對外入口加入 Application Gateway 或 Front Door 與 WAF。",
+        )
+
+    if not _find_nodes(summary, "key vault", "keyvault") and (
+        db_ids or _find_nodes(summary, "storage", "blob")
+    ):
+        add(
+            "AZ-SEC-NO-KEYVAULT",
+            "security",
+            "high",
+            "缺少 Key Vault 標註",
+            "有資料儲存但未見 Azure Key Vault。",
+            [],
+            "使用 Key Vault 管理密鑰與憑證。",
+        )
+
+    if db_ids and not _find_nodes(
+        summary, "redis", "cdn", "front door", "cache", "azure cache"
+    ):
+        add(
+            "AZ-PERF-NO-CACHE",
+            "performance_efficiency",
+            "warn",
+            "讀路徑缺少快取標註",
+            "有資料層但未見 Redis／CDN 類快取。",
+            [],
+            "對讀多路徑加入 Azure Cache for Redis 或 CDN。",
+        )
+
+    if not _find_nodes(
+        summary,
+        "monitor",
+        "application insights",
+        "log analytics",
+        "azure monitor",
+    ):
+        add(
+            "AZ-OE-NO-MONITOR",
+            "operational_excellence",
+            "warn",
+            "缺少監控元件標註",
+            "圖上未見 Azure Monitor／Application Insights。",
+            [],
+            "加入 Monitor、Log Analytics 與告警。",
+        )
+
+    if not _find_nodes(
+        summary, "devops", "pipeline", "github actions", "cicd", "ci/cd"
+    ):
+        add(
+            "AZ-OE-NO-PIPELINE",
+            "operational_excellence",
+            "info",
+            "缺少 CI/CD 標註",
+            "圖上未標示 Azure DevOps／GitHub Actions 管線。",
+            [],
+            "若含變更路徑，請標註 CI/CD。",
+        )
+
+    if _find_nodes(summary, "virtual machine", "vm ") and not _find_nodes(
+        summary, "reserved", "spot", "autoscale", "vmss"
+    ):
+        add(
+            "AZ-COST-NO-COMMIT",
+            "cost_optimization",
+            "info",
+            "運算成本優化標註不足",
+            "有 VM 但未見 Reserved／Spot／自動伸縮標註。",
+            [],
+            "評估 Reserved Instances、Spot 或 VMSS 自動伸縮。",
+        )
+
+    if summary.get("node_count", 0) == 0:
+        add(
+            "OE-EMPTY-DIAGRAM",
+            "operational_excellence",
+            "high",
+            "架構圖幾乎空白",
+            "未能解析出可辨識的架構節點。",
+            [],
+            "請確認已儲存含 Azure 元件標籤的 draw.io 圖再評核。",
+        )
+
+    return findings
+
+
 def score_findings(findings: list[Finding]) -> tuple[dict[str, float], float]:
     pillar_scores = {p: 100.0 for p in PILLARS}
     for f in findings:
@@ -378,15 +710,101 @@ def score_findings(findings: list[Finding]) -> tuple[dict[str, float], float]:
     return pillar_scores, round(overall, 2)
 
 
+def detect_provider(summary: dict[str, Any]) -> dict[str, Any]:
+    """Score cloud keywords; return best provider + raw scores (manual override OK)."""
+    labels = _labels(summary)
+    style_blob = " ".join(n.get("style", "") for n in summary.get("nodes") or [])
+    blob = f"{labels} {style_blob}"
+
+    scores = {"aws": 0, "gcp": 0, "azure": 0}
+    aws_kw = (
+        "aws",
+        "amazon",
+        "vpc",
+        "ec2",
+        "ecs",
+        "eks",
+        "lambda",
+        "aurora",
+        "rds",
+        "dynamodb",
+        "s3",
+        "cloudfront",
+        "waf",
+        "alb",
+        "nlb",
+        "cloudwatch",
+        "kms",
+        "mxgraph.aws",
+    )
+    gcp_kw = (
+        "gcp",
+        "google cloud",
+        "gce",
+        "compute engine",
+        "gke",
+        "cloud run",
+        "cloud sql",
+        "spanner",
+        "firestore",
+        "bigquery",
+        "cloud armor",
+        "memorystore",
+        "cloud cdn",
+        "cloud monitoring",
+        "cloud kms",
+        "mxgraph.gcp",
+    )
+    azure_kw = (
+        "azure",
+        "microsoft",
+        "vnet",
+        "virtual network",
+        "aks",
+        "app service",
+        "functions",
+        "cosmos",
+        "azure sql",
+        "key vault",
+        "front door",
+        "application gateway",
+        "azure monitor",
+        "mxgraph.azure",
+    )
+    for k in aws_kw:
+        if k in blob:
+            scores["aws"] += 2 if k.startswith("mxgraph") or k in ("aws", "amazon") else 1
+    for k in gcp_kw:
+        if k in blob:
+            scores["gcp"] += 2 if k.startswith("mxgraph") or k in ("gcp", "google cloud") else 1
+    for k in azure_kw:
+        if k in blob:
+            scores["azure"] += (
+                2 if k.startswith("mxgraph") or k in ("azure", "microsoft") else 1
+            )
+
+    best = max(scores, key=lambda p: scores[p])
+    if scores[best] == 0:
+        best = "aws"
+    return {"provider": best, "scores": scores}
+
+
 def evaluate(xml: str, provider: str = "aws") -> RuleResult:
-    if provider != "aws":
-        raise ValueError("provider_not_supported_by_rule_engine")
+    provider = (provider or "aws").lower()
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"provider_not_supported_by_rule_engine:{provider}")
     summary = parse_diagram_summary(xml or "")
-    findings = _run_rules(summary)
+    if provider == "gcp":
+        findings = _run_rules_gcp(summary)
+    elif provider == "azure":
+        findings = _run_rules_azure(summary)
+    else:
+        findings = _run_rules(summary)
     pillar_scores, overall = score_findings(findings)
+    pack = RULE_PACK_BY_PROVIDER[provider]
     return RuleResult(
         provider=provider,
-        rule_pack_version=RULE_PACK_VERSION,
+        rule_pack_version=pack,
         pillar_scores=pillar_scores,
         overall_score=overall,
         weights_snapshot=dict(WEIGHTS),

@@ -8,7 +8,7 @@
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
 - **AIDLC Version**: 1.0.1（見 `.aidlc/aidlc-rules/VERSION`；最初採用 0.1.8，見 ADR-0006）
 - **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1）→ `feat/aidlc-docs-migration`（PR2）→ `Doreen`（目錄重組）
-- **Current Stage**: **A3 Lens Editor Code Gen 完成** — 待手動驗收（Fiona 編輯／新評核／403）；摘要 `construction/a3/code/lens-editor-summary.md`；Operations PLACEHOLDER
+- **Current Stage**: **A3 上傳＋多雲 Code Gen 完成** — 待手動驗收；摘要 `construction/a3/code/upload-multicloud-summary.md`；branch `luojingting/feat/a3-feature-updates`
 
 ### Workspace State
 

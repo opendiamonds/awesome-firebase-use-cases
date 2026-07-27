@@ -1,5 +1,6 @@
 """
 lens_router.py — A3 Lens criteria editor API (requires A3.review).
+Supports per-cloud active lens via ?provider=aws|gcp|azure.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from services.lens_service import (
+    get_active_lens_row,
     make_question_template,
     resolve_active_lens,
     save_active_lens,
@@ -20,6 +22,7 @@ from services.lens_service import (
     validate_lens,
 )
 from services.rbac import require_story_action
+from services.wa_rule_engine import SUPPORTED_PROVIDERS
 
 router = APIRouter()
 
@@ -30,25 +33,30 @@ class SuggestImprovementBody(BaseModel):
 
 class PutLensBody(BaseModel):
     lens: dict[str, Any]
+    provider: str = "aws"
+
+
+def _provider_or_400(provider: str) -> str:
+    p = (provider or "aws").lower()
+    if p not in SUPPORTED_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unsupported provider: {p}")
+    return p
 
 
 @router.get("/lens/active")
 def get_active_lens(
+    provider: str = Query("aws"),
     current_user: User = Depends(require_story_action("A3", "review")),
     db: Session = Depends(get_db),
 ):
-    lens = resolve_active_lens(db)
+    provider = _provider_or_400(provider)
+    lens = resolve_active_lens(db, provider)
     return {
-        "source": "database" if _has_db_row(db) else "file",
+        "source": "database" if get_active_lens_row(db, provider) else "file",
+        "provider": provider,
         "lens": lens,
         "updated_by": current_user.id,
     }
-
-
-def _has_db_row(db: Session) -> bool:
-    from services.lens_service import get_active_lens_row
-
-    return get_active_lens_row(db) is not None
 
 
 @router.put("/lens/active")
@@ -57,11 +65,12 @@ def put_active_lens(
     current_user: User = Depends(require_story_action("A3", "review")),
     db: Session = Depends(get_db),
 ):
+    provider = _provider_or_400(body.provider)
     try:
-        saved = save_active_lens(db, body.lens, current_user)
+        saved = save_active_lens(db, body.lens, current_user, provider=provider)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    return {"ok": True, "source": "database", "lens": saved}
+    return {"ok": True, "source": "database", "provider": provider, "lens": saved}
 
 
 @router.get("/lens/new-question-template")

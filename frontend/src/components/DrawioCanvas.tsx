@@ -6,12 +6,13 @@ import {
   useImperativeHandle,
   type ReactNode,
 } from 'react';
+import { downloadDrawioFile } from '../utils/downloadDrawio';
 
 export type DiagramSaveStatus = 'saved' | 'unsaved' | 'saving' | 'no-file';
 
 interface DrawioCanvasProps {
   xml: string;
-  /** 架構圖標題（目前不在工具列顯示；保留 props 相容） */
+  /** 架構圖標題（下載檔名等） */
   diagramTitle?: string;
   /** 儲存狀態徽章（修正先前寫死「未儲存」） */
   saveStatus?: DiagramSaveStatus;
@@ -59,6 +60,7 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
   (
     {
       xml,
+      diagramTitle = '未命名架構圖',
       saveStatus = 'unsaved',
       readOnly = false,
       headerCenter,
@@ -75,6 +77,15 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
     const [isReady, setIsReady] = useState(false);
     const latestXmlRef = useRef<string>(xml);
     const badge = SAVE_BADGE[saveStatus];
+
+    const handleDownloadDrawio = () => {
+      const current = latestXmlRef.current || xml;
+      try {
+        downloadDrawioFile(current, diagramTitle);
+      } catch {
+        // 無圖時不下載
+      }
+    };
 
     useEffect(() => {
       if (xml) {
@@ -202,6 +213,28 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
                 審核
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleDownloadDrawio}
+              disabled={!xml}
+              className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-semibold text-gray-600 hover:text-brand-700 hover:bg-brand-50 rounded-xl border border-gray-200/80 transition-all disabled:opacity-40 disabled:pointer-events-none"
+              title="下載為 .drawio 檔（可用 diagrams.net 開啟）"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              下載 .drawio
+            </button>
             {onShareClick && (
               <button
                 onClick={onShareClick}

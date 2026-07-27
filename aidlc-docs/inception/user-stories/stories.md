@@ -15,11 +15,13 @@
   2. 系統能精準識別自然語言中的 AWS 雲端服務 (如 WAF, Aurora) 與 GCP 服務 (如 Cloud Armor, Cloud SQL) 以及高可用性 (HA) 關鍵字。
   3. 產出的圖表必須為相容 `.drawio` 格式，且能透過 n8n webhook 動態取得正確的 AWS 或 GCP 標準服務圖示 (SVG)。
   4. 圖面必須包含清晰的邏輯連線、對應選定平台的網路邊界 (VPC/AZ 或 GCP Project/VPC/Subnet) 與資料流向。
-- **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求，與 AI 進行平台評估。 3. 確認推薦的平台後，AI 自動產出對應草圖。 4. **AI重置/人工微調**: 對產出草圖不滿意可點「全部重置」，或手動在對話框人工修正參數。
+  5. ✅ **增量**：工作區畫布提供「下載 .drawio」，將目前圖面匯出為 diagrams.net／draw.io 可開啟的檔案（有圖即可；唯讀／檢視亦可下載）。
+- **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求，與 AI 進行平台評估。 3. 確認推薦的平台後，AI 自動產出對應草圖。 4. **AI重置/人工微調**: 對產出草圖不滿意可點「全部重置」，或手動在對話框人工修正參數。 5. 需要離線編輯時點「下載 .drawio」。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 畫面中央浮現綠色 Toast 提示「✔ 架構草圖已生成」，並自動存檔。**後續引導**：彈出按鈕引導點擊「前往 IaC 工作區生成代碼」或「進行 Well-Architected 評估」（✅ 銜接 A3：點擊後對**當前圖**發起評核，見 A3）。
-  - **失敗 (Failure)**: 畫面頂部跳出紅色警告框「資源衝突：所選區域不支援該服務」。**後續引導**：提示「請於對話框修改參數後重試」，或提供「聯絡平台架構師 (Alex) 尋求協助」的快捷按鈕。
-- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求、完成 AWS/GCP 評估並確認後 `Then` 系統產出包含對應雲端服務 (如 AWS 或 GCP) 及正確網路邊界與 n8n 動態圖示的架構畫布。
+  - **成功 (Success)**: 畫面中央浮現綠色 Toast 提示「✔ 架構草圖已生成」，並自動存檔。**後續引導**：彈出按鈕引導點擊「前往 IaC 工作區生成代碼」或「進行 Well-Architected 評估」（✅ 銜接 A3：點擊後對**當前圖**發起評核，見 A3）。下載成功時瀏覽器取得 `.drawio` 檔。
+  - **失敗 (Failure)**: 畫面頂部跳出紅色警告框「資源衝突：所選區域不支援該服務」。**後續引導**：提示「請於對話框修改參數後重試」，或提供「聯絡平台架構師 (Alex) 尋求協助」的快捷按鈕。無圖時下載按鈕停用。
+- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求、完成 AWS/GCP 評估並確認後 `Then` 系統產出包含對應雲端服務 (如 AWS 或 GCP) 及正確網路邊界與 n8n 動態圖示的架構畫布。  
+  `Given` 畫布已有架構圖 `When` 點擊「下載 .drawio」 `Then` 取得可用 diagrams.net 開啟的檔案。
 
 #### A2. AI + draw.io 畫布協同編輯
 - **多角色協作 (Multi-Role Collaboration)**:
@@ -44,26 +46,32 @@
   - **協作細節（✅ 2026-07-26 增量）**: 具 A3.**審核**（`can_review`）者（預設含 Fiona／`Security_Reviewer`）在評估儀表板維護 Offline Lens **五大柱審核標準**；其他人發起之**新**評核自動套用最新標準。
   - **協作細節（⏳ 下期）**: Hannah 發起 HA／DR／SPOF 模擬；Fiona 確認修復未引入新資安風險。
 - **使用者需求/目標 (User Goal)**: 確保設計出的架構符合雲端最佳實踐，提前發現並規避潛在風險；資安審查員可依組織標準調整評核題目。
-- **雲端範圍**: ✅ 本期以 **AWS** Well-Architected 語意為主；UI／API **預留** GCP／Azure 開關（本期未實作則 disabled／明確提示）。
+- **雲端範圍**: ✅ **增量已實作**（`a3-upload-multicloud-requirements.md`）：aws／gcp／azure 皆可跑完整評核管線；支柱 UI **本期仍以 AWS WA 五支柱對照**並標註說明；**每雲一份 Active Lens**，規則包深度目標對齊 AWS。
 - **驗收標準 (Acceptance Criteria)**:
   1. ✅ **本期**：對選定架構圖（`user_diagrams` XML）執行評核；**規則引擎**產出可重現之硬性發現，**LLM** 補建議文案（**必須與 A1 使用同一 Agent 框架**：Anthropic Agent SDK + OpenRouter）；畫面顯示分數（含支柱維度，可先子集）與發現清單。
   2. ✅ **本期**：評核結果**持久化**（可查歷史、重開詳情）；需具備 A3 RBAC（view／edit／review，見 `role_permissions`）。
   3. ✅ **本期入口**（三者皆須可用，權限足夠時）：(a) A1 產圖成功後引導 CTA「進行 Well-Architected 評估」；(b) 工作區「Well-Architected」按鈕（對目前選中圖）；(c) **評估儀表板**自有權限圖表列表選圖後執行。
   4. ✅ **本期（增量）**：具 A3.**審核**者可於 Assessment「Lens 標準」編輯五大柱題目文案、新增題（系統模板含預設 riskRules）、刪題（每柱 ≥1）；標準存 DB；**僅影響之後新評核**；無審核權者不可編輯。
   5. ✅ **本期（增量）**：具 A3.view 者可對完成報告**下載 PDF**（見 FR-A3-11）。
-  6. ⏳ **下期**：模擬單點故障 (SPOF) 或 AZ 級中斷，並估算 RPO／RTO 達標率（含畫布標示／動畫若需要）；UI 手改 riskRules；lens 版本／歷史重跑。
-- **操作流程（✅ 本期）**: 1. 經上述任一入口選定圖並發起評核。 2. 檢視分數與發現清單（Hannah／Fiona 可同看不同支柱關注點）。 3. 可於儀表板重開歷史評核。 4. Fiona 於「Lens 標準」調整題目並儲存 → 之後新評核使用新標準。 5. **AI重置/人工微調（⏳ 下期）**: 局部重置放寬 RTO，或人工加備援後重評。
+  6. ✅ **增量（上傳）**：Assessment 與 Workspace 可上傳 draw.io／mxGraph XML；可選「同時存成架構圖」；未建檔亦可評核並寫入歷史報告（`xml_snapshot`）。
+  7. ✅ **增量（多雲）**：自動偵測 provider（可覆寫）；gcp／azure 不再 `unsupported`；各雲獨立 rule pack＋每雲 Active Lens；UI 標註以 AWS WA 五支柱對照。
+  8. ✅ **增量（預覽／PDF 附圖）**：選圖或上傳後於 Assessment **預覽架構圖**；下載 PDF 時附**架構圖對照頁**（中文標題正常）。
+  9. ⏳ **下期**：模擬單點故障 (SPOF) 或 AZ 級中斷，並估算 RPO／RTO；UI 手改 riskRules；lens 版本／歷史重跑；各雲官方框架支柱名稱切換；官方 WA API。
+- **操作流程（✅ 本期）**: 1. 經上述任一入口選定圖並發起評核（或上傳後評核）。 2. 於預覽確認圖面後檢視分數與發現。 3. 可於儀表板重開歷史評核。 4. Fiona 於「Lens 標準」依雲別調整題目並儲存 → 之後新評核使用新標準。 5. 下載 PDF（含架構圖對照頁）。 6. **AI重置/人工微調（⏳ 下期）**: 局部重置放寬 RTO，或人工加備援後重評。
 - **系統回饋 (System Feedback)**:
-  - **成功（✅ 本期）**: Toast／面板顯示評核完成與總分；列出發現與建議；Lens 儲存成功提示。**後續引導**：前往儀表板查看歷史、下載 PDF，或返回畫布依建議調整。
-  - **失敗（✅ 本期）**: 規則或 LLM 階段錯誤時可讀提示；規則成功但 LLM 失敗時仍應保留規則發現；Lens 驗證失敗（例如某柱 0 題）阻擋儲存。**後續引導**：重試或聯絡 SRE／管理員。
+  - **成功（✅ 本期）**: Toast／面板顯示評核完成與總分；列出發現與建議；Lens 儲存成功提示；預覽區顯示圖面。**後續引導**：前往儀表板查看歷史、下載 PDF（含圖），或返回畫布依建議調整。
+  - **失敗（✅ 本期）**: 規則或 LLM 階段錯誤時可讀提示；規則成功但 LLM 失敗時仍應保留規則發現；Lens 驗證失敗（例如某柱 0 題）阻擋儲存；PDF 附圖失敗時仍可下載文字報告並提示。**後續引導**：重試或聯絡 SRE／管理員。
   - **失敗／風險標示（⏳ 下期）**: SPOF 節點跳動驚嘆號、撒花滿分徽章等進階動效。
 - **BDD**:
   - ✅ `Given` Alex 剛完成 A1 產圖 `When` 點擊產圖後 Well-Architected CTA `Then` 系統對該圖發起評核並顯示分數與發現。
   - ✅ `Given` Hannah 在儀表板選取有權限之 diagram `When` 執行架構評估 `Then` 結果寫入歷史且 Fiona 可開啟同一報告檢視安全相關發現。
   - ✅ `Given` Fiona 開啟 Assessment「Lens 標準」並新增／修改一題後儲存 `When` Hannah 發起新評核 `Then` 新結果反映更新後標準，且既有歷史評核分數不變。
   - ✅ `Given` 使用者無 A3 審核權限 `When` 呼叫 Lens 寫入 API 或開啟編輯 UI `Then` 收到 403 或入口不可見。
+  - ✅ `Given` Hannah 上傳合法 `.drawio` 且不勾建檔 `When` 執行評核 `Then` 產生可查歷史報告且未強制新增工作區圖檔。
+  - ✅ `Given` 圖面含 GCP 服務關鍵字 `When` 系統偵測為 gcp（可覆寫）並評核 `Then` 使用 gcp rule pack 與 gcp Active Lens，狀態非 unsupported。
+  - ✅ `Given` Hannah 已選圖或上傳 XML `When` 開啟 Assessment `Then` 可見架構圖預覽。
+  - ✅ `Given` 評核已完成 `When` 下載 PDF `Then` 報告含架構圖對照頁且中文標題可讀。
   - ⏳ `Given` 掃出資料庫單點故障 `When` Hannah 人工補上備援並局部重置評分 `Then` 分數重新計算並達標（下期）。
-
 #### A4. 重整後仍記得對話與上次開啟的架構圖
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`)

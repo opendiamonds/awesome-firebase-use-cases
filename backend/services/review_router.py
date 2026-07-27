@@ -1,5 +1,6 @@
 """
 review_router.py — A3 Well-Architected reviews API（SSE + JSON）
+支援：選圖評核、上傳 XML（可選建檔）、自動偵測 provider。
 """
 
 from __future__ import annotations
@@ -10,29 +11,41 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import ArchitectureReview, User
-from services.rbac import require_story_action
+from models import ArchitectureReview, User, UserDiagram
+from services.rbac import require_story_action, user_can_arch
 from services.review_orchestrator import (
     audit_log,
     get_accessible_diagram,
     retry_suggestions,
     review_to_dict,
     start_review,
+    user_can_read_review,
 )
+from services.wa_rule_engine import detect_provider, parse_diagram_summary
 
 logger = logging.getLogger("cloud360.review_router")
 
 router = APIRouter()
 
+MAX_UPLOAD_CHARS = 2 * 1024 * 1024
+
 
 class StartReviewBody(BaseModel):
-    diagram_id: int
+    diagram_id: Optional[int] = None
+    xml_data: Optional[str] = None
+    save_diagram: bool = False
+    title: Optional[str] = None
     provider: str = "aws"
+    auto_detect_provider: bool = True
     replace_latest: bool = False
+
+
+class DetectProviderBody(BaseModel):
+    xml_data: str = Field(..., min_length=1)
 
 
 def _sse(data: dict) -> str:
@@ -51,24 +64,95 @@ def _sse_response(generator) -> StreamingResponse:
     )
 
 
+def _validate_xml(xml: str) -> None:
+    if not xml or not xml.strip():
+        raise HTTPException(status_code=400, detail="xml_data 不可為空")
+    if len(xml) > MAX_UPLOAD_CHARS:
+        raise HTTPException(status_code=400, detail="架構圖檔過大（上限約 2MB）")
+    try:
+        parse_diagram_summary(xml)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post("/reviews/detect-provider")
+def detect_review_provider(
+    body: DetectProviderBody,
+    current_user: User = Depends(require_story_action("A3", "edit")),
+):
+    _ = current_user
+    _validate_xml(body.xml_data)
+    summary = parse_diagram_summary(body.xml_data)
+    return detect_provider(summary)
+
+
 @router.post("/reviews")
 async def create_review(
     body: StartReviewBody,
     current_user: User = Depends(require_story_action("A3", "edit")),
     db: Session = Depends(get_db),
 ):
-    diagram = get_accessible_diagram(db, current_user, body.diagram_id)
-    if not diagram:
-        raise HTTPException(status_code=403, detail="無法存取此架構圖或不存在")
+    xml = body.xml_data
+    diagram: Optional[UserDiagram] = None
+
+    if body.save_diagram:
+        if not xml:
+            raise HTTPException(
+                status_code=400, detail="save_diagram 時必須提供 xml_data"
+            )
+        if not user_can_arch(
+            db,
+            current_user.role,
+            "edit",
+            authorization_status=getattr(
+                current_user, "authorization_status", "approved"
+            ),
+        ):
+            raise HTTPException(
+                status_code=403, detail="儲存架構圖需要架構圖編輯權限"
+            )
+        _validate_xml(xml)
+        title = (body.title or "").strip() or "上傳的架構圖"
+        diagram = UserDiagram(
+            user_id=current_user.id,
+            title=title,
+            xml_data=xml,
+        )
+        db.add(diagram)
+        db.commit()
+        db.refresh(diagram)
+    elif body.diagram_id is not None:
+        diagram = get_accessible_diagram(db, current_user, body.diagram_id)
+        if not diagram:
+            raise HTTPException(status_code=403, detail="無法存取此架構圖或不存在")
+        if not xml:
+            xml = diagram.xml_data
+    elif xml:
+        _validate_xml(xml)
+    else:
+        raise HTTPException(
+            status_code=400, detail="請提供 diagram_id 或 xml_data"
+        )
+
+    if xml:
+        _validate_xml(xml)
+
+    if body.auto_detect_provider and xml:
+        provider = detect_provider(parse_diagram_summary(xml))["provider"]
+    else:
+        provider = (body.provider or "aws").lower()
 
     async def event_generator():
         async for event in start_review(
             db,
             current_user,
-            diagram,
-            provider=(body.provider or "aws").lower(),
+            diagram=diagram,
+            xml_data=xml,
+            provider=provider,
             replace_latest=body.replace_latest,
         ):
+            if event.get("type") == "rules_done":
+                event = {**event, "resolved_provider": provider}
             yield _sse(event)
 
     return _sse_response(event_generator())
@@ -77,19 +161,28 @@ async def create_review(
 @router.get("/reviews")
 def list_reviews(
     diagram_id: Optional[int] = Query(None),
+    ephemeral: bool = Query(False),
     include_archived: bool = Query(False),
     current_user: User = Depends(require_story_action("A3", "view")),
     db: Session = Depends(get_db),
 ):
-    if diagram_id is None:
-        raise HTTPException(status_code=400, detail="diagram_id 必填")
-    diagram = get_accessible_diagram(db, current_user, diagram_id)
-    if not diagram:
-        raise HTTPException(status_code=403, detail="無法存取此架構圖或不存在")
+    if ephemeral:
+        q = db.query(ArchitectureReview).filter(
+            ArchitectureReview.created_by == current_user.id,
+            ArchitectureReview.diagram_id.is_(None),
+        )
+    elif diagram_id is not None:
+        diagram = get_accessible_diagram(db, current_user, diagram_id)
+        if not diagram:
+            raise HTTPException(status_code=403, detail="無法存取此架構圖或不存在")
+        q = db.query(ArchitectureReview).filter(
+            ArchitectureReview.diagram_id == diagram_id
+        )
+    else:
+        raise HTTPException(
+            status_code=400, detail="diagram_id 必填（或 ephemeral=true）"
+        )
 
-    q = db.query(ArchitectureReview).filter(
-        ArchitectureReview.diagram_id == diagram_id
-    )
     if not include_archived:
         q = q.filter(ArchitectureReview.archived.is_(False))
     rows = q.order_by(ArchitectureReview.created_at.desc()).all()
@@ -110,8 +203,7 @@ def get_review(
     row = db.query(ArchitectureReview).filter(ArchitectureReview.id == review_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="評核不存在")
-    diagram = get_accessible_diagram(db, current_user, row.diagram_id)
-    if not diagram:
+    if not user_can_read_review(db, current_user, row):
         raise HTTPException(status_code=403, detail="無法存取此評核")
     audit_log(
         "review_get",
@@ -119,7 +211,86 @@ def get_review(
         review_id=row.id,
         diagram_id=row.diagram_id,
     )
-    return review_to_dict(row)
+    return review_to_dict(row, include_xml=True)
+
+
+class RenderDiagramBody(BaseModel):
+    xml_data: str = Field(..., min_length=1)
+
+
+def _ensure_mxfile(xml: str) -> str:
+    raw = (xml or "").strip()
+    if not raw:
+        return ""
+    if "<mxfile" in raw.lower():
+        return raw
+    inner = (
+        raw
+        if "<mxGraphModel" in raw
+        else f'<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>{raw}</root></mxGraphModel>'
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<mxfile host="Cloud-360" agent="Cloud-360" version="22.1.0" type="device">'
+        f'<diagram id="export-1" name="Diagram">{inner}</diagram></mxfile>'
+    )
+
+
+@router.post("/diagrams/render-png")
+async def render_diagram_png(
+    body: RenderDiagramBody,
+    current_user: User = Depends(require_story_action("A3", "view")),
+):
+    """Proxy diagrams.net export → PNG（供 PDF 嵌入架構圖）。"""
+    _ = current_user
+    _validate_xml(body.xml_data)
+    mxfile = _ensure_mxfile(body.xml_data)
+    import base64
+
+    import httpx
+
+    endpoints = (
+        "https://convert.diagrams.net/node/export",
+        "https://exp.draw.io/ImageExport4/export",
+    )
+    last_err = "export_failed"
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        for url in endpoints:
+            try:
+                resp = await client.post(
+                    url,
+                    json={
+                        "xml": mxfile,
+                        "format": "png",
+                        "embedXml": False,
+                        "base64": True,
+                        "scale": 1.5,
+                    },
+                )
+                if resp.status_code >= 400:
+                    last_err = f"{url} HTTP {resp.status_code}"
+                    continue
+                ctype = (resp.headers.get("content-type") or "").lower()
+                raw = resp.content
+                if "image/png" in ctype or (
+                    len(raw) > 8 and raw[:8] == b"\x89PNG\r\n\x1a\n"
+                ):
+                    b64 = base64.b64encode(raw).decode("ascii")
+                    return {"data_url": f"data:image/png;base64,{b64}"}
+                text = resp.text.strip()
+                if text.startswith("data:image"):
+                    return {"data_url": text}
+                # plain base64
+                if len(text) > 100 and "\n" not in text[:80]:
+                    return {"data_url": f"data:image/png;base64,{text}"}
+                last_err = f"{url} unexpected body"
+            except Exception as e:
+                last_err = str(e)
+                logger.warning("diagram render failed via %s: %s", url, e)
+    raise HTTPException(
+        status_code=502,
+        detail=f"無法產生架構圖預覽圖：{last_err}",
+    )
 
 
 @router.post("/reviews/{review_id}/retry-suggestions")
@@ -131,9 +302,12 @@ async def retry_review_suggestions(
     row = db.query(ArchitectureReview).filter(ArchitectureReview.id == review_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="評核不存在")
-    diagram = get_accessible_diagram(db, current_user, row.diagram_id)
-    if not diagram:
+    if not user_can_read_review(db, current_user, row):
         raise HTTPException(status_code=403, detail="無法存取此架構圖")
+
+    diagram = None
+    if row.diagram_id is not None:
+        diagram = get_accessible_diagram(db, current_user, row.diagram_id)
 
     async def event_generator():
         async for event in retry_suggestions(db, current_user, row, diagram):

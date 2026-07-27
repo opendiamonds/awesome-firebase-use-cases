@@ -118,9 +118,12 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 | `is_active` | 現行標準列為 `true`（評核優先讀此） |
 | `body_json` | 完整 Offline Custom Lens JSON |
 | `updated_by` | 最後編輯者（具 A3 審核權限者） |
+| `provider` | `aws`／`gcp`／`azure`（每雲一份 active Lens） |
 
-**既有環境升級**：重跑 `schema_rbac.sql`（`CREATE IF NOT EXISTS`），或依賴後端啟動時 `database._ensure_a3_schema()`（會補 `architecture_reviews` 與 `wa_lenses`）。  
-無 `wa_lenses` 資料時，評核 fallback 至 `backend/lenses/cloud360-core-mvp-lens.json`。
+**既有環境升級**：重跑 `schema_rbac.sql`（含 `ALTER … DROP NOT NULL`／`ADD COLUMN IF NOT EXISTS`），或依賴後端啟動時 `database._ensure_a3_schema()`（會補 `xml_snapshot`、`wa_lenses.provider`、`diagram_id` 可空）。  
+無對應雲別的 `wa_lenses` 資料時，評核 fallback 至 `backend/lenses/cloud360-core-mvp-lens.json`。
+
+**A3 增量（上傳＋多雲）**：`architecture_reviews.diagram_id` 可 NULL（未建檔上傳）；`xml_snapshot` 存評核 XML；三雲 rule pack ＋ per-cloud Lens。
 
 驗證：
 
@@ -128,7 +131,7 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 psql "$DATABASE_URL" -c "\d architecture_reviews"
 psql "$DATABASE_URL" -c "\d wa_lenses"
 psql "$DATABASE_URL" -c "SELECT count(*) FROM architecture_reviews;"
-psql "$DATABASE_URL" -c "SELECT id, lens_id, is_active, updated_at FROM wa_lenses ORDER BY id DESC LIMIT 5;"
+psql "$DATABASE_URL" -c "SELECT id, lens_id, provider, is_active, updated_at FROM wa_lenses ORDER BY id DESC LIMIT 5;"
 ```
 
 #### 2.3 預設資料會塞什麼

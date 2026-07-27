@@ -58,6 +58,7 @@ export const WorkspacePage = () => {
   const canA3Edit = can('A3', 'edit');
   const canA3View = can('A3', 'view');
   const canvasRef = useRef<DrawioCanvasRef>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [xml, setXml] = useState<string>('');
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
@@ -645,6 +646,33 @@ export const WorkspacePage = () => {
     }
   };
 
+  const handleUploadDiagramFile = async (file: File | null) => {
+    if (!file) return;
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法上傳架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        showToast('檔案內容為空', 'error', { autoDismissMs: 4000 });
+        return;
+      }
+      setXml(text);
+      setSaveStatus(currentDiagramIdRef.current ? 'unsaved' : 'no-file');
+      showToast('架構圖已上傳至畫布', 'success', {
+        hint: currentDiagramIdRef.current
+          ? '尚未寫入資料庫，請確認後儲存。'
+          : '尚未建檔。可點「儲存架構圖」或「儲存並評核」。',
+        autoDismissMs: 3500,
+      });
+    } catch {
+      showToast('讀取檔案失敗', 'error', { autoDismissMs: 4000 });
+    } finally {
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+    }
+  };
+
   const handleSaveDiagram = async (currentXml: string) => {
     await saveDiagram(currentXml);
   };
@@ -851,6 +879,24 @@ export const WorkspacePage = () => {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
+            </button>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".drawio,.xml,application/xml,text/xml"
+              className="hidden"
+              onChange={(e) => {
+                void handleUploadDiagramFile(e.target.files?.[0] ?? null);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={!canEditArch}
+              className="text-[11px] font-bold text-gray-600 bg-white hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 disabled:opacity-30 disabled:pointer-events-none"
+              title={canEditArch ? '上傳 .drawio／.xml 至畫布' : '僅檢視／審核無法上傳'}
+            >
+              上傳架構圖
             </button>
             <div className="w-px h-4 bg-gray-200 mx-0.5 shrink-0" />
             <div

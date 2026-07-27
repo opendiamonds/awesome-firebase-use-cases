@@ -39,6 +39,7 @@ type Props = {
 };
 
 export function LensCriteriaEditor({ token }: Props) {
+  const [provider, setProvider] = useState('aws');
   const [lens, setLens] = useState<Lens | null>(null);
   const [source, setSource] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -58,10 +59,11 @@ export function LensCriteriaEditor({ token }: Props) {
   // 純抓取，完全不碰 state。react-hooks/set-state-in-effect 會做過程間分析：
   // 只要 effect 同步呼叫的函式內部有 setState 就會被擋，因此 state 更新一律留在
   // 呼叫端的 callback 內（規則允許的形式）。
-  const fetchLens = useCallback(async () => {
-    const res = await fetch(apiUrl('/api/architecture/lens/active'), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const fetchLens = useCallback(async (prov: string) => {
+    const res = await fetch(
+      apiUrl(`/api/architecture/lens/active?provider=${encodeURIComponent(prov)}`),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   }, [token]);
@@ -70,19 +72,19 @@ export function LensCriteriaEditor({ token }: Props) {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    return fetchLens()
+    setOkMsg(null);
+    return fetchLens(provider)
       .then((data) => {
         setLens(data.lens as Lens);
         setSource(data.source || '');
       })
       .catch((e) => setError(e instanceof Error ? e.message : '載入 Lens 失敗'))
       .finally(() => setLoading(false));
-  }, [fetchLens]);
+  }, [fetchLens, provider]);
 
   useEffect(() => {
-    // 初次載入時 loading 已是 true，不需要再設一次。
     let cancelled = false;
-    fetchLens()
+    fetchLens(provider)
       .then((data) => {
         if (cancelled) return;
         setLens(data.lens as Lens);
@@ -91,7 +93,16 @@ export function LensCriteriaEditor({ token }: Props) {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : '載入 Lens 失敗'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [fetchLens]);
+  }, [fetchLens, provider]);
+
+  const changeProvider = (next: string) => {
+    if (next === provider) return;
+    setProvider(next);
+    setLoading(true);
+    setError(null);
+    setOkMsg(null);
+    setLens(null);
+  };
 
   const updateQuestion = (
     pillarId: string,
@@ -237,7 +248,7 @@ export function LensCriteriaEditor({ token }: Props) {
       const res = await fetch(apiUrl('/api/architecture/lens/active'), {
         method: 'PUT',
         headers: headers(),
-        body: JSON.stringify({ lens }),
+        body: JSON.stringify({ lens, provider }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -251,18 +262,44 @@ export function LensCriteriaEditor({ token }: Props) {
     }
   };
 
+  const providerSelect = (
+    <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+      雲端提供者
+      <select
+        className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-gray-800"
+        value={provider}
+        onChange={(e) => changeProvider(e.target.value)}
+        disabled={saving}
+      >
+        <option value="aws">AWS</option>
+        <option value="gcp">GCP</option>
+        <option value="azure">Azure</option>
+      </select>
+    </label>
+  );
+
   if (loading) {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl p-6 text-sm text-gray-500">
-        載入 Lens 標準中…
+      <div className="space-y-4">
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-wrap items-end gap-3">
+          {providerSelect}
+        </div>
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 text-sm text-gray-500">
+          載入 Lens 標準中…
+        </div>
       </div>
     );
   }
 
   if (!lens) {
     return (
-      <div className="bg-white border border-red-100 rounded-2xl p-6 text-sm text-red-600">
-        {error || '無法載入 Lens'}
+      <div className="space-y-4">
+        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-wrap items-end gap-3">
+          {providerSelect}
+        </div>
+        <div className="bg-white border border-red-100 rounded-2xl p-6 text-sm text-red-600">
+          {error || '無法載入 Lens'}
+        </div>
       </div>
     );
   }
@@ -274,12 +311,15 @@ export function LensCriteriaEditor({ token }: Props) {
   return (
     <div className="space-y-4">
       <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Lens 審核標準</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            來源：{source === 'database' ? '資料庫（已自訂）' : '檔案預設'} · 需
-            A3「審核」權限 · 不修改 riskRules 條件式
-          </p>
+        <div className="flex flex-wrap items-end gap-4">
+          {providerSelect}
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Lens 審核標準</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              來源：{source === 'database' ? '資料庫（已自訂）' : '檔案預設'} ·{' '}
+              {provider.toUpperCase()} · 需 A3「審核」權限 · 不修改 riskRules 條件式
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button

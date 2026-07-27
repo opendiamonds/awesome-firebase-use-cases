@@ -23,7 +23,12 @@ from services.wa_lens_engine import (
     score_answers,
 )
 from services.lens_service import resolve_active_lens
-from services.wa_rule_engine import RULE_PACK_VERSION, evaluate, parse_diagram_summary
+from services.wa_rule_engine import (
+    RULE_PACK_BY_PROVIDER,
+    RULE_PACK_VERSION,
+    evaluate,
+    parse_diagram_summary,
+)
 
 logger = logging.getLogger("cloud360.review_orchestrator")
 
@@ -72,7 +77,9 @@ def get_accessible_diagram(
     return diagram
 
 
-def review_to_dict(row: ArchitectureReview) -> dict[str, Any]:
+def review_to_dict(
+    row: ArchitectureReview, *, include_xml: bool = False
+) -> dict[str, Any]:
     findings = []
     scores = None
     try:
@@ -83,7 +90,7 @@ def review_to_dict(row: ArchitectureReview) -> dict[str, Any]:
         scores = json.loads(row.scores_json) if row.scores_json else None
     except json.JSONDecodeError:
         scores = None
-    return {
+    out: dict[str, Any] = {
         "id": row.id,
         "diagram_id": row.diagram_id,
         "created_by": row.created_by,
@@ -98,7 +105,11 @@ def review_to_dict(row: ArchitectureReview) -> dict[str, Any]:
         "archived": bool(row.archived),
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+        "has_xml_snapshot": bool(row.xml_snapshot),
     }
+    if include_xml:
+        out["xml_snapshot"] = row.xml_snapshot
+    return out
 
 
 def _archive_previous(db: Session, diagram_id: int) -> None:
@@ -117,51 +128,67 @@ def _archive_previous(db: Session, diagram_id: int) -> None:
         db.commit()
 
 
+def user_can_read_review(db: Session, user: User, row: ArchitectureReview) -> bool:
+    if row.created_by == user.id:
+        return True
+    if row.diagram_id is None:
+        return False
+    diagram = db.query(UserDiagram).filter(UserDiagram.id == row.diagram_id).first()
+    if not diagram:
+        return False
+    return user_can_read_diagram(db, user, diagram)
+
+
 async def start_review(
     db: Session,
     user: User,
-    diagram: UserDiagram,
     *,
+    diagram: Optional[UserDiagram] = None,
+    xml_data: Optional[str] = None,
     provider: str = "aws",
     replace_latest: bool = False,
 ) -> AsyncIterator[dict[str, Any]]:
-    if replace_latest:
+    provider = (provider or "aws").lower()
+    xml = (xml_data if xml_data is not None else None) or (
+        diagram.xml_data if diagram else ""
+    )
+    xml = xml or ""
+    try:
+        parse_diagram_summary(xml)
+    except ValueError as e:
+        yield {
+            "type": "error",
+            "code": "invalid_xml",
+            "message": str(e),
+        }
+        return
+
+    if replace_latest and diagram is not None:
         _archive_previous(db, diagram.id)
 
+    pack = RULE_PACK_BY_PROVIDER.get(provider, RULE_PACK_VERSION)
     row = ArchitectureReview(
-        diagram_id=diagram.id,
+        diagram_id=diagram.id if diagram else None,
         created_by=user.id,
         provider=provider,
         status="pending",
         findings_json="[]",
+        xml_snapshot=xml,
         archived=False,
     )
     db.add(row)
     db.commit()
     db.refresh(row)
-    audit_log("review_start", user_id=user.id, review_id=row.id, diagram_id=diagram.id)
-
-    if provider != "aws":
-        row.status = "unsupported"
-        row.error_message = "provider_not_implemented"
-        db.commit()
-        audit_log(
-            "review_unsupported",
-            user_id=user.id,
-            review_id=row.id,
-            diagram_id=diagram.id,
-        )
-        yield {
-            "type": "unsupported",
-            "review_id": row.id,
-            "provider": provider,
-            "message": "本期僅支援 AWS；已建立 unsupported 紀錄",
-        }
-        return
+    audit_log(
+        "review_start",
+        user_id=user.id,
+        review_id=row.id,
+        diagram_id=diagram.id if diagram else None,
+    )
 
     t0 = time.perf_counter()
     try:
-        result = evaluate(diagram.xml_data or "", provider="aws")
+        result = evaluate(xml, provider=provider)
     except Exception as e:
         logger.exception("rule engine failed review_id=%s", row.id)
         row.status = "rules_only"
@@ -177,9 +204,10 @@ async def start_review(
 
     rules_ms = int((time.perf_counter() - t0) * 1000)
     logger.info(
-        "a3_timing review_id=%s phase=rules ms=%s status=ok",
+        "a3_timing review_id=%s phase=rules ms=%s status=ok provider=%s",
         row.id,
         rules_ms,
+        provider,
     )
 
     row.status = "rules_complete"
@@ -187,12 +215,11 @@ async def start_review(
         "pillar_scores": result.pillar_scores,
         "weights": result.weights_snapshot,
         "overall_score": result.overall_score,
-        "rule_pack_version": RULE_PACK_VERSION,
+        "rule_pack_version": result.rule_pack_version,
     }
     heuristic_findings = [f.__dict__ for f in result.findings]
     for hf in heuristic_findings:
         hf["source"] = "heuristic"
-    # Dual-track: heuristic scores kept; findings_json waits for lens (Q4=A)
     row.overall_score = int(round(result.overall_score))
     row.scores_json = json.dumps(
         {
@@ -201,11 +228,12 @@ async def start_review(
             "pillar_scores": result.pillar_scores,
             "weights": result.weights_snapshot,
             "overall_score": result.overall_score,
+            "provider": provider,
         },
         ensure_ascii=False,
     )
     row.findings_json = "[]"
-    row.rule_pack_version = RULE_PACK_VERSION
+    row.rule_pack_version = result.rule_pack_version or pack
     db.commit()
 
     yield {
@@ -214,29 +242,29 @@ async def start_review(
         "overall_score": row.overall_score,
         "scores": json.loads(row.scores_json),
         "findings": [],
-        "rule_pack_version": RULE_PACK_VERSION,
+        "rule_pack_version": row.rule_pack_version,
+        "provider": provider,
     }
 
-    summary = parse_diagram_summary(diagram.xml_data or "")
+    summary = parse_diagram_summary(xml)
     lens_error: str | None = None
     lens_block: dict | None = None
     lens_findings: list[dict[str, Any]] = []
     try:
-        lens = resolve_active_lens(db)
+        lens = resolve_active_lens(db, provider)
         try:
             answers = await asyncio.wait_for(
                 answer_lens_with_agent(summary, lens),
                 timeout=LENS_AGENT_TIMEOUT_SEC,
             )
-            # If agent returned sparse, merge heuristic fills
-            heur = heuristic_answers_from_diagram(diagram.xml_data or "", lens)
+            heur = heuristic_answers_from_diagram(xml, lens)
             for qid, ids in heur.items():
                 if qid not in answers or not answers[qid]:
                     answers[qid] = ids
         except Exception as le:
             logger.warning("lens agent unavailable review_id=%s: %s", row.id, le)
             lens_error = str(le)[:500]
-            answers = heuristic_answers_from_diagram(diagram.xml_data or "", lens)
+            answers = heuristic_answers_from_diagram(xml, lens)
 
         lens_block = score_answers(lens, answers)
         lens_findings = findings_from_lens_score(lens, lens_block, source="offline_lens")
@@ -244,18 +272,18 @@ async def start_review(
         scores_obj["source_of_truth"] = "offline_lens"
         scores_obj["lens"] = lens_block
         scores_obj["heuristic"] = heuristic_block
-        # Authoritative overall / pillars from lens (Q1=D)
         scores_obj["pillar_scores"] = lens_block["pillar_scores"]
         scores_obj["overall_score"] = lens_block["overall_score"]
         scores_obj["risk_counts"] = lens_block["risk_counts"]
         scores_obj["weights"] = lens_block["weights"]
         scores_obj["findings_source"] = "offline_lens"
+        scores_obj["provider"] = provider
         if lens_error:
             scores_obj["lens_note"] = f"agent_fallback_heuristic:{lens_error}"
         row.scores_json = json.dumps(scores_obj, ensure_ascii=False)
         row.findings_json = json.dumps(lens_findings, ensure_ascii=False)
         row.overall_score = int(round(lens_block["overall_score"]))
-        row.rule_pack_version = f"{RULE_PACK_VERSION}+{LENS_ID}"
+        row.rule_pack_version = f"{result.rule_pack_version}+{LENS_ID}"
         db.commit()
         yield {
             "type": "lens_done",
@@ -268,7 +296,6 @@ async def start_review(
     except Exception as e:
         logger.exception("offline lens failed review_id=%s", row.id)
         lens_error = str(e)[:500]
-        # Q5=B: fall back to heuristic findings when lens fails
         scores_obj = json.loads(row.scores_json or "{}")
         scores_obj["source_of_truth"] = "heuristic"
         scores_obj["lens_error"] = lens_error
@@ -286,7 +313,6 @@ async def start_review(
             "scores": scores_obj,
         }
 
-    # Q3=A: Agent input uses lens findings (or heuristic fallback)
     agent_findings = (
         lens_findings
         if lens_findings
@@ -295,7 +321,7 @@ async def start_review(
     scores_for_agent = json.loads(row.scores_json or "{}")
     agent_rule_result = {
         "provider": row.provider,
-        "rule_pack_version": row.rule_pack_version or RULE_PACK_VERSION,
+        "rule_pack_version": row.rule_pack_version or pack,
         "pillar_scores": scores_for_agent.get("pillar_scores") or {},
         "overall_score": row.overall_score,
         "weights_snapshot": scores_for_agent.get("weights") or {},
@@ -326,7 +352,6 @@ async def start_review(
             raise RuntimeError("ReviewAgent 未產出 suggestions")
         row.suggestions_text = text
         row.status = "complete"
-        # Keep lens scores as authority if present
         if lens_block:
             row.overall_score = int(round(lens_block["overall_score"]))
         row.error_message = None
@@ -346,11 +371,13 @@ async def start_review(
             "findings": json.loads(row.findings_json or "[]"),
         }
         audit_log(
-            "review_complete", user_id=user.id, review_id=row.id, diagram_id=diagram.id
+            "review_complete",
+            user_id=user.id,
+            review_id=row.id,
+            diagram_id=diagram.id if diagram else None,
         )
     except Exception as e:
         logger.exception("agent failed review_id=%s", row.id)
-        # Soft fail: still provide usable suggestions from findings
         findings_list = agent_findings
         fallback = fallback_suggestions_from_findings(findings_list)
         row.suggestions_text = fallback
@@ -364,7 +391,6 @@ async def start_review(
             row.id,
             int((time.perf_counter() - t1) * 1000),
         )
-        # Stream fallback so UI still fills the suggestions panel
         for piece in (
             fallback[i : i + 120] for i in range(0, len(fallback), 120)
         ):
@@ -381,6 +407,7 @@ async def start_review(
             "message": str(e),
             "status": "rules_only",
             "suggestions_text": fallback,
+            "overall_score": row.overall_score,
             "scores": json.loads(row.scores_json or "{}"),
             "findings": findings_list,
         }
@@ -388,12 +415,15 @@ async def start_review(
             "review_rules_only",
             user_id=user.id,
             review_id=row.id,
-            diagram_id=diagram.id,
+            diagram_id=diagram.id if diagram else None,
         )
 
 
 async def retry_suggestions(
-    db: Session, user: User, row: ArchitectureReview, diagram: UserDiagram
+    db: Session,
+    user: User,
+    row: ArchitectureReview,
+    diagram: Optional[UserDiagram] = None,
 ) -> AsyncIterator[dict[str, Any]]:
     if row.status != "rules_only":
         yield {
@@ -408,7 +438,7 @@ async def retry_suggestions(
         "review_retry_suggestions",
         user_id=user.id,
         review_id=row.id,
-        diagram_id=diagram.id,
+        diagram_id=row.diagram_id,
     )
     try:
         findings = json.loads(row.findings_json or "[]")
@@ -424,7 +454,8 @@ async def retry_suggestions(
         "weights_snapshot": scores.get("weights") or {},
         "findings": findings,
     }
-    summary = parse_diagram_summary(diagram.xml_data or "")
+    xml = row.xml_snapshot or (diagram.xml_data if diagram else "") or ""
+    summary = parse_diagram_summary(xml)
     parts: list[str] = []
     try:
         agen = run_review_agent(summary, rule_result)

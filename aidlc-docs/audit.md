@@ -1834,3 +1834,53 @@ Following entries are from `luojingting/feat/a3-well-architected-review` (append
 **暴露的缺口（未處理）**: 本次無任何自動告警。兩層原因：(1) Slack 通知目前只在 `main`，尚未同步至 `ut`；(2) 即使同步，`notify` job 掛在 `deploy` 之後，job 卡在 queued 時不會執行。現行設計能回報「部署失敗」，無法回報「部署未開始」或「站台不可用」。補法必須是**外部**健康檢查告警（例如 dc-infra 的 Prometheus blackbox 探測 `cloud360.danniel.cc`），機器自身失效時無法由其自行發出警報。對應 `runbooks.md` 第 4 章「告警去向」的待補項。
 
 **Approver**: danniel
+
+---
+
+#### 2026-07-27 23:27 +08:00 — A3 增量：上傳架構圖 ＋ GCP／Azure
+
+**User request (raw)**: 「我想加入 自行上傳架構圖來評估well architected以及完善 gcp / azure」
+**Branch**: `luojingting/feat/a3-feature-updates`
+**Stage**: Inception → Workspace Detection ✅ → Requirements Analysis（釐清中）
+**Findings**:
+- 現況僅對已入庫 diagram 評核；`provider≠aws` → `unsupported`
+- 規則包僅 AWS 啟發式；Assessment 已有 provider UI 預留
+- 既有需求明確將「未存檔上傳」與「GCP／Azure 規則」列為 out of scope
+**Artifacts**: `aidlc-docs/inception/plans/a3-upload-multicloud-questions.md`
+**Next**: 等待使用者回答 Q1–Q9 後產出 requirements 與 execution plan
+
+---
+
+#### 2026-07-27 23:30 +08:00 — A3 上傳＋多雲：RA／WP 完成（待核准）
+
+**User**: 「好了」（已填 `a3-upload-multicloud-questions.md`）
+**Decisions**: Q1=C 同期；Q2=A 僅 draw.io；Q3=B 可選建檔；Q4=C 雙入口；Q5=B 對齊 AWS 深度；Q6=C 五支柱對照＋標註；Q7=B 自動偵測可覆寫；Q8=B 每雲 Lens（可擴充）；Q9=B 不做官方 WA API
+**Artifacts**:
+- `inception/requirements/a3-upload-multicloud-requirements.md`
+- `inception/plans/a3-upload-multicloud-execution-plan.md`
+- `user-stories/stories.md` §A3 增量 AC
+**Next**: 使用者核准 Execution Plan → FD → Code Gen（建議 PR1 上傳／PR2 多雲規則／PR3 per-cloud Lens）
+
+---
+
+#### 2026-07-27 23:40 +08:00 — A3 上傳＋多雲：核准後 Code Gen
+
+**User**: 「核准」
+**Stage**: Construction FD → Code Generation
+**Delivered**:
+- FD `upload-multicloud-fd.md`
+- BE：多雲 rule pack、detect-provider、評核接受 xml／可選建檔、per-cloud lens、schema
+- FE：Assessment／Workspace 上傳、Lens provider 切換
+- `schema_rbac.sql`／`DEPLOY.md`／unit tests／`upload-multicloud-summary.md`
+**Next**: 手動驗收；可 commit／merge `ut`
+
+---
+
+#### 2026-07-28 00:13 +08:00 — 補齊 summary／checklist／stories
+
+**User**: 「補 summary／checklist／stories」
+**Updated**:
+- `construction/a3/code/upload-multicloud-summary.md`（預覽、PDF 附圖、A1 下載）
+- `operations/deployment/a3-go-live-checklist.md`（Smoke 3.8–3.11、schema 欄位）
+- `inception/user-stories/stories.md` §A1／§A3
+- FD `upload-multicloud-fd.md` FE 段落
