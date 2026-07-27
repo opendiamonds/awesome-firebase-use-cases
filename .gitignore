@@ -37,3 +37,15 @@ coverage/
 
 
 
+
+# AI-DLC v2 — per-user session cursors 與機器本地衍生狀態不進版控；
+# 共享的工作（method、registry、state、audit shards、artifacts）一律 commit。
+# 來源：upstream v2 的 dist/claude/.gitignore（僅取 AI-DLC 段，通用規則本檔已有）。
+aidlc/active-space
+aidlc/spaces/*/intents/active-intent
+aidlc/.aidlc-clone-id
+aidlc/.aidlc-sessions/
+aidlc/spaces/*/intents/*/runtime-graph.json
+aidlc/spaces/*/intents/*/.aidlc-*
+aidlc/diagnostics/
+.claude/settings.local.json
