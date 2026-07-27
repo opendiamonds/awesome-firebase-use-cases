@@ -106,6 +106,16 @@
 - **症狀**：部署/build 失敗於 no space。10.10 跑多個服務。
 - **處置**：`docker system df` 看用量 →  `docker image prune -f` / `docker builder prune -f`（勿 `-a --volumes`，會誤刪其他服務資料）。
 
-### 4. 告警去向（待補）
+### 4. 告警去向
 
-主動告警（服務掛掉、部署失敗、憑證問題）目前靠人看。決定 observability 工具後，告警優先送 Telegram（Dan ↔ Claude Code 頻道），此節補上實際路由。
+**一律送 Slack `#nemoclaw`**（channel ID `C0B5XEQDVR7`，bot `NeMoClaw`）。取代原先「優先送 Telegram」的規劃，理由是部署通知已於 2026-07-25 落地於同一頻道，告警與部署事件集中在同一處才看得到完整時序。
+
+| 告警來源 | 現況 | 觸發條件 |
+|---|---|---|
+| 部署成功／失敗／回滾 | ✅ 已上線（`deploy.yml` 的 `notify` job） | deploy job 實際執行後 |
+| 站台可用性 | ⏳ 待建（見 issue #467） | 外部 blackbox 探測連續失敗 |
+| Self-hosted runner 離線 | ⏳ 待建（見 issue #467） | runner `status=offline` |
+
+**關鍵限制**：`notify` job 掛在 `deploy` 之後，job 卡在 `queued`（runner 離線）時整條 workflow 不執行，因此**無法**回報「部署未開始」或「站台不可用」。這兩類必須由 192.168.10.10 **之外**的探測發出 —— 該機失效時發不出自己失效的警報（2026-07-26 事件已驗證，見 `audit.md`）。
+
+站台可用性與 runner 探測實作於 dc-infra repo（見 ADR-0007 的 repo 邊界）。
