@@ -227,15 +227,20 @@ export const AssessmentPage = () => {
   }, [fetchDiagrams]);
 
   useEffect(() => {
-    if (!selectedDiagramId) {
-      setReviews([]);
-      setLoadedFor(null);
-      return;
-    }
     let cancelled = false;
-    setLoadedFor(null);
+    if (!selectedDiagramId) {
+      // setState 必須在 async callback，避免 react-hooks/set-state-in-effect
+      Promise.resolve().then(() => {
+        if (cancelled) return;
+        setReviews([]);
+        setLoadedFor(null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
 
-    // 載入該圖歷史，並自動開啟最新一筆詳情（下方評分結果連動）
+    // loadedFor !== selectedDiagramId 時 loadingList 已為 true，不必同步清 loadedFor
     fetchReviews(selectedDiagramId)
       .then(async (data) => {
         if (cancelled || !data) return;
@@ -281,12 +286,16 @@ export const AssessmentPage = () => {
   }, [selectedDiagramId, fetchReviews, token]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!selectedDiagramId || !token) {
-      setSelectedXml(null);
-      return;
+      Promise.resolve().then(() => {
+        if (!cancelled) setSelectedXml(null);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     if (uploadedXml) return;
-    let cancelled = false;
     (async () => {
       try {
         const res = await fetch(apiUrl(`/api/collab/diagrams/${selectedDiagramId}`), {
@@ -371,10 +380,7 @@ export const AssessmentPage = () => {
     }
   };
 
-  const finalizeOptimizeDraft = (
-    data: Record<string, unknown>,
-    logText: string,
-  ) => {
+  const finalizeOptimizeDraft = (data: Record<string, unknown>) => {
     const base = optimizeBaselineRef.current;
     if (!base || typeof data.xml !== 'string' || !data.xml) return;
     const dr = (data.draft_review || {}) as Record<string, unknown>;
@@ -823,7 +829,7 @@ export const AssessmentPage = () => {
           }
           if (typeof data.xml === 'string' && data.xml) {
             setCollabPreviewXml(data.xml);
-            finalizeOptimizeDraft(data, logLines.join('\n\n'));
+            finalizeOptimizeDraft(data);
           }
         } else if (data.type === 'error') {
           setError(String(data.content || data.message || '協作失敗'));
@@ -988,13 +994,10 @@ export const AssessmentPage = () => {
     !lensReady &&
     (active?.scores?.source_of_truth === 'heuristic' ||
       Boolean(active?.scores?.lens_error));
-  const optimizeSuggestionsText = useMemo(() => {
-    if (!optimizeDraft) return '';
-    return (
-      optimizeDraft.draftReview.suggestions_text ||
+  const optimizeSuggestionsText = optimizeDraft
+    ? optimizeDraft.draftReview.suggestions_text ||
       buildDraftSuggestions(optimizeDraft.baselineReview, optimizeDraft.draftReview)
-    );
-  }, [optimizeDraft]);
+    : '';
   const suggestionsText = (
     optimizeSuggestionsText ||
     suggestionsLive ||
