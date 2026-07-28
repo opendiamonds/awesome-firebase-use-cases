@@ -1,11 +1,84 @@
 # Cloud-360 部署環境設定說明（Deploy README）
 
-> 給要把本專案部署到**另一個環境**（staging／正式／新機器）的人。  
-> 前後端分服務部署時，請特別核對 API／CORS／資料庫三塊。
+> 給要把本專案部署到**另一個環境**（本機／staging／新機器）的人。  
+> 前後端分服務部署時，請特別核對 API／CORS／資料庫三塊。  
+> **A1 產圖、A3 評核建議、A1↔A3「優化」協作**皆依賴 **OpenRouter + Claude Code CLI**（見第 0 節）。
 
 ---
 
 ## 中文版
+
+### 0. LLM 執行鏈路（必讀｜本次更新）
+
+產品**不是**直接呼叫 Anthropic 官方 API，而是：
+
+```text
+後端 FastAPI
+  → Python 套件 claude-agent-sdk（ClaudeSDKClient）
+    → 本機／容器內子行程：Claude Code CLI（@anthropic-ai/claude-code）
+      → HTTP：OpenRouter（ANTHROPIC_BASE_URL=https://openrouter.ai/api）
+        → 模型（例：anthropic/claude-sonnet-4.6）
+```
+
+| 元件 | 角色 | 缺了會怎樣 |
+|---|---|---|
+| `OPENROUTER_API_KEY` | 真正計費、出模型回應 | A1／A3／優化 API 回 500 或錯誤訊息 |
+| Claude Code CLI | Agent SDK 的 runtime（子行程） | 請求時失敗：找不到 `claude`／CLI |
+| `claude-agent-sdk` | Python 依賴（`requirements.txt`） | 後端無法 import／啟動後相關路由掛掉 |
+
+**仍使用 OpenRouter。** Claude Code CLI 只是殼；credits／402 等錯誤來自 OpenRouter 額度或 `max_tokens` 預扣。
+
+#### 0.1 哪些功能需要 CLI＋OpenRouter
+
+| 功能 | 程式入口 |
+|---|---|
+| A1 對話產圖 | `backend/services/design_agent.py` |
+| A3 改善建議 | `backend/services/review_agent.py` |
+| Offline Lens agent 填答 | `backend/services/wa_lens_engine.py` |
+| A3「優化」（Design↔Review） | `backend/services/wa_collab_orchestrator.py` |
+
+離線規則打分／啟發式備援可不靠 LLM；但完整建議與協作優化**必須**有 CLI＋金鑰。
+
+#### 0.2 各部署方式如何取得 Claude Code CLI
+
+| 部署方式 | CLI 怎麼來 | 你要做的事 |
+|---|---|---|
+| **Docker 映像（建議）** | `backend/Dockerfile` 已 `npm install -g @anthropic-ai/claude-code` | `docker compose … --build`；確認 build 有網路可連 nodesource／npm |
+| **本機直接跑 uvicorn** | 主機自行安裝 Node 22＋CLI | 見下方「本機安裝 CLI」 |
+| **既有容器升級本次功能** | 需**重建** backend image（舊 image 若沒裝 CLI 會掛） | `up -d --build`，不要只用舊 image restart |
+
+本機安裝 CLI（非 Docker）：
+
+```bash
+# 需 Node.js 18+（建議 22，與 Dockerfile 一致）
+node -v
+npm install -g @anthropic-ai/claude-code
+which claude   # 應能找到
+claude --version
+```
+
+容器內驗證（部署後）：
+
+```bash
+docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec backend which claude
+docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec backend claude --version
+```
+
+#### 0.3 OpenRouter／token 相關變數（本次更新）
+
+| 變數 | 說明 | 建議 |
+|---|---|---|
+| `OPENROUTER_API_KEY` | OpenRouter 金鑰 | 各環境專用，勿進 git |
+| `ANTHROPIC_BASE_URL` | 預設 `https://openrouter.ai/api` | 通常維持 |
+| `ANTHROPIC_AUTH_TOKEN` | 可空；啟動時由 `OPENROUTER_API_KEY` 映射 | 可留空 |
+| `ANTHROPIC_API_KEY` | **必須為空** | 避免走 Anthropic 直連 |
+| `LLM_MODEL`／`ANTHROPIC_DEFAULT_SONNET_MODEL` | OpenRouter 模型 slug | 例：`anthropic/claude-sonnet-4.6` |
+| `LLM_MAX_OUTPUT_TOKENS` | Agent 輸出 token 上限（對應 `CLAUDE_CODE_MAX_OUTPUT_TOKENS`） | 預設 `12000`；出現 402 credits 可降到 `8192` |
+| `LLM_XML_CONTEXT_MAX_CHARS` | 送入 LLM 的架構 XML 字元上限 | 預設 `32000` |
+
+若 OpenRouter 回 `402 … requires more credits, or fewer max_tokens`：先確認帳戶餘額，並在該環境 `.env` 降低 `LLM_MAX_OUTPUT_TOKENS` 後重啟 backend。
+
+---
 
 ### 1. 建議調整的環境變數（.env）
 
@@ -24,6 +97,8 @@
 | `ANTHROPIC_AUTH_TOKEN` | 可空（啟動時可由 OPENROUTER 映射） | 依部署方式填入或留空讓程式映射 |
 | `ANTHROPIC_API_KEY` | **必須為空** | 維持空，避免 SDK 走 Anthropic 直連 |
 | `LLM_MODEL`／`ANTHROPIC_DEFAULT_SONNET_MODEL` | 範本模型 slug | 依該環境要用的模型調整 |
+| `LLM_MAX_OUTPUT_TOKENS` | `12000` | 餘額緊時可降；見第 0.3 節 |
+| `LLM_XML_CONTEXT_MAX_CHARS` | `32000` | 大圖面可調，但會影響 token 用量 |
 | `N8N_WEBHOOK_URL` | 選填 | 有用動態 icon 再填 |
 
 #### 1.2 前端 `frontend/.env`（build 時注入）
@@ -54,6 +129,13 @@ npm run build
 前端瀏覽器 Origin       ──►  必須出現在後端 CORS_ORIGINS
 前端 WS（自動或 VITE_WS_BASE_URL）──►  後端同一主機的 /api/collab/ws/...
 ```
+
+#### 1.4 Compose 部署用 `deploy/.env`
+
+範本：`deploy/.env.example` → 複製為 `deploy/.env`（**勿 commit**）。  
+與 `deploy/docker-compose.deploy.yml` 搭配；公開站點的 CI 部署會由 `.github/workflows/deploy.yml` 從 secrets 產生此檔。
+
+除資料庫／JWT／`PUBLIC_URL` 外，請一併填入第 0.3 節的 OpenRouter 與 token 上限變數。
 
 ---
 
@@ -125,6 +207,8 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 
 **A3 增量（上傳＋多雲）**：`architecture_reviews.diagram_id` 可 NULL（未建檔上傳）；`xml_snapshot` 存評核 XML；三雲 rule pack ＋ per-cloud Lens。
 
+**A1↔A3 協作優化（本次）**：**無額外 SQL**；沿用既有 `user_diagrams`／`architecture_reviews`。重點是重建含 Claude Code CLI 的 backend image，並設定 OpenRouter／token 變數。
+
 驗證：
 
 ```bash
@@ -177,33 +261,111 @@ psql "$DATABASE_URL" -c "COPY role_permissions TO STDOUT WITH CSV HEADER" > role
 
 ---
 
-### 3. 建議部署順序
+### 3. 依環境部署方式
 
-1. 準備 PostgreSQL，設定 `DATABASE_URL`  
-2. 執行 `psql "$DATABASE_URL" -f schema_rbac.sql`  
-3. 設定後端 `.env`（含 `CORS_ORIGINS`、`JWT_SECRET`、LLM 金鑰）並啟動 API  
-4. 設定前端 `VITE_API_BASE_URL` 後 `npm run build` 並部署靜態資源  
-5. 用 `admin` / `admin123` 登入 → **立刻改密碼** → 在「使用者角色／角色細項權限」依環境調整  
+#### 3.1 本機開發（前後端分開）
+
+1. PostgreSQL + `psql "$DATABASE_URL" -f schema_rbac.sql`  
+2. 安裝 **Node 22 + Claude Code CLI**（第 0.2 節）  
+3. `backend/.env`：填 `DATABASE_URL`、`JWT_SECRET`、`CORS_ORIGINS`、`OPENROUTER_API_KEY`、可選 `LLM_MAX_OUTPUT_TOKENS`  
+4. `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8000`  
+5. `frontend/.env`：`VITE_API_BASE_URL=http://localhost:8000` → `npm ci && npm run dev`  
+6. 驗證：登入 → Workspace 產圖／Assessment 評核或「優化」不應再出現「找不到 CLI」
+
+#### 3.2 Docker Compose（自架／另一台 staging）
+
+適用：把整包（db＋backend＋frontend［＋可選 tunnel］）拉到新機器。
+
+```bash
+cp deploy/.env.example deploy/.env
+# 編輯：POSTGRES_*、JWT_SECRET、OPENROUTER_API_KEY、PUBLIC_URL、
+#       LLM_MODEL、LLM_MAX_OUTPUT_TOKENS（建議）、CLOUDFLARED_*（若用 tunnel）
+
+# 首次或升級含 Dockerfile 變更（含 Claude Code CLI）時務必 --build
+docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env up -d --build
+
+docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env ps
+docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec backend which claude
+```
+
+重點：
+
+- Backend image build 需能存取外網（nodesource、npm registry），否則 CLI 裝不上。  
+- 改 `OPENROUTER_API_KEY`／`LLM_MAX_OUTPUT_TOKENS` 後：更新 `deploy/.env` 並 `up -d`（必要時 `--force-recreate backend`）。  
+- 改前端 `PUBLIC_URL`：需重建 frontend image（Vite build-arg）。
+
+不含 Cloudflare tunnel 時，可只起 `db`／`backend`／`frontend`，以 `FRONTEND_HOST_PORT`（預設 8090）對內存取；`CORS_ORIGINS`／`VITE_API_BASE_URL` 改為實際 URL。
+
+#### 3.3 專案既有 staging（`ut` → `192.168.10.10`）
+
+- Workflow：`.github/workflows/deploy.yml`（self-hosted runner `cloud360`）  
+- 觸發：合併／推送到 `ut`（或手動 `workflow_dispatch`）  
+- Secrets：至少 `JWT_SECRET`、`OPENROUTER_API_KEY`、`POSTGRES_PASSWORD` 等（見 workflow 寫入 `deploy/.env` 的段落）  
+- 公開：`https://cloud360.danniel.cc`；內網：`http://192.168.10.10:8090`  
+
+部署本次 A1↔A3／token 相關變更時：確認 runner 上的 compose **會 rebuild backend**（workflow 已 `up -d --build`），且 GitHub Secrets 的 OpenRouter 金鑰有效；可選在 secrets／產生的 `.env` 加上 `LLM_MAX_OUTPUT_TOKENS`。
+
+#### 3.4 本次功能升級檢查清單（A1↔A3 優化）
+
+- [ ] Backend image **重建**（含 `@anthropic-ai/claude-code`）  
+- [ ] 容器內 `which claude` 成功  
+- [ ] `OPENROUTER_API_KEY` 已設且有餘額  
+- [ ] `ANTHROPIC_API_KEY` 為空；`ANTHROPIC_BASE_URL` 指向 OpenRouter  
+- [ ] （建議）`LLM_MAX_OUTPUT_TOKENS=12000` 或更低，避免 402  
+- [ ] **無需**為本次功能重跑 SQL（無 schema 變更）  
+- [ ] 煙測：Assessment 對含高風險報告按「優化」→ 出現新舊比對／儲存取消；Workspace 產圖正常  
 
 ---
 
-### 4. 相關文件
+### 4. 建議部署順序（摘要）
+
+1. 準備 PostgreSQL，設定 `DATABASE_URL`  
+2. 執行 `psql "$DATABASE_URL" -f schema_rbac.sql`  
+3. 準備 LLM：OpenRouter 金鑰 ＋ **Claude Code CLI**（Docker build 或本機安裝）  
+4. 設定後端 `.env`／`deploy/.env`（含 `CORS_ORIGINS`、`JWT_SECRET`、LLM／token 變數）並啟動 API  
+5. 設定前端 `VITE_API_BASE_URL` 後 build／部署  
+6. 用 `admin` / `admin123` 登入 → **立刻改密碼** → 調整角色權限  
+7. 依第 3.4 節做 A1／A3／優化煙測  
+
+---
+
+### 5. 相關文件
 
 | 文件 | 說明 |
 |---|---|
 | `schema_rbac.sql` | **建表 + 預設資料（含角色矩陣）** |
 | `aidlc-docs/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
 | `aidlc-docs/construction/plans/role-permission-design.md` | 角色／細項語意 |
-| `backend/.env.example`、`frontend/.env.example` | 環境變數範本 |
+| `backend/.env.example`、`frontend/.env.example`、`deploy/.env.example` | 環境變數範本 |
+| `backend/Dockerfile` | 內建 Node 22 ＋ Claude Code CLI |
+| `deploy/docker-compose.deploy.yml` | staging／自架 compose |
+| `.github/workflows/deploy.yml` | `ut` → 192.168.10.10 自動部署 |
+| `aidlc-docs/construction/a1/code/a1-a3-multi-agent-summary.md` | A1↔A3 協作實作摘要 |
 
 ---
 
 ## English Version
 
+### LLM stack（required for A1 / A3 / optimize）
+
+Runtime path: **FastAPI → `claude-agent-sdk` → Claude Code CLI subprocess → OpenRouter**.  
+You still need **`OPENROUTER_API_KEY`**. The CLI is only the Agent SDK shell (`npm i -g @anthropic-ai/claude-code`). The official Docker image installs it in `backend/Dockerfile`; bare-metal uvicorn hosts must install Node + CLI themselves. Rebuild the backend image when upgrading this feature.
+
+Optional: `LLM_MAX_OUTPUT_TOKENS` (default `12000`) and `LLM_XML_CONTEXT_MAX_CHARS` to reduce OpenRouter 402 / credit pressure. Keep `ANTHROPIC_API_KEY` empty and `ANTHROPIC_BASE_URL=https://openrouter.ai/api`.
+
 ### Env vars
 
-- **Backend** (`backend/.env` from `.env.example`): set `DATABASE_URL`, rotate `JWT_SECRET`, set `CORS_ORIGINS` to the real frontend origin(s), and configure OpenRouter／LLM keys for that environment.  
-- **Frontend** (`frontend/.env` / CI): set `VITE_API_BASE_URL` to the real API root (no trailing slash). Optional `VITE_WS_BASE_URL`; otherwise derived from the API base (`http→ws`, `https→wss`). Rebuild after changing Vite env.
+- **Backend** (`backend/.env` from `.env.example`): set `DATABASE_URL`, rotate `JWT_SECRET`, set `CORS_ORIGINS` to the real frontend origin(s), and configure OpenRouter／LLM／token-limit keys for that environment.  
+- **Frontend** (`frontend/.env` / CI): set `VITE_API_BASE_URL` to the real API root (no trailing slash). Optional `VITE_WS_BASE_URL`; otherwise derived from the API base (`http→ws`, `https→wss`). Rebuild after changing Vite env.  
+- **Compose** (`deploy/.env` from `deploy/.env.example`): used with `deploy/docker-compose.deploy.yml`.
+
+### Deploy paths
+
+- **Local**: install Claude Code CLI on the host; run API + Vite with matching CORS／API URL.  
+- **Docker Compose**: `docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env up -d --build` (must rebuild so the image contains the CLI).  
+- **Project staging**: push／merge to `ut` → `.github/workflows/deploy.yml` on self-hosted runner → `https://cloud360.danniel.cc`.  
+
+No new SQL is required for the A1↔A3 optimize feature; schema remains `schema_rbac.sql`.
 
 ### Database
 
@@ -213,7 +375,7 @@ psql "$DATABASE_URL" -c "COPY role_permissions TO STDOUT WITH CSV HEADER" > role
 psql "$DATABASE_URL" -f schema_rbac.sql
 ```
 
-Creates: `users`, `user_diagrams`, `diagram_shares`, `user_diagram_chats`, **`architecture_reviews` (A3)**, **`wa_lenses` (editable Offline Lens)**, `role_permissions`, plus `last_opened_diagram_id`.  
+Creates: `users`, `user_diagrams`, `diagram_shares`, `user_diagram_chats`, **`architecture_reviews` (A3)**, **`wa_lenses` (editable offline Lens)**, `role_permissions`, plus `last_opened_diagram_id`.  
 Seeds ~**308** `role_permissions` rows and default user **`admin` / `admin123`** (`Platform_Admin`) if missing.
 
 **A3** `architecture_reviews` stores review scores/findings/suggestions. **`wa_lenses`** stores the active Custom Lens JSON editable by users with **A3.review** (default: Security_Reviewer VER; reviews resolve DB-first, then file fallback). Existing DBs: re-run `schema_rbac.sql` (`IF NOT EXISTS`) or rely on backend `_ensure_a3_schema()` on startup.
