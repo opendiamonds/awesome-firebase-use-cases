@@ -16,11 +16,12 @@
   3. 產出的圖表必須為相容 `.drawio` 格式，且能透過 n8n webhook 動態取得正確的 AWS 或 GCP 標準服務圖示 (SVG)。
   4. 圖面必須包含清晰的邏輯連線、對應選定平台的網路邊界 (VPC/AZ 或 GCP Project/VPC/Subnet) 與資料流向。
   5. ✅ **增量**：工作區畫布提供「下載 .drawio」，將目前圖面匯出為 diagrams.net／draw.io 可開啟的檔案（有圖即可；唯讀／檢視亦可下載）。
-- **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求，與 AI 進行平台評估。 3. 確認推薦的平台後，AI 自動產出對應草圖。 4. **AI重置/人工微調**: 對產出草圖不滿意可點「全部重置」，或手動在對話框人工修正參數。 5. 需要離線編輯時點「下載 .drawio」。
+  6. ✅ **增量（A1↔A3 Multi-Agent）**：Workspace 聊天產圖**自動**啟動 Design↔WA Review 雙 agent 對話（最多 2 輪）；以 lens 總分 ≥80 為硬門檻；過程顯示 transcript，產圖**直接呈現於畫布**；未達標標示失敗並需人工調整。
+- **操作流程**: 1. 從首頁登入 Desktop Web，進入專案。 2. 在 AI Chat 輸入架構需求，與 AI 進行平台評估。 3. 確認推薦的平台後，AI 自動產出對應草圖並與 Review Agent 對話優化，圖面直接呈現。 4. **AI重置/人工微調**: 未達標或對圖不滿意可手動改參數／對話重試。 5. 需要離線編輯時點「下載 .drawio」。
 - **系統回饋 (System Feedback)**:
-  - **成功 (Success)**: 畫面中央浮現綠色 Toast 提示「✔ 架構草圖已生成」，並自動存檔。**後續引導**：彈出按鈕引導點擊「前往 IaC 工作區生成代碼」或「進行 Well-Architected 評估」（✅ 銜接 A3：點擊後對**當前圖**發起評核，見 A3）。下載成功時瀏覽器取得 `.drawio` 檔。
-  - **失敗 (Failure)**: 畫面頂部跳出紅色警告框「資源衝突：所選區域不支援該服務」。**後續引導**：提示「請於對話框修改參數後重試」，或提供「聯絡平台架構師 (Alex) 尋求協助」的快捷按鈕。無圖時下載按鈕停用。
-- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求、完成 AWS/GCP 評估並確認後 `Then` 系統產出包含對應雲端服務 (如 AWS 或 GCP) 及正確網路邊界與 n8n 動態圖示的架構畫布。  
+  - **成功 (Success)**: transcript 顯示 Design／Review 發言與分數；達 ≥80 時提示成功，架構圖已在畫布。**後續引導**：IaC 或正式 Well-Architected 評估。下載成功時取得 `.drawio` 檔。
+  - **失敗 (Failure)**: 兩輪後仍 ＜80 時提示未達標與剩餘 findings，目前最佳圖仍寫入畫布。產圖／評核錯誤時紅色提示並可重試。無圖時下載按鈕停用。
+- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求並產圖 `Then` 系統自動跑 Design↔Review 協作且達標或明確失敗，圖面直接呈現。  
   `Given` 畫布已有架構圖 `When` 點擊「下載 .drawio」 `Then` 取得可用 diagrams.net 開啟的檔案。
 
 #### A2. AI + draw.io 畫布協同編輯
@@ -56,11 +57,12 @@
   6. ✅ **增量（上傳）**：Assessment 與 Workspace 可上傳 draw.io／mxGraph XML；可選「同時存成架構圖」；未建檔亦可評核並寫入歷史報告（`xml_snapshot`）。
   7. ✅ **增量（多雲）**：自動偵測 provider（可覆寫）；gcp／azure 不再 `unsupported`；各雲獨立 rule pack＋每雲 Active Lens；UI 標註以 AWS WA 五支柱對照。
   8. ✅ **增量（預覽／PDF 附圖）**：選圖或上傳後於 Assessment **預覽架構圖**；下載 PDF 時附**架構圖對照頁**（中文標題正常）。
-  9. ⏳ **下期**：模擬單點故障 (SPOF) 或 AZ 級中斷，並估算 RPO／RTO；UI 手改 riskRules；lens 版本／歷史重跑；各雲官方框架支柱名稱切換；官方 WA API。
-- **操作流程（✅ 本期）**: 1. 經上述任一入口選定圖並發起評核（或上傳後評核）。 2. 於預覽確認圖面後檢視分數與發現。 3. 可於儀表板重開歷史評核。 4. Fiona 於「Lens 標準」依雲別調整題目並儲存 → 之後新評核使用新標準。 5. 下載 PDF（含架構圖對照頁）。 6. **AI重置/人工微調（⏳ 下期）**: 局部重置放寬 RTO，或人工加備援後重評。
+  9. ✅ **增量（A1↔A3 Multi-Agent）**：Assessment 報告含 **HIGH_RISK** 時可點「優化」啟動 Design↔Review；無高風險或評核進行中反灰；協作目標為消除高風險。
+  10. ⏳ **下期**：模擬單點故障 (SPOF) 或 AZ 級中斷，並估算 RPO／RTO；UI 手改 riskRules；lens 版本／歷史重跑；各雲官方框架支柱名稱切換；官方 WA API。
+- **操作流程（✅ 本期）**: 1. 經上述任一入口選定圖並發起評核（或上傳後評核）。 2. 於預覽確認圖面後檢視分數與發現。 3. 可按「優化至 WA ≥ 80」啟動雙 agent 改圖。 4. 可於儀表板重開歷史評核。 5. Fiona 於「Lens 標準」依雲別調整題目並儲存。 6. 下載 PDF（含架構圖對照頁）。
 - **系統回饋 (System Feedback)**:
-  - **成功（✅ 本期）**: Toast／面板顯示評核完成與總分；列出發現與建議；Lens 儲存成功提示；預覽區顯示圖面。**後續引導**：前往儀表板查看歷史、下載 PDF（含圖），或返回畫布依建議調整。
-  - **失敗（✅ 本期）**: 規則或 LLM 階段錯誤時可讀提示；規則成功但 LLM 失敗時仍應保留規則發現；Lens 驗證失敗（例如某柱 0 題）阻擋儲存；PDF 附圖失敗時仍可下載文字報告並提示。**後續引導**：重試或聯絡 SRE／管理員。
+  - **成功（✅ 本期）**: Toast／面板顯示評核完成與總分；列出發現與建議；Lens 儲存成功提示；預覽區顯示圖面；Multi-Agent 達標可套用改圖。**後續引導**：歷史、PDF，或返回畫布。
+  - **失敗（✅ 本期）**: 規則或 LLM 階段錯誤時可讀提示；規則成功但 LLM 失敗時仍應保留規則發現；Lens 驗證失敗阻擋儲存；PDF 附圖失敗時仍可下載文字報告；Multi-Agent 兩輪未達 80 標示需人工。**後續引導**：重試或聯絡 SRE／管理員。
   - **失敗／風險標示（⏳ 下期）**: SPOF 節點跳動驚嘆號、撒花滿分徽章等進階動效。
 - **BDD**:
   - ✅ `Given` Alex 剛完成 A1 產圖 `When` 點擊產圖後 Well-Architected CTA `Then` 系統對該圖發起評核並顯示分數與發現。
@@ -71,6 +73,7 @@
   - ✅ `Given` 圖面含 GCP 服務關鍵字 `When` 系統偵測為 gcp（可覆寫）並評核 `Then` 使用 gcp rule pack 與 gcp Active Lens，狀態非 unsupported。
   - ✅ `Given` Hannah 已選圖或上傳 XML `When` 開啟 Assessment `Then` 可見架構圖預覽。
   - ✅ `Given` 評核已完成 `When` 下載 PDF `Then` 報告含架構圖對照頁且中文標題可讀。
+  - ✅ `Given` Hannah 在 Assessment 有可評核 XML `When` 點「優化至 WA ≥ 80」`Then` 啟動 Design↔Review 協作並回傳預覽圖與分數結果。
   - ⏳ `Given` 掃出資料庫單點故障 `When` Hannah 人工補上備援並局部重置評分 `Then` 分數重新計算並達標（下期）。
 #### A4. 重整後仍記得對話與上次開啟的架構圖
 - **多角色協作 (Multi-Role Collaboration)**:

@@ -344,6 +344,28 @@ export const WorkspacePage = () => {
     navigate(`/assessment?diagramId=${diagramId}`);
   };
 
+  const appendAgentMessage = (
+    base: Message[],
+    speaker: 'design' | 'review' | 'system',
+    chunk: string,
+  ): Message[] => {
+    const last = base[base.length - 1];
+    if (
+      last &&
+      last.role === 'assistant' &&
+      last.speaker === speaker &&
+      speaker !== 'system'
+    ) {
+      const next = [...base];
+      next[next.length - 1] = {
+        ...last,
+        content: last.content + chunk,
+      };
+      return next;
+    }
+    return [...base, { role: 'assistant', content: chunk, speaker }];
+  };
+
   const handleGenerate = async (prompt: string) => {
     if (!canArch('edit')) {
       showToast('權限不足：需要架構圖「編輯」權限才能與 AI 對話產圖', 'error', {
@@ -356,19 +378,19 @@ export const WorkspacePage = () => {
     setProgress('');
 
     const newMessages: Message[] = [...messages, { role: 'user', content: prompt }];
-    let assistantMessage = '';
     let finalMessages: Message[] = [
       ...newMessages,
-      { role: 'assistant', content: '' },
+      { role: 'assistant', content: '', speaker: 'design' },
     ];
-    // 立刻顯示助理佔位＋思考動畫，避免空白對話匡
     setMessages(finalMessages);
 
     let generatedXml: string | null = null;
     let streamError: string | null = null;
+    let completeStatus: 'passed' | 'failed' | 'no_diagram' | null = null;
+    let completeScore: number | null = null;
 
     try {
-      const response = await fetch(apiUrl('/api/architecture/generate'), {
+      const response = await fetch(apiUrl('/api/architecture/generate-wa-collab'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -377,6 +399,7 @@ export const WorkspacePage = () => {
         body: JSON.stringify({
           messages: newMessages,
           current_xml: xml || undefined,
+          diagram_id: currentDiagramIdRef.current || undefined,
         }),
       });
 
@@ -405,29 +428,77 @@ export const WorkspacePage = () => {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === 'message') {
-                  assistantMessage += data.content;
-                  finalMessages = [
-                    ...newMessages,
-                    { role: 'assistant', content: assistantMessage },
-                  ];
-                  setMessages(finalMessages);
-                } else if (data.type === 'progress') {
-                  setProgress(data.content);
-                } else if (data.type === 'xml') {
-                  generatedXml = data.content;
-                  setXml(data.content);
-                  setProgress('');
-                } else if (data.type === 'error') {
-                  streamError = formatGenerateError(String(data.content || ''));
-                  setProgress('');
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'message') {
+                const speaker =
+                  data.speaker === 'review'
+                    ? 'review'
+                    : data.speaker === 'system'
+                      ? 'system'
+                      : 'design';
+                if (
+                  finalMessages.length &&
+                  finalMessages[finalMessages.length - 1].role === 'assistant' &&
+                  !finalMessages[finalMessages.length - 1].content.trim() &&
+                  finalMessages[finalMessages.length - 1].speaker === 'design' &&
+                  speaker !== 'design'
+                ) {
+                  finalMessages = finalMessages.slice(0, -1);
                 }
-              } catch {
-                // ignore invalid JSON line
+                finalMessages = appendAgentMessage(
+                  finalMessages,
+                  speaker,
+                  String(data.content || ''),
+                );
+                setMessages(finalMessages);
+              } else if (data.type === 'progress') {
+                setProgress(String(data.content || ''));
+              } else if (data.type === 'xml_preview') {
+                // 直接呈現於畫布（不經「套用預覽」）
+                generatedXml = String(data.content || '');
+                setXml(generatedXml);
+                setProgress('');
+              } else if (data.type === 'score') {
+                const score = Number(data.overall_score);
+                const round = data.round ?? '?';
+                const passed = Boolean(data.passed);
+                const hr =
+                  typeof data.high_risk_count === 'number'
+                    ? data.high_risk_count
+                    : null;
+                finalMessages = appendAgentMessage(
+                  finalMessages,
+                  'system',
+                  `第 ${round} 輪評核：${Number.isFinite(score) ? Math.round(score) : '—'} 分` +
+                    (hr != null ? `、高風險 ${hr} 項` : '') +
+                    (passed ? '（已無高風險）' : '（仍有高風險）'),
+                );
+                setMessages(finalMessages);
+              } else if (data.type === 'complete') {
+                completeStatus =
+                  data.status === 'passed' ||
+                  data.status === 'failed' ||
+                  data.status === 'no_diagram'
+                    ? data.status
+                    : null;
+                if (typeof data.overall_score === 'number') {
+                  completeScore = data.overall_score;
+                }
+                if (typeof data.xml === 'string' && data.xml) {
+                  generatedXml = data.xml;
+                  setXml(data.xml);
+                }
+                setProgress('');
+              } else if (data.type === 'error') {
+                streamError = formatGenerateError(
+                  String(data.content || data.message || ''),
+                );
+                setProgress('');
               }
+            } catch {
+              // ignore invalid JSON line
             }
           }
         }
@@ -440,38 +511,64 @@ export const WorkspacePage = () => {
           hint: '請於對話框修改參數後重試。',
           showCtas: true,
         });
+      } else if (completeStatus === 'no_diagram') {
+        if (currentDiagramIdRef.current) {
+          await persistChat(currentDiagramIdRef.current, finalMessages);
+        }
       } else if (generatedXml) {
-        // Q2-B：僅有 diagram_id 才自動存；無 id 提示手動儲存
         const diagramId = currentDiagramIdRef.current;
+        const scoreHint =
+          completeScore != null
+            ? ` lens 總分 ${Math.round(completeScore)}。`
+            : '';
         if (diagramId) {
           const ok = await autosaveDiagramXml(diagramId, generatedXml);
           await persistChat(diagramId, finalMessages);
-          setToast({
-            message: '✔ 架構草圖已生成',
-            type: 'success',
-            hint: ok
-              ? '已自動存檔至資料庫。工具列應顯示「已儲存」。'
-              : '產圖成功，但自動存檔失敗，請點「儲存架構圖」重試。',
-            showCtas: true,
-          });
+          if (completeStatus === 'passed') {
+            setToast({
+              message: '✔ 架構圖已無高風險',
+              type: 'success',
+              hint: `${scoreHint}${ok ? '已寫入畫布並存檔。' : '已寫入畫布，但自動存檔失敗，請手動儲存。'}`,
+              showCtas: true,
+            });
+          } else if (completeStatus === 'failed') {
+            setToast({
+              message: '仍有高風險（需人工調整）',
+              type: 'error',
+              hint: `${scoreHint}目前最佳圖已寫入畫布，可繼續對話或至 Assessment 點「優化」。`,
+              showCtas: true,
+            });
+          } else {
+            setToast({
+              message: '✔ 架構草圖已生成',
+              type: 'success',
+              hint: ok
+                ? '已自動存檔至資料庫。'
+                : '產圖成功，但自動存檔失敗，請點「儲存架構圖」重試。',
+              showCtas: true,
+            });
+          }
         } else {
           setSaveStatus('no-file');
           setToast({
-            message: '✔ 架構草圖已生成',
-            type: 'success',
-            hint: '尚未建檔。點「儲存並評核」會先請您命名儲存，再進入 Well-Architected 評估儀表板。',
+            message:
+              completeStatus === 'passed'
+                ? '✔ 架構圖已無高風險'
+                : completeStatus === 'failed'
+                  ? '仍有高風險（需人工調整）'
+                  : '✔ 架構草圖已生成',
+            type: completeStatus === 'failed' ? 'error' : 'success',
+            hint: `${scoreHint}圖面已呈現。尚未建檔時可點「儲存架構圖」或「儲存並評核」。`,
             showCtas: true,
           });
         }
       } else if (currentDiagramIdRef.current) {
-        // 僅對話、未產圖：仍持久化聊天
         await persistChat(currentDiagramIdRef.current, finalMessages);
       }
     } catch (err) {
       const errMsg = formatGenerateError(
-        err instanceof Error ? err.message : '生成失敗'
+        err instanceof Error ? err.message : '生成失敗',
       );
-      // 拿掉空白助理佔位，避免失敗後留下空對話匡
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant' && !last.content.trim()) {
@@ -805,6 +902,7 @@ export const WorkspacePage = () => {
         canReview={canReviewArch}
         userDisplayName={user?.username}
       />
+      <div className="flex-1 flex flex-col min-w-0 relative h-full">
       <DrawioCanvas
         ref={canvasRef}
         xml={xml}
@@ -934,6 +1032,7 @@ export const WorkspacePage = () => {
           </div>
         }
       />
+      </div>
 
       <ShareModal
         isOpen={isShareModalOpen}

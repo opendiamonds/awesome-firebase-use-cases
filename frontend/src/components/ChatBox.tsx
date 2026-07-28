@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  /** Multi-Agent：design / review（僅 assistant） */
+  speaker?: 'design' | 'review' | 'system';
 }
 
 interface ChatBoxProps {
@@ -113,8 +115,10 @@ export const ChatBox = ({
             
             {/* Avatar */}
             <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-md ${
-              msg.role === 'assistant' 
-                ? 'bg-gradient-to-br from-brand-500 to-indigo-600 shadow-brand-500/20' 
+              msg.role === 'assistant'
+                ? msg.speaker === 'review'
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/20'
+                  : 'bg-gradient-to-br from-brand-500 to-indigo-600 shadow-brand-500/20'
                 : 'bg-gradient-to-br from-gray-700 to-gray-900 shadow-gray-900/20'
             }`}>
               {msg.role === 'assistant' ? (
@@ -134,6 +138,15 @@ export const ChatBox = ({
                 ? 'rounded-2xl rounded-tl-none text-gray-700' 
                 : 'rounded-2xl rounded-tr-none text-gray-800 bg-brand-50/30'
             }`}>
+              {msg.role === 'assistant' && msg.speaker && (
+                <p className="text-[11px] font-bold tracking-wide text-gray-400 mb-2 uppercase">
+                  {msg.speaker === 'review'
+                    ? 'Review Agent'
+                    : msg.speaker === 'system'
+                      ? '評核'
+                      : 'Design Agent'}
+                </p>
+              )}
               {showThinking ? (
                 <div className="flex items-center gap-3 text-brand-600 font-medium tracking-wide min-h-[1.5rem]">
                   {progress ? (

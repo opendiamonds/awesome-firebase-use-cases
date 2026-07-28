@@ -4,12 +4,17 @@ agent_router.py — A1 架構對話／產圖 API（SSE 適配層）
 職責：
   - 驗證 JWT 與請求 body
   - 將 design_agent 事件轉成 SSE（message / progress / xml / error）
+  - A1↔A3 Multi-Agent：generate-wa-collab（雙 agent＋lens ≥80）
   - 不直接呼叫 OpenRouter；LLM 迴圈由 design_agent（Agent SDK）負責
 
 契約（前端依賴，請勿變更）：
   POST /api/architecture/generate
   body: { messages: [{role, content}], current_xml?: string }
   response: text/event-stream，data 為 JSON {type, content}
+
+  POST /api/architecture/generate-wa-collab
+  body: { messages, current_xml?, provider?, diagram_id? }
+  response: SSE {type: message|progress|xml_preview|score|complete|error, ...}
 """
 
 from __future__ import annotations
@@ -17,15 +22,19 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from database import get_db
 from models import User
 from services.design_agent import configure_openrouter_env, run_design_agent
 from services.rbac import require_arch_action
+from services.review_orchestrator import get_accessible_diagram
+from services.wa_collab_orchestrator import run_wa_collab
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +51,27 @@ class ChatRequest(BaseModel):
     current_xml: Optional[str] = None
 
 
+class WaCollabRequest(BaseModel):
+    messages: List[Message]
+    current_xml: Optional[str] = None
+    provider: Optional[str] = None
+    diagram_id: Optional[int] = None
+    persist_review: bool = True
+    baseline_findings: Optional[List[dict[str, Any]]] = None
+    baseline_overall_score: Optional[float] = None
+
+
+def _ensure_llm_keys() -> None:
+    configure_openrouter_env()
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    if not openrouter_key and not auth_token:
+        raise HTTPException(
+            status_code=500,
+            detail="尚未設定 OPENROUTER_API_KEY（Agent SDK 經 OpenRouter 需要此金鑰）",
+        )
+
+
 @router.post("/generate")
 async def chat_and_generate(
     request: ChatRequest,
@@ -55,29 +85,63 @@ async def chat_and_generate(
     if not messages:
         raise HTTPException(status_code=400, detail="對話不可為空")
 
-    # 啟動前確保 OpenRouter env 已映射（亦會在 design_agent 內再呼叫一次）
-    configure_openrouter_env()
-
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
-
-    logger.info("========================================")
+    _ensure_llm_keys()
     logger.info("收到畫圖/對話請求（Agent SDK 路徑），user=%s", current_user.username)
-    logger.info("OPENROUTER_API_KEY 狀態: %s", "已設定" if openrouter_key else "未設定")
-    logger.info("ANTHROPIC_AUTH_TOKEN 狀態: %s", "已設定" if auth_token else "未設定")
-
-    if not openrouter_key and not auth_token:
-        logger.error("錯誤: 未設定 OpenRouter / Agent SDK 認證")
-        raise HTTPException(
-            status_code=500,
-            detail="尚未設定 OPENROUTER_API_KEY（Agent SDK 經 OpenRouter 需要此金鑰）",
-        )
 
     payload = [{"role": m.role, "content": m.content} for m in messages]
 
     async def event_generator():
-        # 將 design_agent 的 dict 事件包裝成 SSE data 行
         async for event in run_design_agent(payload, request.current_xml):
+            chunk = json.dumps(event, ensure_ascii=False)
+            yield f"data: {chunk}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@router.post("/generate-wa-collab")
+async def chat_and_generate_wa_collab(
+    request: WaCollabRequest,
+    current_user: User = Depends(require_arch_action("edit")),
+    db: Session = Depends(get_db),
+):
+    """
+    A1↔A3 Multi-Agent：Design 與 Review 對話，目標 lens ≥ 80（最多 2 輪）。
+    回傳 xml_preview；前端需使用者「套用」後才寫入畫布。
+    """
+    if not request.messages:
+        raise HTTPException(status_code=400, detail="對話不可為空")
+
+    _ensure_llm_keys()
+    logger.info(
+        "收到 WA collab 請求 user=%s diagram_id=%s provider=%s",
+        current_user.username,
+        request.diagram_id,
+        request.provider,
+    )
+
+    diagram = None
+    if request.diagram_id is not None:
+        diagram = get_accessible_diagram(db, current_user, request.diagram_id)
+        if not diagram:
+            raise HTTPException(status_code=404, detail="找不到架構圖或無權限")
+
+    payload = [{"role": m.role, "content": m.content} for m in request.messages]
+    current_xml = request.current_xml
+    if not current_xml and diagram is not None:
+        current_xml = diagram.xml_data
+
+    async def event_generator():
+        async for event in run_wa_collab(
+            db,
+            current_user,
+            messages=payload,
+            current_xml=current_xml,
+            provider=request.provider,
+            diagram=diagram,
+            persist_review=request.persist_review,
+            baseline_findings=request.baseline_findings,
+            baseline_overall_score=request.baseline_overall_score,
+        ):
             chunk = json.dumps(event, ensure_ascii=False)
             yield f"data: {chunk}\n\n"
 

@@ -210,6 +210,35 @@ def findings_from_lens_score(
     return out
 
 
+def enrich_findings_recommendations(
+    findings: list[dict[str, Any]], lens: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """補齊 findings 的 recommendation_hint（含 compact 的 hint 欄位）。"""
+    by_id = {q["question_id"]: q for q in list_questions(lens)}
+    enriched: list[dict[str, Any]] = []
+    for raw in findings or []:
+        f = dict(raw)
+        hint = str(f.get("recommendation_hint") or f.get("hint") or "").strip()
+        if not hint:
+            qid = str(f.get("question_id") or "")
+            if not qid:
+                code = str(f.get("code") or "")
+                if code.upper().startswith("LENS-"):
+                    qid = code[5:].lower().replace("-", "_")
+            qmeta = by_id.get(qid) or {}
+            plans: list[str] = []
+            for c in qmeta.get("choices") or []:
+                plan = (c.get("improvementPlan") or {}).get("displayText")
+                if plan:
+                    plans.append(str(plan).strip())
+            if plans:
+                f["recommendation_hint"] = "；".join(plans[:3])
+        else:
+            f["recommendation_hint"] = hint
+        enriched.append(f)
+    return enriched
+
+
 def heuristic_answers_from_diagram(xml: str, lens: dict[str, Any] | None = None) -> dict[str, list[str]]:
     """
     Deterministic POC filler when Agent is unavailable: keyword match on diagram summary.
@@ -277,6 +306,7 @@ async def answer_lens_with_agent(
     import os
 
     from services.design_agent import configure_openrouter_env
+    from services.llm_limits import agent_sdk_env, get_xml_context_max_chars
 
     configure_openrouter_env()
     key = os.environ.get("OPENROUTER_API_KEY", "").strip()
@@ -348,11 +378,12 @@ async def answer_lens_with_agent(
         "LLM_MODEL",
         os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "anthropic/claude-sonnet-4.6"),
     )
+    diagram_cap = get_xml_context_max_chars()
     prompt = (
         "你是離線 Well-Architected 評核助理。根據架構圖摘要，為每題勾選適用的 best practice "
         "choice id（可多選或空陣列）。完成後必須呼叫 emit_lens_answers。\n"
         f"題目目錄：\n```json\n{json.dumps(catalog, ensure_ascii=False)}\n```\n"
-        f"圖摘要：\n```json\n{json.dumps(diagram_summary, ensure_ascii=False)[:80000]}\n```"
+        f"圖摘要：\n```json\n{json.dumps(diagram_summary, ensure_ascii=False)[:diagram_cap]}\n```"
     )
     options = ClaudeAgentOptions(
         system_prompt="Offline WA custom-lens answering. Only use emit_lens_answers tool.",
@@ -363,6 +394,7 @@ async def answer_lens_with_agent(
         disallowed_tools=["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"],
         permission_mode="bypassPermissions",
         max_turns=4,
+        env=agent_sdk_env(),
     )
     try:
         async with ClaudeSDKClient(options=options) as client:

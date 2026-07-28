@@ -8,7 +8,7 @@
 - **Project Type**: Brownfield（已有 SRS / architecture / user stories / ADR baseline）
 - **AIDLC Version**: 1.0.1（見 `.aidlc/aidlc-rules/VERSION`；最初採用 0.1.8，見 ADR-0006）
 - **AIDLC 啟用 PRs**: `feat/aidlc-framework-rules`（PR1）→ `feat/aidlc-docs-migration`（PR2）→ `Doreen`（目錄重組）
-- **Current Stage**: **A3 上傳＋多雲 Code Gen 完成** — 待手動驗收；摘要 `construction/a3/code/upload-multicloud-summary.md`；branch `luojingting/feat/a3-feature-updates`
+- **Current Stage**: **A1↔A3 Multi-Agent Code Gen** — branch `luojingting/feat/a1-ux-optimize`；摘要 `construction/a1/code/a1-a3-multi-agent-summary.md`；待手動驗收
 
 ### Workspace State
 

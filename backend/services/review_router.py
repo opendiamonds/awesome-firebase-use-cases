@@ -48,6 +48,21 @@ class DetectProviderBody(BaseModel):
     xml_data: str = Field(..., min_length=1)
 
 
+class CommitCollabReviewBody(BaseModel):
+    diagram_id: int
+    xml_data: str = Field(..., min_length=1)
+    provider: str = "aws"
+    overall_score: float
+    pillar_scores: Optional[dict] = None
+    findings: list = Field(default_factory=list)
+    high_risk_count: int = 0
+    passed: bool = False
+    rule_pack_version: Optional[str] = None
+    suggestions_text: Optional[str] = None
+    lens: Optional[dict] = None
+    collab_status: str = "complete"
+
+
 def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -156,6 +171,58 @@ async def create_review(
             yield _sse(event)
 
     return _sse_response(event_generator())
+
+
+@router.post("/reviews/commit-collab")
+def commit_collab_review_endpoint(
+    body: CommitCollabReviewBody,
+    current_user: User = Depends(require_story_action("A3", "edit")),
+    db: Session = Depends(get_db),
+):
+    """A3 優化確認儲存：覆寫原架構圖 XML（不更名）並寫入評核紀錄。"""
+    if not user_can_arch(
+        db,
+        current_user.role,
+        "edit",
+        authorization_status=getattr(current_user, "authorization_status", "approved"),
+    ):
+        raise HTTPException(status_code=403, detail="儲存架構圖需要架構圖編輯權限")
+    _validate_xml(body.xml_data)
+    from services.wa_collab_orchestrator import commit_collab_review
+
+    score_payload = {
+        "overall_score": body.overall_score,
+        "pillar_scores": body.pillar_scores or {},
+        "findings": body.findings,
+        "high_risk_count": body.high_risk_count,
+        "passed": body.passed,
+        "lens": body.lens,
+        "rule_pack_version": body.rule_pack_version,
+    }
+    note = (body.suggestions_text or "").strip() or f"wa_collab commit: {body.collab_status}"
+    try:
+        diagram_id, review_id = commit_collab_review(
+            db,
+            current_user,
+            diagram_id=body.diagram_id,
+            xml=body.xml_data,
+            score_payload=score_payload,
+            provider=(body.provider or "aws").lower(),
+            status_note=note,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+    row = db.query(ArchitectureReview).filter(ArchitectureReview.id == review_id).first()
+    audit_log(
+        "review_commit_collab",
+        user_id=current_user.id,
+        review_id=review_id,
+        diagram_id=diagram_id,
+    )
+    return review_to_dict(row, include_xml=True) if row else {"review_id": review_id, "diagram_id": diagram_id}
 
 
 @router.get("/reviews")
