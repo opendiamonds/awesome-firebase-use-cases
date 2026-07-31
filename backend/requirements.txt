@@ -6,5 +6,7 @@ python-dotenv
 sqlalchemy
 psycopg2-binary
 passlib[bcrypt]
+bcrypt
 pyjwt
 claude-agent-sdk
+hypothesis

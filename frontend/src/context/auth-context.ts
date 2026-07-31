@@ -6,6 +6,9 @@ import { createContext, useContext } from 'react';
 
 export type StoryAction = 'view' | 'edit' | 'review';
 
+/** J5：註冊後尚未取得正式角色的授權狀態 */
+export type AuthorizationStatus = 'pending' | 'approved' | 'rejected';
+
 export interface StoryPermission {
   view: boolean;
   edit: boolean;
@@ -15,12 +18,22 @@ export interface StoryPermission {
   can_review?: boolean;
 }
 
+export interface PendingRequest {
+  id: number;
+  requested_role: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface User {
   id?: number;
   username: string;
-  role: string;
+  /** J5：待授權使用者尚無正式角色 */
+  role: string | null;
   is_active?: boolean;
+  authorization_status?: AuthorizationStatus;
   permissions?: Record<string, StoryPermission>;
+  pending_request?: PendingRequest | null;
 }
 
 export interface AuthContextType {
@@ -28,7 +41,9 @@ export interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, token: string, role: string) => Promise<void>;
+  /** J5：待授權狀態，為 true 時所有 story 權限一律 false */
+  isPending: boolean;
+  login: (username: string, token: string, role: string | null) => Promise<void>;
   logout: () => void;
   checkAuthSession: () => Promise<boolean>;
   can: (storyId: string, action?: StoryAction) => boolean;

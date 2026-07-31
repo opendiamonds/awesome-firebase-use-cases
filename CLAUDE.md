@@ -21,15 +21,17 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 本專案採用 [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) 作為主要 AI-SDLC 開發方法論。
 
 **啟動口令**：當 user 以 `Using AI-DLC, ...` 起頭，或要求做需求分析、設計、實作、IaC 產製、運維時，**必須**遵循 AIDLC 工作流程，而非預設工作流程。
+當使用者啟用 AI-DLC 時，請閱讀並遵循 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` 來啟動工作流程。
+同時，請閱讀並遵循 `.aidlc-overrides/` 目錄中的三個 Markdown 規則檔（包含 `README.md`、`branch-naming.md` 與 `decisions-log.md`）。
 
 **Entry point 與 rule loading 順序**：
-1. 載入 `.aidlc-rules/aws-aidlc-rules/core-workflow.md`（總入口）
-2. 依 core-workflow.md 指示，從 `.aidlc-rule-details/` 載入 common 規則：
+1. 載入 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`（總入口）
+2. 依 core-workflow.md 指示，從 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 載入 common 規則：
    - `common/process-overview.md`
    - `common/session-continuity.md`
    - `common/content-validation.md`
    - `common/question-format-guide.md`
-3. 掃描 `.aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`（lightweight），完整 rules 在使用者 opt-in 後再載入
+3. 掃描 `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`（lightweight），完整 rules 在使用者 opt-in 後再載入
 4. 對於**無 opt-in 檔案**的 extension，**永遠強制套用**，立即載入完整規則
 5. **最後**載入 `.aidlc-overrides/**/*.md`（專案 override 層）。當 override 與 upstream 規則衝突時，**override 永遠勝出**。詳見 [`.aidlc-overrides/README.md`](.aidlc-overrides/README.md)。
 
@@ -80,7 +82,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 
 ### 7. AIDLC 升級
 
-- 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，更新 `.aidlc-rule-details/VERSION` 並重新複製 `aws-aidlc-rule-details/` 內容。
+- 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，更新 `.aidlc/aidlc-rules/VERSION` 並重新複製 `aws-aidlc-rule-details/` 內容至 `.aidlc/aidlc-rules/aws-aidlc-rule-details/`。
 - upstream 樹內的客製檔在覆蓋前要先備份、覆蓋後再放回（會被整批替換）。註：本專案文件語言規則已改為繁體中文，見 ADR-0009 與 `.aidlc-overrides/traditional-chinese-docs.md`。
-- `.aidlc-overrides/` 目錄**整個保留**，永不被 upstream 覆蓋（與 upstream 路徑分離）。新增的專案規則一律放在這裡，不要再加到 `.aidlc-rule-details/` 內。
+- `.aidlc-overrides/` 目錄**整個保留**，永不被 upstream 覆蓋（與 upstream 路徑分離）。新增的專案規則一律放在這裡，不要再加到 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 內。
 - 升級記錄寫入新 ADR。

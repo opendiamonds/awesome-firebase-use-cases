@@ -51,6 +51,34 @@ GROUP_STYLES = {
         "strokeColor=#00A4A6;fillColor=#E6F6F7;verticalAlign=top;align=left;"
         "spacingLeft=30;fontColor=#147EBA;dashed=0;"
     ),
+    "gcp_cloud": (
+        "shape=mxgraph.aws4.group;strokeColor=#4285F4;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#4285F4;dashed=0;"
+    ),
+    "gcp_vpc": (
+        "shape=mxgraph.aws4.group;strokeColor=#34A853;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#34A853;dashed=0;"
+    ),
+    "gcp_subnet": (
+        "shape=mxgraph.aws4.group;strokeColor=#FBBC05;fillColor=#FFFDF0;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#FBBC05;dashed=0;"
+    ),
+    "azure_cloud": (
+        "shape=mxgraph.aws4.group;strokeColor=#0078D4;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#0078D4;dashed=0;"
+    ),
+    "azure_vnet": (
+        "shape=mxgraph.aws4.group;strokeColor=#5C2D91;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#5C2D91;dashed=0;"
+    ),
+    "azure_resource_group": (
+        "shape=mxgraph.aws4.group;strokeColor=#008272;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#008272;dashed=0;"
+    ),
+    "azure_subnet": (
+        "shape=mxgraph.aws4.group;strokeColor=#00BCF2;fillColor=#F0F9FE;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#00BCF2;dashed=0;"
+    ),
 }
 
 
@@ -66,7 +94,7 @@ def is_inside(child: dict[str, Any], parent: dict[str, Any]) -> bool:
     )
 
 
-async def fetch_icon_from_n8n(service_name: str) -> str:
+async def fetch_icon_from_n8n(service_name: str, provider: str = "AWS") -> str:
     """
     向 n8n webhook 取得服務 SVG。
     若未設定 N8N_WEBHOOK_URL 或請求失敗，回傳灰底文字 fallback SVG。
@@ -85,7 +113,7 @@ async def fetch_icon_from_n8n(service_name: str) -> str:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                webhook_url, json={"service": service_name}, timeout=5.0
+                webhook_url, json={"service": service_name, "provider": provider}, timeout=5.0
             )
             if response.status_code != 200:
                 return fallback_svg
@@ -104,7 +132,7 @@ async def fetch_icon_from_n8n(service_name: str) -> str:
                         )
                         if service_name.lower() in name.lower() or name.lower() in service_name.lower():
                             if "svg_content" in item:
-                                return item["svg_content"]
+                                    return item["svg_content"]
                             if "svg" in item:
                                 return item["svg"]
 
@@ -125,7 +153,7 @@ async def fetch_icon_from_n8n(service_name: str) -> str:
             except Exception as e:
                 logger.warning("解析 n8n 回應失敗: %s", e)
     except Exception as e:
-        logger.warning("向 n8n 取得 %s 圖示失敗: %s", service_name, e)
+        logger.warning("向 n8n 取得 %s 圖示（供應商：%s）失敗: %s", service_name, provider, e)
 
     return fallback_svg
 
@@ -135,6 +163,7 @@ async def build_mxgraph_xml(
     nodes: list[dict[str, Any]] | None,
     edges: list[dict[str, Any]] | None,
     on_progress: ProgressCallback | None = None,
+    provider: str | None = None,
 ) -> str:
     """
     將 groups/nodes/edges 組裝為 mxGraphModel XML 字串。
@@ -147,6 +176,16 @@ async def build_mxgraph_xml(
     groups = list(groups or [])
     nodes = list(nodes or [])
     edges = list(edges or [])
+
+    if not provider:
+        # 根據群組的類型自動偵測雲端平台供應商
+        g_types = {g.get("type") for g in groups if g}
+        if any(t in ("azure_cloud", "azure_vnet", "azure_resource_group", "azure_subnet") for t in g_types):
+            provider = "Azure"
+        elif any(t in ("gcp_cloud", "gcp_vpc", "gcp_subnet") for t in g_types):
+            provider = "GCP"
+        else:
+            provider = "AWS"
 
     if not nodes and not groups:
         raise ValueError("groups 與 nodes 皆為空，無法產圖")
@@ -216,7 +255,7 @@ async def build_mxgraph_xml(
                 f"🔄 正在取得 {comp.upper()} 圖示 ({idx + 1}/{len(nodes)})..."
             )
 
-        svg_content = await fetch_icon_from_n8n(comp)
+        svg_content = await fetch_icon_from_n8n(comp, provider=provider)
         b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode("utf-8")
         style = (
             f"shape=image;image=data:image/svg+xml,{b64_svg};"

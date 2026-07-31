@@ -20,7 +20,9 @@ async function fetchMe(tokenVal: string): Promise<User> {
     username: data.username,
     role: data.role,
     is_active: data.is_active,
+    authorization_status: data.authorization_status || 'approved',
     permissions: data.permissions || {},
+    pending_request: data.pending_request || null,
   };
 }
 
@@ -35,7 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const applyUser = (u: User, tokenVal: string) => {
     localStorage.setItem('token', tokenVal);
     localStorage.setItem('username', u.username);
-    localStorage.setItem('role', u.role);
+    localStorage.setItem('role', u.role || '');
+    localStorage.setItem('authorization_status', u.authorization_status || 'approved');
     setToken(tokenVal);
     setUser(u);
   };
@@ -44,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+    localStorage.removeItem('authorization_status');
     setToken(null);
     setUser(null);
   }, []);
@@ -66,13 +70,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .finally(() => setIsLoading(false));
   }, [logout]);
 
-  const login = async (username: string, tokenVal: string, roleVal: string) => {
-    // 先寫入基本資料，再以 /me 覆寫 permissions（避免舊 localStorage role）
+  const login = async (username: string, tokenVal: string, roleVal: string | null) => {
     localStorage.setItem('token', tokenVal);
     localStorage.setItem('username', username);
-    localStorage.setItem('role', roleVal);
+    localStorage.setItem('role', roleVal || '');
     setToken(tokenVal);
-    setUser({ username, role: roleVal, permissions: {} });
+    setUser({ username, role: roleVal, permissions: {}, authorization_status: 'approved' });
     try {
       const me = await fetchMe(tokenVal);
       applyUser(me, tokenVal);
@@ -97,7 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isPending = user?.authorization_status === 'pending';
+
   const can = (storyId: string, action: StoryAction = 'view'): boolean => {
+    if (isPending) return false;
     const key = ARCH_STORIES.has(storyId) ? ARCH_CANONICAL : storyId;
     const p = user?.permissions?.[key];
     if (!p) return false;
@@ -121,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isAuthenticated,
         isLoading,
+        isPending,
         login,
         logout,
         checkAuthSession,

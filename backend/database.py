@@ -38,8 +38,10 @@ def get_db():
 def init_db():
     logger.info("正在初始化資料庫與資料表...")
     Base.metadata.create_all(bind=engine)
-    # A4：既有 DB 補欄位／新表（create_all 不會 ALTER 舊表）
+    # A4／J5：既有 DB 補欄位／新表（create_all 不會 ALTER 舊表）
     _ensure_a4_schema()
+    _ensure_j5_schema()
+    _ensure_a3_schema()
 
     db = SessionLocal()
     try:
@@ -69,6 +71,7 @@ def init_db():
                     password_hash=hashed_pw,
                     role=persona["role"],
                     is_active=True,
+                    authorization_status="approved",
                 )
                 db.add(db_user)
 
@@ -86,10 +89,16 @@ def init_db():
                     password_hash=hash_password("admin123"),
                     role="Platform_Admin",
                     is_active=True,
+                    authorization_status="approved",
                 )
             )
             db.commit()
             logger.info("已建立預設帳號 admin / Platform_Admin")
+        elif getattr(admin, "authorization_status", None) != "approved":
+            admin.authorization_status = "approved"
+            if not admin.role:
+                admin.role = "Platform_Admin"
+            db.commit()
 
         # RBAC 矩陣：空表時 seed（不覆寫 Admin UI 已調過的資料）
         from services.rbac import ensure_role_permissions_seeded
@@ -137,3 +146,120 @@ def _ensure_a4_schema():
             except Exception as e:
                 logger.warning("A4 schema 補丁略過/失敗: %s — %s", sql[:60], e)
     logger.info("A4 schema 檢查完成")
+
+
+def _ensure_j5_schema():
+    """為既有資料庫補上 J5 authorization_status 與 role_authorization_requests。"""
+    from sqlalchemy import text
+
+    statements = [
+        """
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS authorization_status VARCHAR(32) DEFAULT 'approved'
+        """,
+        """
+        UPDATE users SET authorization_status = 'approved'
+        WHERE authorization_status IS NULL OR authorization_status = ''
+        """,
+        """
+        ALTER TABLE users ALTER COLUMN role DROP NOT NULL
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS role_authorization_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            requested_role VARCHAR(64) NOT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            decided_by VARCHAR(128),
+            decided_at TIMESTAMP WITH TIME ZONE,
+            note TEXT
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_role_auth_req_user_id
+        ON role_authorization_requests (user_id)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_role_auth_req_status
+        ON role_authorization_requests (status)
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning("J5 schema 補丁略過/失敗: %s — %s", sql[:60], e)
+    logger.info("J5 schema 檢查完成")
+
+
+def _ensure_a3_schema():
+    """為既有資料庫補上 architecture_reviews／wa_lenses（A3）。"""
+    from sqlalchemy import text
+
+    statements = [
+        """
+        CREATE TABLE IF NOT EXISTS architecture_reviews (
+            id SERIAL PRIMARY KEY,
+            diagram_id INTEGER NOT NULL REFERENCES user_diagrams(id) ON DELETE CASCADE,
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            provider VARCHAR(16) NOT NULL DEFAULT 'aws',
+            status VARCHAR(32) NOT NULL DEFAULT 'pending',
+            overall_score INTEGER,
+            scores_json TEXT,
+            findings_json TEXT DEFAULT '[]',
+            suggestions_text TEXT,
+            error_message TEXT,
+            rule_pack_version VARCHAR(64),
+            archived BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_architecture_reviews_diagram_id
+        ON architecture_reviews (diagram_id)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_architecture_reviews_created_by
+        ON architecture_reviews (created_by)
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS wa_lenses (
+            id SERIAL PRIMARY KEY,
+            lens_id VARCHAR(64) NOT NULL DEFAULT 'cloud360-core-mvp',
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            body_json TEXT NOT NULL,
+            updated_by INTEGER REFERENCES users(id),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_wa_lenses_lens_id ON wa_lenses (lens_id)
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_wa_lenses_is_active ON wa_lenses (is_active)
+        """,
+        """
+        ALTER TABLE architecture_reviews ALTER COLUMN diagram_id DROP NOT NULL
+        """,
+        """
+        ALTER TABLE architecture_reviews ADD COLUMN IF NOT EXISTS xml_snapshot TEXT
+        """,
+        """
+        ALTER TABLE wa_lenses ADD COLUMN IF NOT EXISTS provider VARCHAR(16) NOT NULL DEFAULT 'aws'
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_wa_lenses_provider ON wa_lenses (provider)
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning("A3 schema 補丁略過/失敗: %s — %s", sql[:60], e)
+    logger.info("A3 schema 檢查完成")

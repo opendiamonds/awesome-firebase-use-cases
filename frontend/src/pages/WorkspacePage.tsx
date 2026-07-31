@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChatBox } from '../components/ChatBox';
 import type { Message } from '../components/ChatBox';
 import { DrawioCanvas } from '../components/DrawioCanvas';
@@ -8,8 +9,6 @@ import { useAuth } from '../context/auth-context';
 import { useCollaboration } from '../hooks/useCollaboration';
 import { apiUrl } from '../config/api';
 
-type ToastType = 'success' | 'error';
-
 interface Diagram {
   id: number;
   title: string;
@@ -18,6 +17,8 @@ interface Diagram {
   shared_user_ids?: number[];
   updated_at: string;
 }
+
+type ToastType = 'success' | 'error';
 
 type ToastState = {
   message: string;
@@ -37,7 +38,7 @@ const EMPTY_DIAGRAM_XML =
 const DEFAULT_WELCOME: Message = {
   role: 'assistant',
   content:
-    '嗨！我是您的 AI 雲端架構助理 👋\n請描述您想建立的雲端架構，例如：\n✨ 我要做一個電商網站\n✨ 我要一個包含 WAF 與 Aurora 的高可用架構',
+    '嗨！我是您的 AI 雲端架構助理 👋\n請描述您想建立的雲端架構，例如：\n✨ AWS：建立一個包含 WAF、ALB 與 Aurora 的高可用架構\n✨ GCP：建立一個使用 GKE、Cloud SQL 與 BigQuery 的數據分析拓樸\n✨ Azure：建立一個包含 AKS、Azure SQL Database 與 Key Vault 的雲端架構',
 };
 
 /** 將後端錯誤對齊 User Story 失敗文案 */
@@ -49,11 +50,15 @@ function formatGenerateError(raw: string): string {
 }
 
 export const WorkspacePage = () => {
-  const { token, canArch } = useAuth();
+  const { token, canArch, can, user } = useAuth();
+  const navigate = useNavigate();
   const canEditArch = canArch('edit');
   const canReviewArch = canArch('review');
   const canViewOnly = canArch('view') && !canEditArch;
+  const canA3Edit = can('A3', 'edit');
+  const canA3View = can('A3', 'view');
   const canvasRef = useRef<DrawioCanvasRef>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [xml, setXml] = useState<string>('');
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
@@ -303,6 +308,64 @@ export const WorkspacePage = () => {
     }
   };
 
+  const goWellArchitected = async () => {
+    if (!canA3View && !canA3Edit) {
+      showToast('權限不足：需要 Well-Architected 評核權限', 'error', {
+        autoDismissMs: 4000,
+      });
+      return;
+    }
+
+    let diagramId = currentDiagramIdRef.current;
+    if (!diagramId) {
+      if (!xml) {
+        showToast('請先生成或開啟一張架構圖再評核', 'error', {
+          autoDismissMs: 4000,
+        });
+        return;
+      }
+      if (!canEditArch) {
+        showToast('請先儲存或選擇一張架構圖再評核', 'error', {
+          autoDismissMs: 4000,
+        });
+        return;
+      }
+      // 未建檔：先引導命名儲存，成功後直接進評估儀表板
+      diagramId = await saveDiagram(xml, {
+        successMessage: '已儲存，正在進入評估儀表板…',
+      });
+      if (!diagramId) return;
+    } else if (xml && canEditArch) {
+      // 已有檔案：盡量把最新圖面寫回再評核
+      await autosaveDiagramXml(diagramId, xml);
+    }
+
+    setToast(null);
+    navigate(`/assessment?diagramId=${diagramId}`);
+  };
+
+  const appendAgentMessage = (
+    base: Message[],
+    speaker: 'design' | 'review' | 'system',
+    chunk: string,
+  ): Message[] => {
+    const last = base[base.length - 1];
+    if (
+      last &&
+      last.role === 'assistant' &&
+      last.speaker === speaker &&
+      speaker !== 'system'
+    ) {
+      const next = [...base];
+      next[next.length - 1] = {
+        ...last,
+        content: last.content + chunk,
+      };
+      return next;
+    }
+    return [...base, { role: 'assistant', content: chunk, speaker }];
+  };
+
   const handleGenerate = async (prompt: string) => {
     if (!canArch('edit')) {
       showToast('權限不足：需要架構圖「編輯」權限才能與 AI 對話產圖', 'error', {
@@ -315,18 +378,19 @@ export const WorkspacePage = () => {
     setProgress('');
 
     const newMessages: Message[] = [...messages, { role: 'user', content: prompt }];
-    setMessages(newMessages);
-
-    let assistantMessage = '';
     let finalMessages: Message[] = [
       ...newMessages,
-      { role: 'assistant', content: '' },
+      { role: 'assistant', content: '', speaker: 'design' },
     ];
+    setMessages(finalMessages);
+
     let generatedXml: string | null = null;
     let streamError: string | null = null;
+    let completeStatus: 'passed' | 'failed' | 'no_diagram' | null = null;
+    let completeScore: number | null = null;
 
     try {
-      const response = await fetch(apiUrl('/api/architecture/generate'), {
+      const response = await fetch(apiUrl('/api/architecture/generate-wa-collab'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -335,6 +399,7 @@ export const WorkspacePage = () => {
         body: JSON.stringify({
           messages: newMessages,
           current_xml: xml || undefined,
+          diagram_id: currentDiagramIdRef.current || undefined,
         }),
       });
 
@@ -348,8 +413,6 @@ export const WorkspacePage = () => {
         }
         throw new Error(detail);
       }
-
-      setMessages(finalMessages);
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -365,29 +428,77 @@ export const WorkspacePage = () => {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === 'message') {
-                  assistantMessage += data.content;
-                  finalMessages = [
-                    ...newMessages,
-                    { role: 'assistant', content: assistantMessage },
-                  ];
-                  setMessages(finalMessages);
-                } else if (data.type === 'progress') {
-                  setProgress(data.content);
-                } else if (data.type === 'xml') {
-                  generatedXml = data.content;
-                  setXml(data.content);
-                  setProgress('');
-                } else if (data.type === 'error') {
-                  streamError = formatGenerateError(String(data.content || ''));
-                  setProgress('');
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'message') {
+                const speaker =
+                  data.speaker === 'review'
+                    ? 'review'
+                    : data.speaker === 'system'
+                      ? 'system'
+                      : 'design';
+                if (
+                  finalMessages.length &&
+                  finalMessages[finalMessages.length - 1].role === 'assistant' &&
+                  !finalMessages[finalMessages.length - 1].content.trim() &&
+                  finalMessages[finalMessages.length - 1].speaker === 'design' &&
+                  speaker !== 'design'
+                ) {
+                  finalMessages = finalMessages.slice(0, -1);
                 }
-              } catch {
-                // ignore invalid JSON line
+                finalMessages = appendAgentMessage(
+                  finalMessages,
+                  speaker,
+                  String(data.content || ''),
+                );
+                setMessages(finalMessages);
+              } else if (data.type === 'progress') {
+                setProgress(String(data.content || ''));
+              } else if (data.type === 'xml_preview') {
+                // 直接呈現於畫布（不經「套用預覽」）
+                generatedXml = String(data.content || '');
+                setXml(generatedXml);
+                setProgress('');
+              } else if (data.type === 'score') {
+                const score = Number(data.overall_score);
+                const round = data.round ?? '?';
+                const passed = Boolean(data.passed);
+                const hr =
+                  typeof data.high_risk_count === 'number'
+                    ? data.high_risk_count
+                    : null;
+                finalMessages = appendAgentMessage(
+                  finalMessages,
+                  'system',
+                  `第 ${round} 輪評核：${Number.isFinite(score) ? Math.round(score) : '—'} 分` +
+                    (hr != null ? `、高風險 ${hr} 項` : '') +
+                    (passed ? '（已無高風險）' : '（仍有高風險）'),
+                );
+                setMessages(finalMessages);
+              } else if (data.type === 'complete') {
+                completeStatus =
+                  data.status === 'passed' ||
+                  data.status === 'failed' ||
+                  data.status === 'no_diagram'
+                    ? data.status
+                    : null;
+                if (typeof data.overall_score === 'number') {
+                  completeScore = data.overall_score;
+                }
+                if (typeof data.xml === 'string' && data.xml) {
+                  generatedXml = data.xml;
+                  setXml(data.xml);
+                }
+                setProgress('');
+              } else if (data.type === 'error') {
+                streamError = formatGenerateError(
+                  String(data.content || data.message || ''),
+                );
+                setProgress('');
               }
+            } catch {
+              // ignore invalid JSON line
             }
           }
         }
@@ -400,37 +511,71 @@ export const WorkspacePage = () => {
           hint: '請於對話框修改參數後重試。',
           showCtas: true,
         });
+      } else if (completeStatus === 'no_diagram') {
+        if (currentDiagramIdRef.current) {
+          await persistChat(currentDiagramIdRef.current, finalMessages);
+        }
       } else if (generatedXml) {
-        // Q2-B：僅有 diagram_id 才自動存；無 id 提示手動儲存
         const diagramId = currentDiagramIdRef.current;
+        const scoreHint =
+          completeScore != null
+            ? ` lens 總分 ${Math.round(completeScore)}。`
+            : '';
         if (diagramId) {
           const ok = await autosaveDiagramXml(diagramId, generatedXml);
           await persistChat(diagramId, finalMessages);
-          setToast({
-            message: '✔ 架構草圖已生成',
-            type: 'success',
-            hint: ok
-              ? '已自動存檔至資料庫。工具列應顯示「已儲存」。'
-              : '產圖成功，但自動存檔失敗，請點「儲存架構圖」重試。',
-            showCtas: true,
-          });
+          if (completeStatus === 'passed') {
+            setToast({
+              message: '✔ 架構圖已無高風險',
+              type: 'success',
+              hint: `${scoreHint}${ok ? '已寫入畫布並存檔。' : '已寫入畫布，但自動存檔失敗，請手動儲存。'}`,
+              showCtas: true,
+            });
+          } else if (completeStatus === 'failed') {
+            setToast({
+              message: '仍有高風險（需人工調整）',
+              type: 'error',
+              hint: `${scoreHint}目前最佳圖已寫入畫布，可繼續對話或至 Assessment 點「優化」。`,
+              showCtas: true,
+            });
+          } else {
+            setToast({
+              message: '✔ 架構草圖已生成',
+              type: 'success',
+              hint: ok
+                ? '已自動存檔至資料庫。'
+                : '產圖成功，但自動存檔失敗，請點「儲存架構圖」重試。',
+              showCtas: true,
+            });
+          }
         } else {
           setSaveStatus('no-file');
           setToast({
-            message: '✔ 架構草圖已生成',
-            type: 'success',
-            hint: '尚未綁定架構圖檔案，請點擊畫布「儲存架構圖」以永久保存。',
+            message:
+              completeStatus === 'passed'
+                ? '✔ 架構圖已無高風險'
+                : completeStatus === 'failed'
+                  ? '仍有高風險（需人工調整）'
+                  : '✔ 架構草圖已生成',
+            type: completeStatus === 'failed' ? 'error' : 'success',
+            hint: `${scoreHint}圖面已呈現。尚未建檔時可點「儲存架構圖」或「儲存並評核」。`,
             showCtas: true,
           });
         }
       } else if (currentDiagramIdRef.current) {
-        // 僅對話、未產圖：仍持久化聊天
         await persistChat(currentDiagramIdRef.current, finalMessages);
       }
     } catch (err) {
       const errMsg = formatGenerateError(
-        err instanceof Error ? err.message : '生成失敗'
+        err instanceof Error ? err.message : '生成失敗',
       );
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && !last.content.trim()) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
       setToast({
         message: errMsg,
         type: 'error',
@@ -531,129 +676,109 @@ export const WorkspacePage = () => {
     }
   };
 
-  const handleSaveDiagram = async (currentXml: string) => {
+  const saveDiagram = async (
+    currentXml: string,
+    opts?: { successMessage?: string }
+  ): Promise<number | null> => {
     if (!canEditArch) {
       showToast('僅檢視／審核權限無法儲存架構圖', 'error', { autoDismissMs: 4000 });
-      return;
+      return null;
     }
     if (!currentXml) {
       showToast('沒有可儲存的架構圖', 'error', { autoDismissMs: 4000 });
-      return;
+      return null;
     }
     try {
-      if (currentDiagramId) {
+      if (currentDiagramIdRef.current) {
+        const id = currentDiagramIdRef.current;
         setSaveStatus('saving');
-        const response = await fetch(`${API_COLLAB}/diagrams/${currentDiagramId}`, {
+        const response = await fetch(`${API_COLLAB}/diagrams/${id}`, {
           method: 'PUT',
           headers: authHeaders(),
           body: JSON.stringify({
             xml_data: currentXml,
             title:
-              diagrams.find((d) => d.id === currentDiagramId)?.title || '未命名架構圖',
+              diagramsRef.current.find((d) => d.id === id)?.title || '未命名架構圖',
           }),
         });
         if (response.ok) {
-          showToast('架構圖更新成功', 'success', { autoDismissMs: 3000 });
+          showToast(opts?.successMessage || '架構圖更新成功', 'success', {
+            autoDismissMs: 3000,
+          });
           setSaveStatus('saved');
           fetchDiagrams();
-          await persistChat(currentDiagramId, messages);
-        } else {
-          throw new Error('更新失敗');
+          await persistChat(id, messages);
+          return id;
         }
-      } else {
-        const title = prompt('請為這個架構圖命名：', '新架構圖');
-        if (!title) return;
-        setSaveStatus('saving');
-        const response = await fetch(`${API_COLLAB}/diagrams`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({ xml_data: currentXml, title }),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentDiagramId(data.id);
-          setSaveStatus('saved');
-          showToast('架構圖建立成功', 'success', { autoDismissMs: 3000 });
-          fetchDiagrams();
-          await persistChat(data.id, messages);
-        } else {
-          setSaveStatus('no-file');
-          throw new Error('建立失敗');
-        }
+        throw new Error('更新失敗');
       }
+
+      const title = window.prompt('請為這個架構圖命名：', '新架構圖');
+      if (!title) return null;
+      setSaveStatus('saving');
+      const response = await fetch(`${API_COLLAB}/diagrams`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ xml_data: currentXml, title }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentDiagramId(data.id);
+        currentDiagramIdRef.current = data.id;
+        setSaveStatus('saved');
+        showToast(opts?.successMessage || '架構圖建立成功', 'success', {
+          autoDismissMs: 3000,
+        });
+        fetchDiagrams();
+        await persistChat(data.id, messages);
+        await setLastOpened(data.id);
+        return data.id as number;
+      }
+      setSaveStatus('no-file');
+      throw new Error('建立失敗');
     } catch {
       setSaveStatus(currentDiagramIdRef.current ? 'unsaved' : 'no-file');
       showToast('儲存架構圖失敗', 'error', { autoDismissMs: 4000 });
+      return null;
     }
+  };
+
+  const handleUploadDiagramFile = async (file: File | null) => {
+    if (!file) return;
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法上傳架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        showToast('檔案內容為空', 'error', { autoDismissMs: 4000 });
+        return;
+      }
+      setXml(text);
+      setSaveStatus(currentDiagramIdRef.current ? 'unsaved' : 'no-file');
+      showToast('架構圖已上傳至畫布', 'success', {
+        hint: currentDiagramIdRef.current
+          ? '尚未寫入資料庫，請確認後儲存。'
+          : '尚未建檔。可點「儲存架構圖」或「儲存並評核」。',
+        autoDismissMs: 3500,
+      });
+    } catch {
+      showToast('讀取檔案失敗', 'error', { autoDismissMs: 4000 });
+    } finally {
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveDiagram = async (currentXml: string) => {
+    await saveDiagram(currentXml);
   };
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
-      {canViewOnly && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[min(92vw,28rem)] px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold text-center shadow-sm">
-          {canReviewArch
-            ? '審核模式：可開啟他人分享的架構圖並審核；無法編輯畫布或與 AI 對話'
-            : '僅檢視：只能開啟他人分享給您的架構圖；無法編輯或與 AI 對話'}
-        </div>
-      )}
-
-      {/* Diagram Selector (Top Center) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] border border-gray-100">
-        <select
-          className="bg-transparent border-none text-sm font-semibold text-gray-800 outline-none cursor-pointer focus:ring-0 w-48"
-          value={currentDiagramId || ''}
-          onChange={(e) => handleLoadDiagram(Number(e.target.value))}
-        >
-          <option value="" disabled>
-            {bootstrapDone
-              ? canViewOnly
-                ? '-- 請選擇分享給您的架構圖 --'
-                : '-- 請選擇歷史架構圖 --'
-              : '載入中…'}
-          </option>
-          {diagrams.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.is_owner ? d.title : `👥 ${d.title}`} (
-              {new Date(d.updated_at).toLocaleDateString()})
-            </option>
-          ))}
-        </select>
-        <div className="w-px h-4 bg-gray-200 mx-1"></div>
-        <button
-          onClick={handleNewDiagram}
-          disabled={!canEditArch}
-          className="text-gray-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-brand-50 transition-colors flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
-          title={canEditArch ? '建立新架構圖' : '僅檢視／審核無法新建'}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </button>
-        <div className="w-px h-4 bg-gray-200 mx-1"></div>
-        <div
-          className="flex items-center gap-2 px-2"
-          title={isConnected && isShared ? '已啟用多人協作' : '目前為單機模式'}
-        >
-          <div
-            className={`w-2.5 h-2.5 rounded-full ${
-              isConnected && isShared
-                ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]'
-                : 'bg-gray-300'
-            }`}
-          ></div>
-          <span className="text-xs font-medium text-gray-500">
-            {isConnected && isShared ? '協作中' : '單機模式'}
-          </span>
-        </div>
-      </div>
-
       {toast?.type === 'error' && (
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-xl border border-red-100 px-6 py-4 rounded-2xl shadow-[0_12px_40px_rgba(239,68,68,0.15)] flex flex-col gap-3 animate-[slideInDown_0.4s_ease-out] max-w-lg w-[min(92vw,28rem)]">
+        <div className="absolute top-8 left-[420px] right-0 z-50 flex justify-center pointer-events-none px-4">
+        <div className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-red-100 px-6 py-4 rounded-2xl shadow-[0_12px_40px_rgba(239,68,68,0.15)] flex flex-col gap-3 animate-[slideInDown_0.4s_ease-out] max-w-lg w-[min(92vw,28rem)]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center shrink-0">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -704,10 +829,12 @@ export const WorkspacePage = () => {
             </div>
           )}
         </div>
+        </div>
       )}
 
       {toast?.type === 'success' && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white/95 backdrop-blur-2xl border border-white text-gray-900 px-10 py-8 rounded-[2rem] shadow-[0_24px_80px_rgba(37,99,235,0.15)] flex flex-col items-center gap-5 animate-[fadeInUp_0.4s_ease-out] max-w-md w-[min(92vw,24rem)]">
+        <div className="absolute inset-y-0 left-[420px] right-0 z-50 flex items-center justify-center pointer-events-none px-4">
+        <div className="pointer-events-auto bg-white/95 backdrop-blur-2xl border border-white text-gray-900 px-10 py-8 rounded-[2rem] shadow-[0_24px_80px_rgba(37,99,235,0.15)] flex flex-col items-center gap-5 animate-[fadeInUp_0.4s_ease-out] max-w-md w-[min(92vw,24rem)]">
           <div className="relative">
             <div className="absolute inset-0 bg-green-200 rounded-full blur-xl opacity-60 animate-pulse"></div>
             <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 text-white rounded-2xl flex items-center justify-center relative z-10 shadow-lg shadow-green-500/30">
@@ -745,10 +872,10 @@ export const WorkspacePage = () => {
                   生成 IaC 代碼
                 </button>
                 <button
-                  onClick={() => showComingSoon('Well-Architected 評估')}
+                  onClick={() => void goWellArchitected()}
                   className="flex-1 py-3 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-100 transition-colors"
                 >
-                  Well-Architected
+                  {currentDiagramId ? 'Well-Architected' : '儲存並評核'}
                 </button>
               </div>
             </div>
@@ -761,6 +888,7 @@ export const WorkspacePage = () => {
             </button>
           )}
         </div>
+        </div>
       )}
 
       <ChatBox
@@ -772,7 +900,9 @@ export const WorkspacePage = () => {
         progress={progress}
         canEdit={canEditArch}
         canReview={canReviewArch}
+        userDisplayName={user?.username}
       />
+      <div className="flex-1 flex flex-col min-w-0 relative h-full">
       <DrawioCanvas
         ref={canvasRef}
         xml={xml}
@@ -802,7 +932,107 @@ export const WorkspacePage = () => {
             ? () => showComingSoon('架構圖審核')
             : undefined
         }
+        headerBanner={
+          canViewOnly ? (
+            <div className="shrink-0 px-6 py-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs font-semibold text-center">
+              {canReviewArch
+                ? '審核模式：可開啟他人分享的架構圖並審核；無法編輯畫布或與 AI 對話'
+                : '僅檢視：只能開啟他人分享給您的架構圖；無法編輯或與 AI 對話'}
+            </div>
+          ) : undefined
+        }
+        headerCenter={
+          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200/80 max-w-full overflow-x-auto">
+            <select
+              className="bg-transparent border-none text-sm font-semibold text-gray-800 outline-none cursor-pointer focus:ring-0 w-44 shrink-0"
+              value={currentDiagramId || ''}
+              onChange={(e) => handleLoadDiagram(Number(e.target.value))}
+            >
+              <option value="" disabled>
+                {bootstrapDone
+                  ? canViewOnly
+                    ? '-- 請選擇分享給您的架構圖 --'
+                    : '-- 請選擇歷史架構圖 --'
+                  : '載入中…'}
+              </option>
+              {diagrams.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.is_owner ? d.title : `👥 ${d.title}`} (
+                  {new Date(d.updated_at).toLocaleDateString()})
+                </option>
+              ))}
+            </select>
+            <div className="w-px h-4 bg-gray-200 mx-0.5 shrink-0" />
+            <button
+              onClick={handleNewDiagram}
+              disabled={!canEditArch}
+              className="text-gray-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-white transition-colors flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none shrink-0"
+              title={canEditArch ? '建立新架構圖' : '僅檢視／審核無法新建'}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+            </button>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".drawio,.xml,application/xml,text/xml"
+              className="hidden"
+              onChange={(e) => {
+                void handleUploadDiagramFile(e.target.files?.[0] ?? null);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={!canEditArch}
+              className="text-[11px] font-bold text-gray-600 bg-white hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 disabled:opacity-30 disabled:pointer-events-none"
+              title={canEditArch ? '上傳 .drawio／.xml 至畫布' : '僅檢視／審核無法上傳'}
+            >
+              上傳架構圖
+            </button>
+            <div className="w-px h-4 bg-gray-200 mx-0.5 shrink-0" />
+            <div
+              className="flex items-center gap-1.5 px-1 shrink-0"
+              title={isConnected && isShared ? '已啟用多人協作' : '目前為單機模式'}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isConnected && isShared
+                    ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+                    : 'bg-gray-300'
+                }`}
+              />
+              <span className="text-[11px] font-medium text-gray-500 whitespace-nowrap">
+                {isConnected && isShared ? '協作中' : '單機'}
+              </span>
+            </div>
+            {(canA3View || canA3Edit) && (
+              <>
+                <div className="w-px h-4 bg-gray-200 mx-0.5 shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => void goWellArchitected()}
+                  className="text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                  title={
+                    currentDiagramId
+                      ? '對目前架構圖執行 Well-Architected 評核'
+                      : '先儲存架構圖，再進入 Well-Architected 評核'
+                  }
+                >
+                  {currentDiagramId ? 'Well-Architected' : '儲存並評核'}
+                </button>
+              </>
+            )}
+          </div>
+        }
       />
+      </div>
 
       <ShareModal
         isOpen={isShareModalOpen}

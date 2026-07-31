@@ -98,16 +98,30 @@ def _user_can_access_diagram(user: User, diagram: UserDiagram) -> bool:
 
 
 def _arch_can_edit(db: Session, user: User) -> bool:
-    return user_can_arch(db, user.role, "edit")
+    return user_can_arch(
+        db,
+        user.role,
+        "edit",
+        authorization_status=getattr(user, "authorization_status", "approved"),
+    )
 
 
 def _arch_can_view(db: Session, user: User) -> bool:
-    return user_can_arch(db, user.role, "view")
+    return user_can_arch(
+        db,
+        user.role,
+        "view",
+        authorization_status=getattr(user, "authorization_status", "approved"),
+    )
 
 
 def _arch_can_review(db: Session, user: User) -> bool:
-    return user_can_arch(db, user.role, "review")
-
+    return user_can_arch(
+        db,
+        user.role,
+        "review",
+        authorization_status=getattr(user, "authorization_status", "approved"),
+    )
 
 def _visible_diagrams(user: User, db: Session) -> List[UserDiagram]:
     """

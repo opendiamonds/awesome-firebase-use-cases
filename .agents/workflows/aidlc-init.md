@@ -12,19 +12,20 @@ description: 初始化 AIDLC 生命週期
 
 ### 步驟 1：載入 AIDLC 入口
 載入：
-`.aidlc-rules/aws-aidlc-rules/core-workflow.md`
+`.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`
 
 ### 步驟 2：載入 upstream 規則細節
-依序載入 `.aidlc-rule-details/` 下的規範：
-- `.aidlc-rule-details/common/process-overview.md`
-- `.aidlc-rule-details/common/session-continuity.md`
-- `.aidlc-rule-details/common/content-validation.md`
-- `.aidlc-rule-details/common/question-format-guide.md`
-- 掃描 `.aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`
+依序載入 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 下的規範：
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/process-overview.md`
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/session-continuity.md`
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/content-validation.md`
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md`
+- 掃描 `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`
 - 無 opt-in 檔的 extension（如 `bilingual-docs/`）直接載入完整規則
 
 ### 步驟 3：載入 Cloud-360 專屬 override（最後載入，優先權最高）
 依序載入以下 `.aidlc-overrides/` 檔案：
+- `.aidlc-overrides/README.md`
 - `.aidlc-overrides/branch-naming.md`（Cloud-360 分支命名規則）
 - `.aidlc-overrides/decisions-log.md`（決議記錄規則：僅在使用者明確要求時觸發）
 
@@ -32,7 +33,7 @@ description: 初始化 AIDLC 生命週期
 
 ### 步驟 4：顯示歡迎訊息
 顯示：
-`.aidlc-rule-details/common/welcome-message.md`
+`.aidlc/aidlc-rules/aws-aidlc-rule-details/common/welcome-message.md`
 
 ---
 

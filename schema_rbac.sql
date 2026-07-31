@@ -1,10 +1,11 @@
 -- =============================================================================
 -- Cloud-360 Full Schema + RBAC Seed
--- Branch: luojingting/feat/role-permission-redesign
+-- Branch: luojingting/feat/role-permission-redesign（＋後續 A3 DDL 增量）
 --
 -- 單一腳本涵蓋：
 --   A) 核心：users / user_diagrams / diagram_shares（架構圖儲存與分享）
 --   B) A4：user_diagram_chats（聊天持久化）+ users.last_opened_diagram_id
+--   E) A3：architecture_reviews（評核結果）+ wa_lenses（Offline Lens 現行標準）
 --   C) RBAC：role_permissions + 預設矩陣（308 列）
 --   D) 預設管理員：admin / admin123（Platform_Admin）
 --
@@ -16,6 +17,7 @@
 --   - role_permissions 會 DELETE 後重播預設（Admin UI 調過請先備份）
 --   - 不覆寫既有 admin 密碼
 --   - 矩陣來源：aidlc-docs/construction/plans/role-permission-design.md
+--   - A3：評核內容在 architecture_reviews；可編輯 Lens 在 wa_lenses.body_json
 -- =============================================================================
 
 BEGIN;
@@ -84,6 +86,75 @@ CREATE TABLE IF NOT EXISTS user_diagram_chats (
 COMMENT ON TABLE user_diagram_chats IS 'A4: chat messages keyed by user × diagram';
 
 -- ###########################################################################
+-- E) A3: Well-Architected review persistence
+--    對應 backend/models.py ArchitectureReview、database._ensure_a3_schema()
+-- ###########################################################################
+
+CREATE TABLE IF NOT EXISTS architecture_reviews (
+  id SERIAL PRIMARY KEY,
+  diagram_id INTEGER REFERENCES user_diagrams (id) ON DELETE CASCADE,
+  created_by INTEGER NOT NULL REFERENCES users (id),
+  provider VARCHAR(16) NOT NULL DEFAULT 'aws',
+  status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  overall_score INTEGER,
+  scores_json TEXT,
+  findings_json TEXT DEFAULT '[]',
+  suggestions_text TEXT,
+  error_message TEXT,
+  rule_pack_version VARCHAR(64),
+  xml_snapshot TEXT,
+  archived BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_architecture_reviews_diagram_id
+  ON architecture_reviews (diagram_id);
+
+CREATE INDEX IF NOT EXISTS ix_architecture_reviews_created_by
+  ON architecture_reviews (created_by);
+
+COMMENT ON TABLE architecture_reviews IS
+  'A3: WA review rows — overall_score + scores_json (lens/heuristic) + findings_json + suggestions_text';
+COMMENT ON COLUMN architecture_reviews.scores_json IS
+  'JSON: source_of_truth, pillar_scores, risk_counts, lens, heuristic, findings_source, …';
+COMMENT ON COLUMN architecture_reviews.findings_json IS
+  'JSON array of findings (Lens HIGH/MEDIUM preferred; heuristic fallback on lens failure)';
+COMMENT ON COLUMN architecture_reviews.status IS
+  'pending | rules_complete | complete | rules_only | unsupported';
+COMMENT ON COLUMN architecture_reviews.diagram_id IS
+  'Nullable when review runs from uploaded XML without saving a workspace diagram';
+COMMENT ON COLUMN architecture_reviews.xml_snapshot IS
+  'XML snapshot at review time (required for ephemeral / audit)';
+
+CREATE TABLE IF NOT EXISTS wa_lenses (
+  id SERIAL PRIMARY KEY,
+  lens_id VARCHAR(64) NOT NULL DEFAULT 'cloud360-core-mvp',
+  provider VARCHAR(16) NOT NULL DEFAULT 'aws',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  body_json TEXT NOT NULL,
+  updated_by INTEGER REFERENCES users (id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_wa_lenses_lens_id ON wa_lenses (lens_id);
+CREATE INDEX IF NOT EXISTS ix_wa_lenses_is_active ON wa_lenses (is_active);
+CREATE INDEX IF NOT EXISTS ix_wa_lenses_provider ON wa_lenses (provider);
+
+COMMENT ON TABLE wa_lenses IS
+  'A3: per-cloud Offline Custom Lens JSON; one active row per provider (aws/gcp/azure)';
+COMMENT ON COLUMN wa_lenses.body_json IS
+  'Full Custom Lens JSON (schemaVersion 2021-11-01, five pillars)';
+COMMENT ON COLUMN wa_lenses.provider IS
+  'aws | gcp | azure — active lens resolved per provider';
+
+-- 既有庫升級（IF NOT EXISTS / DROP NOT NULL 可重複執行）
+ALTER TABLE architecture_reviews ALTER COLUMN diagram_id DROP NOT NULL;
+ALTER TABLE architecture_reviews ADD COLUMN IF NOT EXISTS xml_snapshot TEXT;
+ALTER TABLE wa_lenses ADD COLUMN IF NOT EXISTS provider VARCHAR(16) NOT NULL DEFAULT 'aws';
+
+-- ###########################################################################
 -- C) RBAC: role × story permissions (view / edit / review)
 -- ###########################################################################
 
@@ -137,7 +208,7 @@ INSERT INTO role_permissions (role, story_id, can_view, can_edit, can_review) VA
   ('SRE', 'A3', true, false, false),
   ('Ops_Lead', 'A3', true, false, false),
   ('Platform_Engineer', 'A3', true, false, false),
-  ('Security_Reviewer', 'A3', true, true, false),
+  ('Security_Reviewer', 'A3', true, true, true),
   ('Platform_Admin', 'A3', true, false, false),
   ('Platform_Owner', 'A3', true, false, false),
   ('Project_Architect', 'A4', true, true, false),
@@ -447,3 +518,6 @@ COMMIT;
 -- SELECT count(*) FROM user_diagrams;
 -- SELECT count(*) FROM diagram_shares;
 -- SELECT count(*) FROM user_diagram_chats;
+-- SELECT count(*) FROM architecture_reviews;
+-- SELECT id, diagram_id, status, overall_score, archived FROM architecture_reviews ORDER BY id DESC LIMIT 5;
+-- SELECT id, lens_id, is_active, updated_at FROM wa_lenses ORDER BY id DESC LIMIT 5;

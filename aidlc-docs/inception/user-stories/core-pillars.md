@@ -1,5 +1,8 @@
 # Cloud-360 Core Pillars User Stories
 
+> 本文件必須同時包含中文版與英文版。
+> This document must include both Chinese and English versions.
+
 ## A. Architecture Design
 
 ### A1. Natural Language to Architecture

@@ -34,6 +34,11 @@ from claude_agent_sdk import (
 )
 
 from services.diagram_builder import build_mxgraph_xml
+from services.llm_limits import (
+    agent_sdk_env,
+    apply_agent_token_limits_to_env,
+    truncate_text_for_llm,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +48,7 @@ DRAW_TOOL_NAME = "draw_architecture_diagram"
 DRAW_TOOL_FQN = f"mcp__{MCP_SERVER_NAME}__{DRAW_TOOL_NAME}"
 
 PROMPT_PATH = (
-    Path(__file__).resolve().parent.parent / "prompts" / "aws_architecture_system_prompt.md"
+    Path(__file__).resolve().parent.parent / "prompts" / "cloud_architecture_system_prompt.md"
 )
 
 # 執行期間由 run_design_agent 注入：進度佇列與最後產出的 XML
@@ -74,6 +79,8 @@ def configure_openrouter_env() -> None:
             "LLM_MODEL", "anthropic/claude-sonnet-4.6"
         )
 
+    apply_agent_token_limits_to_env()
+
 
 def load_system_prompt() -> str:
     """載入文字座標繪圖指南（與重構前 system prompt 語意相同）。"""
@@ -86,10 +93,11 @@ def build_system_prompt(current_xml: str | None = None) -> str:
     """組合 system prompt；若有畫布草稿則附加 current_xml（局部修改路徑）。"""
     prompt = load_system_prompt()
     if current_xml:
+        xml_block = truncate_text_for_llm(current_xml, label="架構 XML")
         prompt += (
             "\n\n【目前的架構草稿】\n"
             "使用者目前畫布上的 XML 內容如下，請在呼叫工具時，基於此內容進行「修改」或「擴充」：\n"
-            f"```xml\n{current_xml}\n```\n"
+            f"```xml\n{xml_block}\n```\n"
         )
     return prompt
 
@@ -104,6 +112,7 @@ def format_user_prompt(messages: list[dict[str, str]]) -> str:
     lines.append(
         "\n若需求已足夠明確，請呼叫 draw_architecture_diagram 工具產圖；"
         "否則先用文字釐清需求。"
+        "回覆使用者時請用一般口語對答，不要使用 Markdown（不要 #、**、- 清單、程式碼區塊等）。"
     )
     return "\n".join(lines)
 
@@ -116,6 +125,11 @@ def format_user_prompt(messages: list[dict[str, str]]) -> str:
 DRAW_INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
+        "provider": {
+            "type": "string",
+            "enum": ["AWS", "GCP", "Azure"],
+            "description": "雲端供應商平台，決定畫圖使用的元件與圖示風格（AWS, GCP 或 Azure）。"
+        },
         "groups": {
             "type": "array",
             "description": "架構圖上的框架/區域",
@@ -125,7 +139,7 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
                     "id": {"type": "string"},
                     "name": {
                         "type": "string",
-                        "description": "例如 VPC, AZ-1, Public Subnet 1",
+                        "description": "例如 VPC, AZ-1, Public Subnet 1, Azure VNet",
                     },
                     "type": {
                         "type": "string",
@@ -135,6 +149,13 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
                             "az",
                             "public_subnet",
                             "private_subnet",
+                            "gcp_cloud",
+                            "gcp_vpc",
+                            "gcp_subnet",
+                            "azure_cloud",
+                            "azure_vnet",
+                            "azure_resource_group",
+                            "azure_subnet",
                         ],
                     },
                     "x": {"type": "integer", "description": "絕對 X 座標"},
@@ -147,14 +168,14 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
         },
         "nodes": {
             "type": "array",
-            "description": "要畫在圖表上的 AWS 元件節點陣列",
+            "description": "要畫在圖表上的雲端元件節點陣列（AWS, GCP 或 Azure）",
             "items": {
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "節點唯一識別碼"},
                     "name": {
                         "type": "string",
-                        "description": "AWS 元件名稱，例如 waf, alb, ec2",
+                        "description": "雲端元件名稱，例如 EC2, GKE, AKS, Cloud SQL, Azure SQL Database",
                     },
                     "x": {"type": "integer", "description": "絕對 X 座標"},
                     "y": {"type": "integer", "description": "絕對 Y 座標"},
@@ -212,6 +233,7 @@ async def draw_architecture_diagram(args: dict[str, Any]) -> dict[str, Any]:
             nodes=args.get("nodes") or [],
             edges=args.get("edges") or [],
             on_progress=on_progress,
+            provider=args.get("provider"),
         )
         _last_xml = xml_data
         if _progress_queue is not None:
@@ -301,6 +323,7 @@ async def run_design_agent(
         disallowed_tools=["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"],
         permission_mode="bypassPermissions",
         max_turns=8,
+        env=agent_sdk_env(),
     )
 
     try:

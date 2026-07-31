@@ -39,7 +39,7 @@ Once a week, check whether the things Cloud-360 is pinned to have moved, and tel
 
 ## What to watch
 
-**The AIDLC framework.** `.aidlc-rule-details/VERSION` records the version this repo vendored from [`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows). Compare it against the latest release. An upgrade here is not a routine bump — per `CLAUDE.md` §7 it requires re-copying `aws-aidlc-rule-details/`, preserving the custom `extensions/bilingual-docs/` files inside the upstream tree, leaving `.aidlc-overrides/` untouched, and recording the upgrade in a new ADR.
+**The AIDLC framework.** `.aidlc/aidlc-rules/VERSION` records the version this repo vendored from [`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows). Compare it against the latest release. An upgrade here is not a routine bump — per `CLAUDE.md` §7 it requires re-copying `.aidlc/aidlc-rules/aws-aidlc-rule-details/`, leaving `.aidlc-overrides/` untouched, and recording the upgrade in a new ADR.
 
 **gh-aw.** The agentic workflows under `.github/workflows/*.md` compile with `gh aw`. Check [`github/gh-aw`](https://github.com/github/gh-aw) releases for breaking changes to frontmatter, safe-outputs, or the engine contract.
 

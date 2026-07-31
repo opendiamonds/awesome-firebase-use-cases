@@ -87,7 +87,7 @@ Admin／文件顯示名：**架構設計**
 | Story | 功能（中文） | 備註 | Arch | Dev | Edit | PAdm | Fin | SRE | Ops | PEng | Sec | Plat | Own |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | **A1／A2／A4** | **架構圖生成** | 三 story 同步；語意見 §3.1 | VE | VE | VE | V | V | V | V | V | V | V | V |
-| **A3** | Well-Architected 評核 | 獨立能力 | VE | V | VE | V | - | V | V | V | VE | V | V |
+| **A3** | Well-Architected 評核 | 獨立能力 | VE | V | VE | V | - | V | V | V | **VER** | V | V |
 
 底層仍保留三列 seed（與 stories 對齊），但 UI 合併為一欄「架構圖生成（A1／A2／A4）」：
 
@@ -198,10 +198,34 @@ Admin／文件顯示名：**MCP 與 Skill**
 
 #### 12.1 頁面① — 使用者 ↔ 角色
 
-- 列表：username、目前 role、啟用狀態  
-- 動作：下拉改為 11 個正式 role → 儲存  
-- 防護：不可移除最後一位具 J3a.edit 的管理員；role ∈ allowlist  
-- Audit：`actor / target / old_role / new_role / time`
+- 列表：username、目前 role（含**待授權／Pending**）、啟用狀態、（下期）待處理授權申請  
+- 動作：下拉改為 11 個正式 role → 儲存；啟停用；**下期**：核准／拒絕角色申請、**刪除使用者**  
+- 防護：不可移除最後一位具 J3a.edit 的管理員；正式 role ∈ allowlist；Pending 不在生效 allowlist  
+- Audit：`actor / target / old_role / new_role / time`（刪除／核准亦需記錄）
+
+#### 12.1.1 註冊與授權申請（stories J5 — 目標語意；現況尚未實作）
+
+| 項目 | 語意 |
+|---|---|
+| 註冊 | **不得**預設 `Developer` 或其他正式角色；建立帳號為 Pending |
+| 註冊 UI | 必選「申請角色」；展示 11 角色介紹 + 可使用功能摘要 |
+| 申請單 | applicant、requested_role、created_at、status∈{pending,approved,rejected} |
+| 登入後 | Pending 僅「等待授權」+ 登出；業務 API 403 |
+| 核准 | 寫入正式 `role`，關閉申請；之後走 §12.2 矩陣可見性 |
+| 刪除 | Admin 可刪使用者（硬／軟刪與圖表歸屬 → Functional Design） |
+| **授權申請佇列** | 路由 `/admin/authorization-requests`；J3a.view 可看列表；J3a.edit 可核准／拒絕；預設篩 pending |
+
+> **As-built gap**：現行 `/api/auth/register` 直接指派 `Developer` 且立即生效，與 J5 衝突，實作時必須改掉。
+
+#### 12.1.2 Admin 授權申請頁（Functional Design 2026-07-17）
+
+| 項目 | 語意 |
+|---|---|
+| 路由 | `/admin/authorization-requests` |
+| Sidebar | 「使用者設定」下方 **授權申請**（可選 pending 筆數 badge） |
+| 列表 | username、requested_role、申請時間、狀態；篩選 pending／approved／rejected |
+| 核准 | BR-04 角色邊界；寫入 role + approved |
+| 拒絕 | 刪除帳號 + audit |
 
 #### 12.2 頁面② — 角色 ↔ 細項權限
 

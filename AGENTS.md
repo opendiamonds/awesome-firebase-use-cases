@@ -1,0 +1,9 @@
+# AI-DLC Workflow
+
+When the user invokes AI-DLC, read and follow `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` to start the workflow.
+Also, read and follow all markdown rule files in the `.aidlc-overrides/` directory (including `README.md`, `branch-naming.md`, and `decisions-log.md`).
+
+## 中文版
+
+當使用者啟用 AI-DLC 時，請閱讀並遵循 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` 來啟動工作流程。
+同時，請閱讀並遵循 `.aidlc-overrides/` 目錄中的三個 Markdown 規則檔（包含 `README.md`、`branch-naming.md` 與 `decisions-log.md`）。

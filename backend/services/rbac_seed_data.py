@@ -32,7 +32,7 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('SRE', 'A3', True, False, False),
     ('Ops_Lead', 'A3', True, False, False),
     ('Platform_Engineer', 'A3', True, False, False),
-    ('Security_Reviewer', 'A3', True, True, False),
+    ('Security_Reviewer', 'A3', True, True, True),
     ('Platform_Admin', 'A3', True, False, False),
     ('Platform_Owner', 'A3', True, False, False),
     ('Project_Architect', 'A4', True, True, False),
