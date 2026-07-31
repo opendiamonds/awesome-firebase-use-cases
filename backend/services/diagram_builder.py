@@ -63,6 +63,22 @@ GROUP_STYLES = {
         "shape=mxgraph.aws4.group;strokeColor=#FBBC05;fillColor=#FFFDF0;verticalAlign=top;align=left;"
         "spacingLeft=30;fontColor=#FBBC05;dashed=0;"
     ),
+    "azure_cloud": (
+        "shape=mxgraph.aws4.group;strokeColor=#0078D4;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#0078D4;dashed=0;"
+    ),
+    "azure_vnet": (
+        "shape=mxgraph.aws4.group;strokeColor=#5C2D91;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#5C2D91;dashed=0;"
+    ),
+    "azure_resource_group": (
+        "shape=mxgraph.aws4.group;strokeColor=#008272;fillColor=none;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#008272;dashed=0;"
+    ),
+    "azure_subnet": (
+        "shape=mxgraph.aws4.group;strokeColor=#00BCF2;fillColor=#F0F9FE;verticalAlign=top;align=left;"
+        "spacingLeft=30;fontColor=#00BCF2;dashed=0;"
+    ),
 }
 
 
@@ -164,7 +180,9 @@ async def build_mxgraph_xml(
     if not provider:
         # 根據群組的類型自動偵測雲端平台供應商
         g_types = {g.get("type") for g in groups if g}
-        if any(t in ("gcp_cloud", "gcp_vpc", "gcp_subnet") for t in g_types):
+        if any(t in ("azure_cloud", "azure_vnet", "azure_resource_group", "azure_subnet") for t in g_types):
+            provider = "Azure"
+        elif any(t in ("gcp_cloud", "gcp_vpc", "gcp_subnet") for t in g_types):
             provider = "GCP"
         else:
             provider = "AWS"

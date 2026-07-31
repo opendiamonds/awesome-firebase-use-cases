@@ -38,7 +38,7 @@ const EMPTY_DIAGRAM_XML =
 const DEFAULT_WELCOME: Message = {
   role: 'assistant',
   content:
-    '嗨！我是您的 AI 雲端架構助理 👋\n請描述您想建立的雲端架構，例如：\n✨ 我要做一個電商網站\n✨ 我要一個包含 WAF 與 Aurora 的高可用架構',
+    '嗨！我是您的 AI 雲端架構助理 👋\n請描述您想建立的雲端架構，例如：\n✨ AWS：建立一個包含 WAF、ALB 與 Aurora 的高可用架構\n✨ GCP：建立一個使用 GKE、Cloud SQL 與 BigQuery 的數據分析拓樸\n✨ Azure：建立一個包含 AKS、Azure SQL Database 與 Key Vault 的雲端架構',
 };
 
 /** 將後端錯誤對齊 User Story 失敗文案 */

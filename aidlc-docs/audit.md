@@ -1,3 +1,5 @@
+
+
 # AIDLC Audit Log
 
 > Append-only log of AIDLC workflow events: user requests, stage transitions, extension toggles, approvals.
@@ -1885,7 +1887,20 @@ Following entries are from `luojingting/feat/a3-well-architected-review` (append
 - `construction/a1/functional-design/a1-a3-multi-agent-fd.md`
 - BE：`wa_score_service`、`wa_collab_orchestrator`、`POST /generate-wa-collab`
 - FE：Workspace 自動協作＋套用預覽；Assessment「優化至 WA ≥ 80」
-- stories／summary／`test_wa_collab.py`
-**Next**: 手動驗收後 commit／merge `ut`
+
 
 ---
+
+#### 2026-07-29 17:14 +08:00 — Branch Naming & Service Deployment & A1 Azure Feature Completion
+
+**User request (raw)**: "A1 中要 1. 新增畫 Azure Cloud 2. 前端傳給 n8n 要帶使用者要哪一朵雲的服務 AWS , GCP or Azure 3. 新增GCP 以及 Azure 的圖範本"
+**Stage**: Operations → Deployment & Code Generation (Unit A1)
+**Outcome**:
+1. 依規範將分支更名為 `doreen/feat/a1-feature-enhancement`。
+2. 根據 DEPLOY.md 成功以 Docker Compose 部署並啟動全棧服務 (DB, Backend, Frontend)。驗證容器內 Claude Code CLI (`2.1.220`) 運作正常。
+3. 完成 A1 模組支援 Azure Cloud 產圖拓樸、Group 樣式、System Prompt、n8n provider 參數對齊與前端多雲預設 Prompt 範本。
+**Approver**: doreen
+
+---
+
+

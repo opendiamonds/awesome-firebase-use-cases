@@ -127,8 +127,8 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "provider": {
             "type": "string",
-            "enum": ["AWS", "GCP"],
-            "description": "雲端供應商平台，決定畫圖使用的元件與圖示風格（AWS 或 GCP）。"
+            "enum": ["AWS", "GCP", "Azure"],
+            "description": "雲端供應商平台，決定畫圖使用的元件與圖示風格（AWS, GCP 或 Azure）。"
         },
         "groups": {
             "type": "array",
@@ -139,7 +139,7 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
                     "id": {"type": "string"},
                     "name": {
                         "type": "string",
-                        "description": "例如 VPC, AZ-1, Public Subnet 1",
+                        "description": "例如 VPC, AZ-1, Public Subnet 1, Azure VNet",
                     },
                     "type": {
                         "type": "string",
@@ -152,6 +152,10 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
                             "gcp_cloud",
                             "gcp_vpc",
                             "gcp_subnet",
+                            "azure_cloud",
+                            "azure_vnet",
+                            "azure_resource_group",
+                            "azure_subnet",
                         ],
                     },
                     "x": {"type": "integer", "description": "絕對 X 座標"},
@@ -164,14 +168,14 @@ DRAW_INPUT_SCHEMA: dict[str, Any] = {
         },
         "nodes": {
             "type": "array",
-            "description": "要畫在圖表上的 AWS 元件節點陣列",
+            "description": "要畫在圖表上的雲端元件節點陣列（AWS, GCP 或 Azure）",
             "items": {
                 "type": "object",
                 "properties": {
                     "id": {"type": "string", "description": "節點唯一識別碼"},
                     "name": {
                         "type": "string",
-                        "description": "AWS 元件名稱，例如 waf, alb, ec2",
+                        "description": "雲端元件名稱，例如 EC2, GKE, AKS, Cloud SQL, Azure SQL Database",
                     },
                     "x": {"type": "integer", "description": "絕對 X 座標"},
                     "y": {"type": "integer", "description": "絕對 Y 座標"},
