@@ -20,6 +20,12 @@ logger = logging.getLogger("cloud360.wa_lens_engine")
 DEFAULT_LENS_PATH = (
     Path(__file__).resolve().parent.parent / "lenses" / "cloud360-core-mvp-lens.json"
 )
+LENS_DIR = DEFAULT_LENS_PATH.parent
+LENS_PATH_BY_PROVIDER = {
+    "aws": DEFAULT_LENS_PATH,
+    "gcp": LENS_DIR / "cloud360-core-mvp-lens-gcp.json",
+    "azure": LENS_DIR / "cloud360-core-mvp-lens-azure.json",
+}
 
 LENS_ID = "cloud360-core-mvp"
 
@@ -49,7 +55,14 @@ RISK_TO_SEVERITY = {
 DEFAULT_FINDING_RISKS = frozenset({"HIGH_RISK", "MEDIUM_RISK"})
 
 
-def load_lens(path: Path | None = None) -> dict[str, Any]:
+def load_lens(path: Path | None = None, provider: str | None = None) -> dict[str, Any]:
+    """Load offline lens JSON. Prefer explicit path; else provider-specific file; else AWS default."""
+    if path is None and provider:
+        p_norm = (provider or "aws").lower().strip()
+        path = LENS_PATH_BY_PROVIDER.get(p_norm, DEFAULT_LENS_PATH)
+        if not path.exists():
+            logger.warning("Lens file missing for provider=%s path=%s; using default", p_norm, path)
+            path = DEFAULT_LENS_PATH
     p = path or DEFAULT_LENS_PATH
     data = json.loads(p.read_text(encoding="utf-8"))
     if data.get("schemaVersion") != "2021-11-01":
@@ -242,7 +255,7 @@ def enrich_findings_recommendations(
 def heuristic_answers_from_diagram(xml: str, lens: dict[str, Any] | None = None) -> dict[str, list[str]]:
     """
     Deterministic POC filler when Agent is unavailable: keyword match on diagram summary.
-    Still offline — no AWS API.
+    Still offline — no cloud provider APIs. Covers AWS / GCP / Azure vocabulary.
     """
     lens = lens or load_lens()
     summary = parse_diagram_summary(xml or "")
@@ -256,37 +269,168 @@ def heuristic_answers_from_diagram(xml: str, lens: dict[str, Any] | None = None)
     answers: dict[str, list[str]] = {}
     # sec_edge
     sel: list[str] = []
-    if has("waf"):
+    if has(
+        "waf",
+        "cloud armor",
+        "cloudarmor",
+        "application gateway",
+        "front door",
+        "frontdoor",
+        "azure firewall",
+    ):
         sel.append("sec_edge_waf")
-    if has("https", "tls", "acm", "certificate"):
+    if has("https", "tls", "acm", "certificate", "ssl"):
         sel.append("sec_edge_tls")
     answers["sec_edge"] = sel
 
     sel = []
-    if has("kms", "encrypt", "sse", "加密"):
+    if has(
+        "kms",
+        "encrypt",
+        "sse",
+        "加密",
+        "key vault",
+        "keyvault",
+        "cmek",
+        "customer-managed",
+    ):
         sel.append("sec_data_encrypt")
-    if has("private", "private_subnet") and not has("0.0.0.0"):
+    if has(
+        "private",
+        "private_subnet",
+        "private endpoint",
+        "privateendpoint",
+        "private service connect",
+        "psc",
+    ) and not has("0.0.0.0"):
         sel.append("sec_data_private")
     answers["sec_data"] = sel
 
     sel = []
-    if has("az-", "availability zone", "multi-az", "multiaz"):
+    if has(
+        "az-",
+        "availability zone",
+        "availabilityzone",
+        "multi-az",
+        "multiaz",
+        "multi-zone",
+        "multizone",
+        "zone redundant",
+        "zone-redundant",
+    ):
         sel.append("rel_ha_multiaz")
-    if has("standby", "replica", "secondary", "multi-az"):
+    if has(
+        "standby",
+        "replica",
+        "secondary",
+        "multi-az",
+        "failover",
+        "geo-replica",
+        "zone redundant",
+        "zone-redundant",
+        "regional mig",
+    ):
         sel.append("rel_ha_standby")
     answers["rel_ha"] = sel
 
-    answers["cost_storage"] = ["cost_lifecycle"] if has("lifecycle", "glacier", "intelligent-tiering") else []
+    # GCP GCAF: horizontal scalability (ignored if lens has no such question)
+    sel = []
+    if has(
+        "mig",
+        "managed instance group",
+        "autoscal",
+        "auto-scale",
+        "auto scale",
+        "hpa",
+        "horizontal",
+        "vmss",
+        "scale set",
+    ):
+        sel.append("rel_scale_mig")
+    answers["rel_scale"] = sel
+
+    # Azure WARA / GCP GCAF DR extras (ignored if lens has no such questions)
+    sel = []
+    if has(
+        "paired region",
+        "secondary region",
+        "geo-replica",
+        "geo replication",
+        "asr",
+        "site recovery",
+        "multi-region",
+        "multiregion",
+        "cross-region",
+    ):
+        sel.append("rel_dr_geo")
+    if has(
+        "backup",
+        "recovery vault",
+        "recovery services",
+        "pitr",
+        "point-in-time",
+    ):
+        sel.append("rel_dr_backup")
+    answers["rel_dr"] = sel
+
+    sel = []
+    if has("health probe", "health check", "health endpoint", "readiness", "liveness"):
+        sel.append("rel_health_probe")
+    if has("auto-heal", "auto heal", "autoscale", "auto-scale", "vmss", "scale set"):
+        sel.append("rel_health_heal")
+    answers["rel_health"] = sel
+
+    answers["cost_storage"] = (
+        ["cost_lifecycle"]
+        if has(
+            "lifecycle",
+            "glacier",
+            "intelligent-tiering",
+            "cool tier",
+            "archive",
+            "nearline",
+            "coldline",
+            "reserved",
+        )
+        else []
+    )
     answers["perf_cache"] = (
         ["perf_cache_present"]
-        if has("cache", "elasticache", "redis", "cloudfront", "cdn")
+        if has(
+            "cache",
+            "elasticache",
+            "redis",
+            "cloudfront",
+            "cdn",
+            "memorystore",
+            "front door",
+        )
         else []
     )
 
     sel = []
-    if has("cloudwatch", "monitor", "grafana", "prometheus", "x-ray"):
+    if has(
+        "cloudwatch",
+        "monitor",
+        "grafana",
+        "prometheus",
+        "x-ray",
+        "application insights",
+        "app insights",
+        "log analytics",
+        "cloud monitoring",
+        "cloud logging",
+    ):
         sel.append("oe_monitor")
-    if has("alarm", "sns", "pager", "alert"):
+    if has(
+        "alarm",
+        "sns",
+        "pager",
+        "alert",
+        "action group",
+        "notification channel",
+        "alerting",
+    ):
         sel.append("oe_alarm")
     answers["oe_observe"] = sel
 

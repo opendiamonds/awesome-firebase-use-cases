@@ -164,7 +164,7 @@ def resolve_active_lens(
                     "wa_lenses body_json invalid provider=%s; falling back to file",
                     provider,
                 )
-    return load_lens()
+    return load_lens(provider=provider)
 
 
 def save_active_lens(

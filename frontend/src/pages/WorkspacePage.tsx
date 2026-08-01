@@ -66,6 +66,7 @@ export const WorkspacePage = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [bootstrapDone, setBootstrapDone] = useState(false);
+  const [deletingDiagram, setDeletingDiagram] = useState(false);
 
   const { isConnected, broadcastXml } = useCollaboration({
     workspaceId: currentDiagramId ? currentDiagramId.toString() : '',
@@ -81,6 +82,28 @@ export const WorkspacePage = () => {
   const [toast, setToast] = useState<ToastState>(null);
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME]);
   const [saveStatus, setSaveStatus] = useState<DiagramSaveStatus>('no-file');
+  const [chatCollapsed, setChatCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('cloud360.workspace.chatCollapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [canvasLayoutEpoch, setCanvasLayoutEpoch] = useState(0);
+
+  const toggleChatCollapsed = useCallback(() => {
+    setChatCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cloud360.workspace.chatCollapsed', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    // 等寬度 transition 後再通知 draw.io 重算 viewport
+    window.setTimeout(() => setCanvasLayoutEpoch((n) => n + 1), 320);
+  }, []);
 
   /** 避免 generate 閉包讀到過期的 diagram id */
   const currentDiagramIdRef = useRef<number | null>(null);
@@ -289,6 +312,57 @@ export const WorkspacePage = () => {
     setSaveStatus('no-file');
     setMessages([DEFAULT_WELCOME]);
     await setLastOpened(null);
+  };
+
+  const handleDeleteDiagram = async () => {
+    const diagramId = currentDiagramIdRef.current;
+    if (!diagramId) return;
+    const meta = diagramsRef.current.find((d) => d.id === diagramId);
+    if (meta && !meta.is_owner) {
+      showToast('僅擁有者可刪除架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法刪除架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    const title = meta?.title || `#${diagramId}`;
+    if (
+      !window.confirm(
+        `確定刪除架構圖「${title}」？\n該圖的評核紀錄與聊天也會一併刪除，且無法復原。`,
+      )
+    ) {
+      return;
+    }
+    setDeletingDiagram(true);
+    try {
+      const res = await fetch(`${API_COLLAB}/diagrams/${diagramId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `刪除失敗（HTTP ${res.status}）`);
+      }
+      setXml('');
+      setCurrentDiagramId(null);
+      currentDiagramIdRef.current = null;
+      setIsShared(false);
+      setSaveStatus('no-file');
+      setMessages([DEFAULT_WELCOME]);
+      await setLastOpened(null);
+      await fetchDiagrams();
+      showToast('架構圖已刪除', 'success', {
+        hint: '相關評核與聊天已一併清除。',
+        autoDismissMs: 3000,
+      });
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '刪除架構圖失敗', 'error', {
+        autoDismissMs: 4000,
+      });
+    } finally {
+      setDeletingDiagram(false);
+    }
   };
 
   const showToast = (
@@ -777,7 +851,7 @@ export const WorkspacePage = () => {
   return (
     <div className="relative flex h-full w-full overflow-hidden">
       {toast?.type === 'error' && (
-        <div className="absolute top-8 left-[420px] right-0 z-50 flex justify-center pointer-events-none px-4">
+        <div className={`absolute top-8 ${chatCollapsed ? 'left-12' : 'left-[420px]'} right-0 z-50 flex justify-center pointer-events-none px-4 transition-[left] duration-300`}>
         <div className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-red-100 px-6 py-4 rounded-2xl shadow-[0_12px_40px_rgba(239,68,68,0.15)] flex flex-col gap-3 animate-[slideInDown_0.4s_ease-out] max-w-lg w-[min(92vw,28rem)]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center shrink-0">
@@ -833,7 +907,7 @@ export const WorkspacePage = () => {
       )}
 
       {toast?.type === 'success' && (
-        <div className="absolute inset-y-0 left-[420px] right-0 z-50 flex items-center justify-center pointer-events-none px-4">
+        <div className={`absolute inset-y-0 ${chatCollapsed ? 'left-12' : 'left-[420px]'} right-0 z-50 flex items-center justify-center pointer-events-none px-4 transition-[left] duration-300`}>
         <div className="pointer-events-auto bg-white/95 backdrop-blur-2xl border border-white text-gray-900 px-10 py-8 rounded-[2rem] shadow-[0_24px_80px_rgba(37,99,235,0.15)] flex flex-col items-center gap-5 animate-[fadeInUp_0.4s_ease-out] max-w-md w-[min(92vw,24rem)]">
           <div className="relative">
             <div className="absolute inset-0 bg-green-200 rounded-full blur-xl opacity-60 animate-pulse"></div>
@@ -901,11 +975,14 @@ export const WorkspacePage = () => {
         canEdit={canEditArch}
         canReview={canReviewArch}
         userDisplayName={user?.username}
+        collapsed={chatCollapsed}
+        onToggleCollapsed={toggleChatCollapsed}
       />
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
       <DrawioCanvas
         ref={canvasRef}
         xml={xml}
+        layoutEpoch={canvasLayoutEpoch}
         readOnly={!canEditArch}
         diagramTitle={
           currentDiagramId
@@ -977,6 +1054,54 @@ export const WorkspacePage = () => {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteDiagram()}
+              disabled={
+                !currentDiagramId ||
+                deletingDiagram ||
+                !canEditArch ||
+                diagrams.find((d) => d.id === currentDiagramId)?.is_owner === false
+              }
+              className="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none shrink-0"
+              title={
+                !currentDiagramId
+                  ? '請先選擇要刪除的架構圖'
+                  : diagrams.find((d) => d.id === currentDiagramId)?.is_owner === false
+                    ? '僅擁有者可刪除'
+                    : deletingDiagram
+                      ? '刪除中…'
+                      : '刪除目前架構圖'
+              }
+              aria-label="刪除架構圖"
+            >
+              {deletingDiagram ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              )}
             </button>
             <input
               ref={uploadInputRef}

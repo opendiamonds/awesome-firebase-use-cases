@@ -157,6 +157,9 @@ export const AssessmentPage = () => {
   const [collabStatus, setCollabStatus] = useState<string | null>(null);
   const [optimizeDraft, setOptimizeDraft] = useState<OptimizeDraft | null>(null);
   const [savingOptimize, setSavingOptimize] = useState(false);
+  const [savingPersist, setSavingPersist] = useState(false);
+  const [deletingReviewId, setDeletingReviewId] = useState<number | null>(null);
+  const [deletingDiagram, setDeletingDiagram] = useState(false);
   const optimizeBaselineRef = useRef<{ xml: string; review: Review | null } | null>(
     null,
   );
@@ -200,6 +203,14 @@ export const AssessmentPage = () => {
     [token]
   );
 
+  const fetchEphemeralReviews = useCallback(async () => {
+    const res = await fetch(
+      apiUrl('/api/architecture/reviews?ephemeral=true'),
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    return res.ok ? res.json() : null;
+  }, [token]);
+
   // 事件處理呼叫用：先切到 loading 再抓。
   const loadReviews = useCallback(
     (diagramId: number) => {
@@ -211,6 +222,13 @@ export const AssessmentPage = () => {
     [fetchReviews]
   );
 
+  const loadEphemeralReviews = useCallback(() => {
+    setLoadedFor(null);
+    return fetchEphemeralReviews()
+      .then((data) => { if (data) setReviews(data); })
+      .finally(() => setLoadedFor(0));
+  }, [fetchEphemeralReviews]);
+
   const urlDiagramId = useMemo(() => {
     const q = searchParams.get('diagramId');
     if (!q) return null;
@@ -218,7 +236,10 @@ export const AssessmentPage = () => {
     return Number.isNaN(id) ? null : id;
   }, [searchParams]);
   const selectedDiagramId = diagramOverride ?? urlDiagramId;
-  const loadingList = selectedDiagramId !== null && loadedFor !== selectedDiagramId;
+  const loadingList =
+    selectedDiagramId !== null
+      ? loadedFor !== selectedDiagramId
+      : loadedFor !== 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -229,12 +250,14 @@ export const AssessmentPage = () => {
   useEffect(() => {
     let cancelled = false;
     if (!selectedDiagramId) {
-      // setState 必須在 async callback，避免 react-hooks/set-state-in-effect
-      Promise.resolve().then(() => {
-        if (cancelled) return;
-        setReviews([]);
-        setLoadedFor(null);
-      });
+      fetchEphemeralReviews()
+        .then((data) => {
+          if (cancelled) return;
+          setReviews(Array.isArray(data) ? data : []);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadedFor(0);
+        });
       return () => {
         cancelled = true;
       };
@@ -283,7 +306,29 @@ export const AssessmentPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedDiagramId, fetchReviews, token]);
+  }, [selectedDiagramId, fetchReviews, fetchEphemeralReviews, token]);
+
+  const detectProviderFromXml = async (xml: string) => {
+    if (!xml.trim() || !token) return;
+    setDetectingProvider(true);
+    try {
+      const res = await fetch(apiUrl('/api/architecture/reviews/detect-provider'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ xml_data: xml }),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `偵測雲端失敗（HTTP ${res.status}）`);
+      }
+      const data = (await res.json()) as { provider?: string };
+      if (data.provider) setProvider(data.provider);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '偵測雲端提供者失敗');
+    } finally {
+      setDetectingProvider(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -306,7 +351,10 @@ export const AssessmentPage = () => {
           return;
         }
         const data = await res.json();
-        if (!cancelled) setSelectedXml(data.xml_data || null);
+        const xml = (data.xml_data as string) || null;
+        if (cancelled) return;
+        setSelectedXml(xml);
+        if (xml) await detectProviderFromXml(xml);
       } catch {
         if (!cancelled) setSelectedXml(null);
       }
@@ -523,7 +571,7 @@ export const AssessmentPage = () => {
       const reviewId = Number(data.review_id);
       maybeAdoptSavedDiagram(Number.isNaN(reviewId) ? null : reviewId);
       setActive((prev) => ({
-        ...(prev || { id: reviewId, diagram_id: selectedDiagramId || 0, status: 'rules_complete' }),
+        ...(prev || { id: reviewId, diagram_id: selectedDiagramId, status: 'rules_complete' }),
         id: reviewId,
         status: 'rules_complete',
         overall_score: (data.overall_score as number) ?? null,
@@ -533,12 +581,12 @@ export const AssessmentPage = () => {
         diagram_id:
           data.diagram_id != null
             ? Number(data.diagram_id)
-            : (prev?.diagram_id ?? selectedDiagramId ?? 0),
+            : (prev?.diagram_id ?? selectedDiagramId ?? null),
       }));
     } else if (type === 'lens_done') {
       setPhase('lens');
       setActive((prev) => ({
-        ...(prev || { id: Number(data.review_id), diagram_id: selectedDiagramId || 0, status: 'rules_complete' }),
+        ...(prev || { id: Number(data.review_id), diagram_id: selectedDiagramId, status: 'rules_complete' }),
         id: Number(data.review_id),
         status: 'rules_complete',
         overall_score: (data.overall_score as number) ?? null,
@@ -577,6 +625,7 @@ export const AssessmentPage = () => {
           : prev
       );
       if (selectedDiagramId) loadReviews(selectedDiagramId);
+      else void loadEphemeralReviews();
       requestAnimationFrame(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -636,24 +685,7 @@ export const AssessmentPage = () => {
       }
       setUploadedXml(text);
       setUploadedFileName(file.name);
-      setDetectingProvider(true);
-      try {
-        const res = await fetch(apiUrl('/api/architecture/reviews/detect-provider'), {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({ xml_data: text }),
-        });
-        if (!res.ok) {
-          const detail = await res.text();
-          throw new Error(detail || `偵測雲端失敗（HTTP ${res.status}）`);
-        }
-        const data = (await res.json()) as { provider?: string };
-        if (data.provider) setProvider(data.provider);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : '偵測雲端提供者失敗');
-      } finally {
-        setDetectingProvider(false);
-      }
+      await detectProviderFromXml(text);
     } catch (e) {
       setError(e instanceof Error ? e.message : '讀取檔案失敗');
     }
@@ -665,6 +697,132 @@ export const AssessmentPage = () => {
     setSaveDiagram(false);
     setSaveTitle('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const reviewNeedsPersist =
+    Boolean(active) &&
+    canEdit &&
+    canEditArch &&
+    !optimizeDraft &&
+    (active?.diagram_id == null || active.diagram_id === 0) &&
+    Boolean(uploadedXml || active?.xml_snapshot || active?.has_xml_snapshot);
+
+  const selectedDiagramMeta = diagrams.find((d) => d.id === selectedDiagramId);
+  const canDeleteSelectedDiagram =
+    Boolean(selectedDiagramId) &&
+    canEditArch &&
+    (selectedDiagramMeta?.is_owner !== false);
+
+  const persistUploadReview = async () => {
+    if (!active || !reviewNeedsPersist) return;
+    setSavingPersist(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        apiUrl(`/api/architecture/reviews/${active.id}/persist-diagram`),
+        {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({
+            title: saveTitle.trim() || uploadedFileName || '上傳的架構圖',
+            xml_data: uploadedXml || active.xml_snapshot || undefined,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `儲存失敗（HTTP ${res.status}）`);
+      }
+      const data = (await res.json()) as {
+        diagram_id: number;
+        review_id: number;
+        review?: Review;
+      };
+      const list = await fetchDiagrams();
+      if (list) setDiagrams(list);
+      setDiagramOverride(data.diagram_id);
+      clearUpload();
+      if (data.review) {
+        setActive(data.review);
+        setSuggestionsLive(data.review.suggestions_text || '');
+        setPhase(data.review.status);
+      } else {
+        setActive((prev) =>
+          prev ? { ...prev, diagram_id: data.diagram_id } : prev,
+        );
+      }
+      await loadReviews(data.diagram_id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '儲存架構圖與評核失敗');
+    } finally {
+      setSavingPersist(false);
+    }
+  };
+
+  const deleteReviewById = async (reviewId: number) => {
+    if (!canEdit) return;
+    if (!window.confirm(`確定刪除評核 #${reviewId}？此操作會自列表隱藏該報告。`)) {
+      return;
+    }
+    setDeletingReviewId(reviewId);
+    setError(null);
+    try {
+      const res = await fetch(apiUrl(`/api/architecture/reviews/${reviewId}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `刪除評核失敗（HTTP ${res.status}）`);
+      }
+      if (active?.id === reviewId) {
+        setActive(null);
+        setSuggestionsLive('');
+        setPhase('idle');
+      }
+      if (selectedDiagramId) await loadReviews(selectedDiagramId);
+      else await loadEphemeralReviews();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '刪除評核失敗');
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
+
+  const deleteSelectedDiagram = async () => {
+    if (!selectedDiagramId || !canDeleteSelectedDiagram) return;
+    const title = selectedDiagramMeta?.title || `#${selectedDiagramId}`;
+    if (
+      !window.confirm(
+        `確定刪除架構圖「${title}」？\n該圖的評核紀錄與聊天也會一併刪除，且無法復原。`,
+      )
+    ) {
+      return;
+    }
+    setDeletingDiagram(true);
+    setError(null);
+    try {
+      const res = await fetch(apiUrl(`/api/collab/diagrams/${selectedDiagramId}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `刪除架構圖失敗（HTTP ${res.status}）`);
+      }
+      setDiagramOverride(null);
+      setActive(null);
+      setSuggestionsLive('');
+      setPhase('idle');
+      setReviews([]);
+      const list = await fetchDiagrams();
+      if (list) setDiagrams(list);
+      await loadEphemeralReviews();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '刪除架構圖失敗');
+    } finally {
+      setDeletingDiagram(false);
+    }
   };
 
   const canRunReview = Boolean(selectedDiagramId || uploadedXml) && canEdit;
@@ -685,6 +843,16 @@ export const AssessmentPage = () => {
     return typeof fromCounts === 'number' ? fromCounts : 0;
   })();
   const hasHighRisk = highRiskCount > 0;
+  const overallScore = (() => {
+    const fromActive = active?.overall_score;
+    if (typeof fromActive === 'number') return fromActive;
+    const fromScores = active?.scores?.overall_score ?? active?.scores?.lens?.overall_score;
+    return typeof fromScores === 'number' ? fromScores : null;
+  })();
+  const SCORE_TARGET = 80;
+  const scoreBelowTarget =
+    typeof overallScore === 'number' && overallScore < SCORE_TARGET;
+  const needsOptimize = hasHighRisk || scoreBelowTarget;
   const canRunWaCollab =
     Boolean(previewXml) &&
     Boolean(selectedDiagramId) &&
@@ -693,7 +861,7 @@ export const AssessmentPage = () => {
     !collabRunning &&
     !reviewInProgress &&
     !optimizeDraft &&
-    hasHighRisk;
+    needsOptimize;
 
   const waCollabDisabledReason = !canEditArch
     ? '需要架構圖編輯權才能啟動 Design↔Review 協作'
@@ -703,11 +871,15 @@ export const AssessmentPage = () => {
         ? '請先儲存或取消目前的優化結果'
         : reviewInProgress || collabRunning
           ? '評核進行中，請稍候再優化'
-          : !hasHighRisk
-            ? '目前報告無高風險，無需優化'
+          : !needsOptimize
+            ? `目前無高風險且分數 ≥ ${SCORE_TARGET}，無需優化`
             : !previewXml
               ? '請先選擇或上傳架構圖'
-              : '依高風險建議優化架構圖';
+              : hasHighRisk && scoreBelowTarget
+                ? `依高風險與分數（< ${SCORE_TARGET}）優化架構圖`
+                : hasHighRisk
+                  ? '依高風險建議優化架構圖'
+                  : `分數未達 ${SCORE_TARGET}，依建議優化架構圖`;
 
   const runReview = async () => {
     if (!canRunReview) return;
@@ -1109,6 +1281,17 @@ export const AssessmentPage = () => {
                 ))}
               </select>
             </label>
+            {canDeleteSelectedDiagram && (
+              <button
+                type="button"
+                onClick={() => void deleteSelectedDiagram()}
+                disabled={deletingDiagram || reviewInProgress || collabRunning}
+                className="px-3 py-2 rounded-xl text-sm font-bold text-red-700 bg-red-50 border border-red-100 disabled:opacity-40"
+                title="刪除所選架構圖（含評核紀錄）"
+              >
+                {deletingDiagram ? '刪除中…' : '刪除架構圖'}
+              </button>
+            )}
             <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
               上傳 .drawio / .xml
               <div className="flex items-center gap-2">
@@ -1208,9 +1391,9 @@ export const AssessmentPage = () => {
                   checked={saveDiagram}
                   onChange={(e) => setSaveDiagram(e.target.checked)}
                 />
-                同時存成架構圖
+                評核時同時存成架構圖
               </label>
-              {saveDiagram && (
+              {(saveDiagram || reviewNeedsPersist) && (
                 <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
                   架構圖標題
                   <input
@@ -1222,11 +1405,67 @@ export const AssessmentPage = () => {
                   />
                 </label>
               )}
+              {reviewNeedsPersist && (
+                <button
+                  type="button"
+                  onClick={() => void persistUploadReview()}
+                  disabled={savingPersist}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-40"
+                  title="將目前上傳的架構圖與評核結果一併存檔"
+                >
+                  {savingPersist ? '儲存中…' : '儲存架構圖與評核'}
+                </button>
+              )}
             </div>
           )}
-          {(provider === 'gcp' || provider === 'azure') && (
+          {!uploadedXml && reviewNeedsPersist && (
+            <div className="flex flex-wrap gap-3 items-end border-t border-gray-50 pt-3">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+                架構圖標題
+                <input
+                  type="text"
+                  className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-gray-800 min-w-[12rem]"
+                  value={saveTitle}
+                  placeholder="上傳的架構圖"
+                  onChange={(e) => setSaveTitle(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void persistUploadReview()}
+                disabled={savingPersist}
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-40"
+              >
+                {savingPersist ? '儲存中…' : '儲存架構圖與評核'}
+              </button>
+            </div>
+          )}
+          {provider === 'azure' && (
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              本期以 AWS Well-Architected 五支柱對照評核
+              Azure 評核使用 WARA 對齊的 Reliability Lens（架構圖離線規則；非即時{' '}
+              <a
+                className="underline"
+                href="https://github.com/Azure/Well-Architected-Reliability-Assessment"
+                target="_blank"
+                rel="noreferrer"
+              >
+                WARA Collector
+              </a>
+              ）
+            </p>
+          )}
+          {provider === 'gcp' && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              GCP 評核對齊{' '}
+              <a
+                className="underline"
+                href="https://docs.cloud.google.com/architecture/framework"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Google Cloud Well-Architected Framework
+              </a>
+              （架構圖離線規則；Sustainability 暫未納入第六支柱計分）
             </p>
           )}
           {!canEdit && (
@@ -1333,13 +1572,14 @@ export const AssessmentPage = () => {
 
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <h2 className="text-sm font-bold text-gray-800 mb-3">
-            歷史評核 {loadingList ? '（載入中）' : ''}
+            {selectedDiagramId ? '歷史評核' : '未建檔評核'}{' '}
+            {loadingList ? '（載入中）' : ''}
           </h2>
-          {!selectedDiagramId && (
+          {!selectedDiagramId && reviews.length === 0 && !loadingList && (
             <p className="text-sm text-gray-400">
               {uploadedXml
-                ? '上傳檔案可直接評核；選擇架構圖後可查看歷史紀錄'
-                : '請先選擇架構圖，或上傳 .drawio／.xml'}
+                ? '上傳檔案可直接評核；完成後可按「儲存架構圖與評核」建檔'
+                : '請先選擇架構圖，或上傳 .drawio／.xml 後評核'}
             </p>
           )}
           {selectedDiagramId && reviews.length === 0 && !loadingList && (
@@ -1364,6 +1604,7 @@ export const AssessmentPage = () => {
                     <div className="text-sm font-semibold text-gray-900">
                       #{r.id} · {r.status} · 分數 {r.overall_score ?? '—'}
                       {r.suggestions_text ? ' · 有建議' : ''}
+                      {r.diagram_id == null ? ' · 未建檔' : ''}
                     </div>
                     <div className="text-xs text-gray-400">
                       {r.created_at ? new Date(r.created_at).toLocaleString() : ''}
@@ -1377,6 +1618,16 @@ export const AssessmentPage = () => {
                   >
                     {openingId === r.id ? '開啟中…' : selected ? '檢視中' : '開啟'}
                   </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => void deleteReviewById(r.id)}
+                      disabled={deletingReviewId === r.id}
+                      className="text-xs font-bold text-red-700 px-3 py-1.5 rounded-lg bg-red-50 border border-red-100 disabled:opacity-50"
+                    >
+                      {deletingReviewId === r.id ? '刪除中…' : '刪除'}
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -1392,6 +1643,30 @@ export const AssessmentPage = () => {
               <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">
                 <span className="font-bold">新報告（未儲存）</span>
                 — 請確認上方比對結果後按「儲存」或「取消」。
+              </div>
+            )}
+            {(reviewNeedsPersist || canEdit) && (
+              <div className="flex flex-wrap gap-2">
+                {reviewNeedsPersist && (
+                  <button
+                    type="button"
+                    onClick={() => void persistUploadReview()}
+                    disabled={savingPersist}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-40"
+                  >
+                    {savingPersist ? '儲存中…' : '儲存架構圖與評核'}
+                  </button>
+                )}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => void deleteReviewById(active.id)}
+                    disabled={deletingReviewId === active.id}
+                    className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold border border-red-100 disabled:opacity-40"
+                  >
+                    {deletingReviewId === active.id ? '刪除中…' : '刪除此評核'}
+                  </button>
+                )}
               </div>
             )}
             <div className="flex flex-wrap items-baseline gap-3">

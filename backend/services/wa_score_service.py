@@ -24,7 +24,7 @@ from services.wa_rule_engine import evaluate, parse_diagram_summary
 logger = logging.getLogger("cloud360.wa_score_service")
 
 LENS_AGENT_TIMEOUT_SEC = 90.0
-TARGET_SCORE = 80  # 次要參考；協作達標以「無 HIGH_RISK」為準
+TARGET_SCORE = 80  # 協作達標：無 HIGH_RISK 且 overall_score ≥ 此值
 
 
 def _high_risk_count(lens_block: dict[str, Any], findings: list[dict[str, Any]]) -> int:
@@ -49,7 +49,7 @@ async def score_xml(
     回傳：
       overall_score, pillar_scores, findings, summary, rule_result,
       provider, rule_pack_version, source_of_truth, high_risk_count, passed
-    passed = 無 HIGH_RISK（架構圖不應含高風險）
+    passed = 無 HIGH_RISK 且 overall_score ≥ TARGET_SCORE
     """
     provider = (provider or "aws").lower()
     summary = parse_diagram_summary(xml)
@@ -78,9 +78,11 @@ async def score_xml(
     lens_findings = findings_from_lens_score(lens, lens_block, source="offline_lens")
     lens_findings = enrich_findings_recommendations(lens_findings, lens)
     high_risk_count = _high_risk_count(lens_block, lens_findings)
+    overall = float(lens_block["overall_score"])
+    score_ok = overall >= TARGET_SCORE
 
     return {
-        "overall_score": float(lens_block["overall_score"]),
+        "overall_score": overall,
         "pillar_scores": lens_block["pillar_scores"],
         "findings": lens_findings,
         "heuristic_findings": heuristic_findings,
@@ -97,6 +99,6 @@ async def score_xml(
         "source_of_truth": "offline_lens",
         "lens_note": f"agent_fallback_heuristic:{lens_error}" if lens_error else None,
         "high_risk_count": high_risk_count,
-        "passed": high_risk_count == 0,
-        "score_at_or_above_target": float(lens_block["overall_score"]) >= TARGET_SCORE,
+        "passed": high_risk_count == 0 and score_ok,
+        "score_at_or_above_target": score_ok,
     }

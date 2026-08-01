@@ -22,6 +22,9 @@ interface ChatBoxProps {
   canReview?: boolean;
   /** 目前登入使用者顯示名（頭像文字） */
   userDisplayName?: string | null;
+  /** 收合對話面板，讓架構圖佔滿剩餘寬度 */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 function avatarInitials(name: string | null | undefined): string {
@@ -44,6 +47,8 @@ export const ChatBox = ({
   canEdit = true,
   canReview = false,
   userDisplayName = null,
+  collapsed = false,
+  onToggleCollapsed,
 }: ChatBoxProps) => {
   const userLabel = avatarInitials(userDisplayName);
   const [prompt, setPrompt] = useState('');
@@ -70,32 +75,96 @@ export const ChatBox = ({
     }
   }, [messages, isGenerating]);
 
-  return (
-    <div className="flex flex-col h-full bg-[#fcfdff] border-r border-gray-200/60 w-[420px] relative z-10 shadow-[8px_0_30px_rgba(0,0,0,0.015)]">
-      {/* Header */}
-      <div className="h-20 flex items-center justify-between px-8 border-b border-gray-100 bg-white/80 backdrop-blur-md shrink-0">
-        <div>
-          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 架構助理</h2>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium">多角色協同設計與自然語言建模</p>
+  if (collapsed) {
+    return (
+      <div className="flex flex-col h-full w-12 shrink-0 bg-[#fcfdff] border-r border-gray-200/60 relative z-10 shadow-[8px_0_30px_rgba(0,0,0,0.015)]">
+        <div className="flex flex-col items-center gap-3 py-4 h-full">
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="w-9 h-9 rounded-xl bg-white border border-gray-200 text-brand-600 hover:bg-brand-50 hover:border-brand-200 shadow-sm flex items-center justify-center transition-colors"
+            title="展開對話面板"
+            aria-label="展開對話面板"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M13 5l7 7-7 7M5 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+          <div className="flex-1 flex items-center justify-center min-h-0" aria-hidden>
+            <span
+              className="text-[11px] font-bold tracking-widest text-gray-400 select-none"
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              AI 對話
+            </span>
+          </div>
+          {isGenerating && (
+            <div
+              className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse mb-2"
+              title={progress || '產生中'}
+            />
+          )}
+          {messages.length > 1 && (
+            <span className="mb-2 text-[10px] font-bold text-gray-400 tabular-nums">
+              {messages.length}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-[#fcfdff] border-r border-gray-200/60 w-[420px] shrink-0 relative z-10 shadow-[8px_0_30px_rgba(0,0,0,0.015)]">
+      {/* Header */}
+      <div className="h-20 flex items-center justify-between px-6 border-b border-gray-100 bg-white/80 backdrop-blur-md shrink-0 gap-2">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 架構助理</h2>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium truncate">
+            多角色協同設計與自然語言建模
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
           {canEdit && (
             <>
               <button
                 onClick={onClearChat}
-                className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-3 py-2 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
+                className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-2.5 py-1.5 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
                 title="清空此架構圖的對話紀錄（不會刪除架構圖）"
               >
                 清空對話
               </button>
               <button
                 onClick={onFullReset}
-                className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-3 py-2 rounded-full border border-gray-200 transition-all duration-300"
+                className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-2.5 py-1.5 rounded-full border border-gray-200 transition-all duration-300"
                 title="清空畫布與對話（全部重置）"
               >
                 全部重置
               </button>
             </>
+          )}
+          {onToggleCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="ml-0.5 w-8 h-8 rounded-lg text-gray-500 hover:text-brand-700 hover:bg-brand-50 border border-transparent hover:border-brand-100 flex items-center justify-center transition-colors"
+              title="收合對話面板，放大架構圖"
+              aria-label="收合對話面板"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
+              </svg>
+            </button>
           )}
         </div>
       </div>

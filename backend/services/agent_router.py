@@ -105,8 +105,8 @@ async def chat_and_generate_wa_collab(
     db: Session = Depends(get_db),
 ):
     """
-    A1↔A3 Multi-Agent：Design 與 Review 對話，目標 lens ≥ 80（最多 2 輪）。
-    回傳 xml_preview；前端需使用者「套用」後才寫入畫布。
+    A1↔A3 Multi-Agent：Design 與 Review 對話，目標無 HIGH_RISK 且分數 ≥ 80（最多 2 輪）。
+    回傳 xml_preview；Assessment 優化流程可草稿後再確認儲存。
     """
     if not request.messages:
         raise HTTPException(status_code=400, detail="對話不可為空")

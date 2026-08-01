@@ -18,6 +18,8 @@ interface DrawioCanvasProps {
   saveStatus?: DiagramSaveStatus;
   /** 僅檢視／審核：禁止操作畫布與儲存 */
   readOnly?: boolean;
+  /** 外層版面寬度變更時遞增，觸發 draw.io iframe 重新適配 */
+  layoutEpoch?: number;
   /** 標題列正中央插槽（例如歷史架構圖選單），避免浮層擋住標題 */
   headerCenter?: ReactNode;
   /** 標題列下方提示條（例如僅檢視橫幅） */
@@ -63,6 +65,7 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
       diagramTitle = '未命名架構圖',
       saveStatus = 'unsaved',
       readOnly = false,
+      layoutEpoch = 0,
       headerCenter,
       headerBanner,
       onLoadComplete,
@@ -92,6 +95,20 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
         latestXmlRef.current = xml;
       }
     }, [xml]);
+
+    // 對話面板收合／展開後，通知 embed 重新計算畫布尺寸
+    useEffect(() => {
+      if (!isReady || !iframeRef.current || layoutEpoch <= 0) return;
+      window.dispatchEvent(new Event('resize'));
+      try {
+        iframeRef.current.contentWindow?.postMessage(
+          JSON.stringify({ action: 'status', messageKey: 'resize', modified: false }),
+          '*',
+        );
+      } catch {
+        /* ignore */
+      }
+    }, [layoutEpoch, isReady]);
 
     useImperativeHandle(
       ref,

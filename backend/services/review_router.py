@@ -281,6 +281,107 @@ def get_review(
     return review_to_dict(row, include_xml=True)
 
 
+class PersistReviewDiagramBody(BaseModel):
+    title: Optional[str] = None
+    xml_data: Optional[str] = None
+
+
+@router.post("/reviews/{review_id}/persist-diagram")
+def persist_review_diagram(
+    review_id: int,
+    body: PersistReviewDiagramBody,
+    current_user: User = Depends(require_story_action("A3", "edit")),
+    db: Session = Depends(get_db),
+):
+    """上傳評核後尚未建檔：建立架構圖並將評核綁定到該圖（一次存圖＋評核）。"""
+    if not user_can_arch(
+        db,
+        current_user.role,
+        "edit",
+        authorization_status=getattr(current_user, "authorization_status", "approved"),
+    ):
+        raise HTTPException(status_code=403, detail="儲存架構圖需要架構圖編輯權限")
+
+    row = db.query(ArchitectureReview).filter(ArchitectureReview.id == review_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="評核不存在")
+    if row.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="僅評核建立者可儲存此未建檔評核")
+    if row.archived:
+        raise HTTPException(status_code=400, detail="已刪除的評核無法再儲存")
+
+    if row.diagram_id is not None:
+        return {
+            "diagram_id": row.diagram_id,
+            "review_id": row.id,
+            "already_persisted": True,
+            "review": review_to_dict(row),
+        }
+
+    xml = (body.xml_data or row.xml_snapshot or "").strip()
+    if not xml:
+        raise HTTPException(status_code=400, detail="缺少架構圖 XML，無法儲存")
+    _validate_xml(xml)
+    title = (body.title or "").strip() or "上傳的架構圖"
+
+    diagram = UserDiagram(
+        user_id=current_user.id,
+        title=title,
+        xml_data=xml,
+    )
+    db.add(diagram)
+    db.flush()
+    row.diagram_id = diagram.id
+    if not row.xml_snapshot:
+        row.xml_snapshot = xml
+    current_user.last_opened_diagram_id = diagram.id
+    db.commit()
+    db.refresh(row)
+    audit_log(
+        "review_persist_diagram",
+        user_id=current_user.id,
+        review_id=row.id,
+        diagram_id=diagram.id,
+    )
+    return {
+        "diagram_id": diagram.id,
+        "review_id": row.id,
+        "already_persisted": False,
+        "review": review_to_dict(row),
+    }
+
+
+@router.delete("/reviews/{review_id}")
+def delete_review(
+    review_id: int,
+    current_user: User = Depends(require_story_action("A3", "edit")),
+    db: Session = Depends(get_db),
+):
+    """刪除評核結果（軟刪除：archived=true，自列表隱藏）。"""
+    row = db.query(ArchitectureReview).filter(ArchitectureReview.id == review_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="評核不存在")
+    if not user_can_read_review(db, current_user, row):
+        raise HTTPException(status_code=403, detail="無法存取此評核")
+
+    allowed = row.created_by == current_user.id
+    if not allowed and row.diagram_id is not None:
+        diagram = get_accessible_diagram(db, current_user, row.diagram_id)
+        allowed = bool(diagram and diagram.user_id == current_user.id)
+    if not allowed:
+        raise HTTPException(status_code=403, detail="僅評核建立者或架構圖擁有者可刪除")
+
+    row.archived = True
+    db.commit()
+    audit_log(
+        "review_delete",
+        user_id=current_user.id,
+        review_id=row.id,
+        diagram_id=row.diagram_id,
+    )
+    return {"status": "success", "review_id": review_id, "archived": True}
+
+
 class RenderDiagramBody(BaseModel):
     xml_data: str = Field(..., min_length=1)
 
