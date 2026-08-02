@@ -6,24 +6,26 @@
 
 ## Way of Working
 
-We use **trunk-based development**. All work merges to `main` via
-short-lived feature branches (typically resolved within 1-2 days).
-Long-lived branches accumulate merge debt; we avoid them.
+We use **trunk-based development** with `ut` as the integration trunk.
+All work merges to `ut` via short-lived feature branches (typically
+resolved within 1-2 days). Long-lived branches accumulate merge debt; we
+avoid them.
 
-For Construction worktrees, the worktree base branch is `main` and the
-merge target is `main`.
+For Construction worktrees, the worktree base branch is `ut` and the
+merge target is `ut`.
 
-If our project requires multiple environments (staging, production), we
-still keep one trunk and gate releases via tags or environment-specific
-deployment configs — not via long-lived release branches.
+`main` is the outward-facing release line, not a second trunk. It
+receives merges from `ut`, never direct feature work. We keep one trunk
+and gate releases via tags or environment-specific deployment configs —
+not via long-lived release branches.
 
-We **squash-merge** Bolt branches into `main`. Each Bolt becomes one
+We **squash-merge** Bolt branches into `ut`. Each Bolt becomes one
 commit on the trunk, named by the Bolt slug, with the full Bolt commit
 history preserved on the source branch until the worktree is discarded.
 
-Squash gives us a clean linear `main` history that maps 1:1 to
+Squash gives us a clean linear `ut` history that maps 1:1 to
 delivery-planning's Bolt sequence. We accept the trade-off of losing
-intermediate commits on `main` because the audit log preserves the full
+intermediate commits on `ut` because the audit log preserves the full
 event sequence anyway.
 
 ## Walking Skeleton
@@ -60,13 +62,18 @@ Affirm a stricter posture in `team.md` if the team commits to one.
 
 ## Deployment
 
-We **deploy on merge** to staging environments. Production deploys gate
-on a separate manual approval — typically tech lead + product owner
-sign-off in CodePipeline or a CD platform's environment protection.
+We **deploy on merge** to staging. A merge into `ut` triggers
+`.github/workflows/deploy.yml`, which ships to our self-hosted staging
+host (`192.168.10.10`), exposed publicly as `cloud360.danniel.cc`
+through a Cloudflare Tunnel. See ADR-0007.
 
-Teams that have invested in test coverage and observability sometimes
-graduate to continuous deployment to production (every commit
-auto-deploys); that's a team decision, not a framework default.
+Cloud-provider **production is out of scope** for this repository (see
+ADR-0001 / ADR-0002). There is no production deploy target to gate; any
+change to that boundary needs a new ADR, not a config tweak.
+
+Any high-risk action — IaC apply, IAM change, destructive cloud
+operation — requires a plan + impact assessment + rollback path and a
+human approval gate before execution.
 
 ## Code Style
 

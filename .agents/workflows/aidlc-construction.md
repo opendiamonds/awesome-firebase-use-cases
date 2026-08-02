@@ -4,11 +4,9 @@ description: AI-DLC Construction workflow for implementation and code generation
 
 現在進入 Construction Phase。
 
-請調用：
+請調用 `aidlc/spaces/<active-space>/memory/phases/construction.md` 的階段護欄，以及 `team.md` / `project.md` 的專案規則。實際啟用的 stage 集合以 `/aidlc --doctor` 或編譯後的 `.claude/tools/data/stage-graph.json` 為準。
 
-`.aidlc/aidlc-rules/aws-aidlc-rule-details/construction/`
-
-下的所有規範。
+> 注意：本專案的 Construction 與 Operations 是**連續**的，不是依序交棒（ADR-0008，見 `project.md` 的 `## Deployment`）。部署、回滾、觀測與 code 實作屬同一條 pipeline。
 
 請依照 AI-DLC Construction Phase 執行：
 
@@ -41,6 +39,7 @@ Code Generation Plan
 - 更新 tests
 - 更新文件
 - 更新 audit.md
+- 若異動 DB schema 或部署必知的 seed 行為，同步更新 `schema_rbac.sql` 與 `DEPLOY.md`（blocking，見 `project.md` 的 `## Mandated`）
 
 所有產出：
 - 使用繁體中文
