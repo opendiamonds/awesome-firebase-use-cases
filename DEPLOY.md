@@ -149,7 +149,7 @@ npm run build
 schema_rbac.sql
 ```
 
-補充說明：`aidlc-docs/construction/plans/schema-rbac-notes.md`  
+補充說明：`aidlc/spaces/default/intents/260802-default/construction/plans/schema-rbac-notes.md`  
 （`schema.sql` 僅核心 DDL 參考，**完整新環境請用 `schema_rbac.sql`**。）
 
 執行：
@@ -334,13 +334,13 @@ docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec b
 | 文件 | 說明 |
 |---|---|
 | `schema_rbac.sql` | **建表 + 預設資料（含角色矩陣）** |
-| `aidlc-docs/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
-| `aidlc-docs/construction/plans/role-permission-design.md` | 角色／細項語意 |
+| `aidlc/spaces/default/intents/260802-default/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
+| `aidlc/spaces/default/intents/260802-default/construction/plans/role-permission-design.md` | 角色／細項語意 |
 | `backend/.env.example`、`frontend/.env.example`、`deploy/.env.example` | 環境變數範本 |
 | `backend/Dockerfile` | 內建 Node 22 ＋ Claude Code CLI |
 | `deploy/docker-compose.deploy.yml` | staging／自架 compose |
 | `.github/workflows/deploy.yml` | `ut` → 192.168.10.10 自動部署 |
-| `aidlc-docs/construction/a1/code/a1-a3-multi-agent-summary.md` | A1↔A3 協作實作摘要 |
+| `aidlc/spaces/default/intents/260802-default/construction/a1/code-generation/a1-a3-multi-agent-summary.md` | A1↔A3 協作實作摘要 |
 
 ---
 

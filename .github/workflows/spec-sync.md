@@ -6,8 +6,8 @@ on:
     branches:
       - ut
     paths:
-      - "aidlc-docs/inception/application-design/frontend-backend-specification.md"
-      - "aidlc-docs/construction/database-schema.md"
+      - "aidlc/spaces/*/intents/*/inception/application-design/frontend-backend-specification.md"
+      - "aidlc/spaces/*/intents/*/construction/database-schema.md"
   workflow_dispatch:
 
 permissions:
@@ -42,11 +42,11 @@ safe-outputs:
 
 # Spec Sync
 
-Cloud-360 follows Spec-Driven Development: the specs in `aidlc-docs/` are the contract, and the code must conform to them — not the other way around. When a spec that maps directly to code changes, your job is to check whether the code still honours it, and if not, to write down exactly what code must change.
+Cloud-360 follows Spec-Driven Development: the specs in the active AI-DLC intent record (`aidlc/spaces/<space>/intents/<record>/`, shorthand `<record>/`) are the contract, and the code must conform to them — not the other way around. When a spec that maps directly to code changes, your job is to check whether the code still honours it, and if not, to write down exactly what code must change.
 
 You run after a push to `ut` that touched one of:
-- `aidlc-docs/inception/application-design/frontend-backend-specification.md` — API contracts, component design, ORM models
-- `aidlc-docs/construction/database-schema.md` — tables, columns, relationships
+- `<record>/inception/application-design/frontend-backend-specification.md` — API contracts, component design, ORM models
+- `<record>/construction/database-schema.md` — tables, columns, relationships
 
 You **do not change code** and you **do not open a pull request**. You open one issue describing the drift, for a human to implement (this respects the AIDLC human gate on code generation).
 
@@ -54,7 +54,7 @@ You **do not change code** and you **do not open a pull request**. You open one 
 
 ```
 git log -1 --stat
-git diff HEAD~1...HEAD -- aidlc-docs/inception/application-design/frontend-backend-specification.md aidlc-docs/construction/database-schema.md
+git diff HEAD~1...HEAD -- 'aidlc/spaces/*/intents/*/inception/application-design/frontend-backend-specification.md' 'aidlc/spaces/*/intents/*/construction/database-schema.md'
 ```
 
 Read only the spec diff. Work out what the change *requires of the code* — a new API field, a new route, a changed request/response shape, a new table or column, a changed permission rule, a new component behaviour.

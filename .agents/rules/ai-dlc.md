@@ -1,9 +1,11 @@
 # AI-DLC Workflow
 
-When the user invokes AI-DLC, read and follow `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` to start the workflow.
-Also, read and follow all markdown rule files in the `.aidlc-overrides/` directory (including `README.md`, `branch-naming.md`, and `decisions-log.md`).
+本專案採用 AI-DLC v2。
 
-## 中文版
+當使用者啟用 AI-DLC 時：
 
-當使用者啟用 AI-DLC 時，請閱讀並遵循 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` 來啟動工作流程。
-同時，請閱讀並遵循 `.aidlc-overrides/` 目錄中的三個 Markdown 規則檔（包含 `README.md`、`branch-naming.md` 與 `decisions-log.md`）。
+1. 讀取並遵循 `.claude/skills/aidlc/SKILL.md`（框架結構見 `.claude/CLAUDE.md`）。
+2. 讀取 `aidlc/spaces/<active-space>/memory/` 的規則層，順序為 `org.md` → `team.md` → `project.md` → `phases/<phase>.md`，strict-additive：較窄的層只能疊加，不得與較寬的層矛盾。
+3. 新增專案規則一律寫進 `team.md` / `project.md`，不要改 `.claude/` 內的 upstream 檔（升級時會被整批覆蓋）。
+
+專案指引全文見 `CLAUDE.md`。所有回應與文件產出使用繁體中文；程式碼、變數、API、識別字維持英文。

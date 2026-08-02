@@ -47,7 +47,7 @@ flowchart TB
     Tools --> Azure[Azure]
 ```
 
-完整架構說明請見 [System Architecture](aidlc-docs/inception/application-design/system-architecture.md)。
+完整架構說明請見 [System Architecture](aidlc/spaces/default/intents/260802-default/inception/application-design/system-architecture.md)。
 
 ## Core Modules
 
@@ -137,20 +137,21 @@ Cloud-360 內建 MCP 與 Skill 管理功能，用來治理平台可呼叫的工�
 
 ## Documentation
 
-Cloud-360 的文件統一存放於 `aidlc-docs/` 目錄，由 AIDLC 各階段自動產生與維護。
-All Cloud-360 documents are maintained under `aidlc-docs/`, generated and updated by AIDLC workflow stages.
+Cloud-360 的文件由 AI-DLC 各階段產生與維護，存放在作用中 intent 的 record 目錄下：`aidlc/spaces/<space>/intents/<record>/`。目前的 baseline record 是 `aidlc/spaces/default/intents/260802-default/`（見 ADR-0011；v2 之前為扁平的 `aidlc-docs/`）。
+Cloud-360 documents live under the active intent's record directory, `aidlc/spaces/<space>/intents/<record>/`, generated and updated by AI-DLC workflow stages.
 
-- [AIDLC Docs Index](aidlc-docs/README.md)
-- [System Requirement Specification](aidlc-docs/inception/requirements/cloud-360-srs.md)
-- [System Architecture](aidlc-docs/inception/application-design/system-architecture.md)
-- [User Stories](aidlc-docs/inception/user-stories/stories.md)
-- [User Personas](aidlc-docs/inception/user-stories/personas.md)
-- [ADR 0001: Repository Scope](aidlc-docs/inception/decisions/0001-repo-scope.md)
-- [ADR 0002: Agent Routing Layer](aidlc-docs/inception/decisions/0002-agent-routing-layer.md)
-- [ADR 0003: Web-Based Desktop and Mobile Experience](aidlc-docs/inception/decisions/0003-web-based-experience.md)
-- [ADR 0004: MCP and Skill Management](aidlc-docs/inception/decisions/0004-mcp-skill-management.md)
-- [ADR 0005: Bilingual Documentation](aidlc-docs/inception/decisions/0005-bilingual-documentation.md)
-- [ADR 0006: Adopt AIDLC Framework](aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md)
+- [AI-DLC Record Index](aidlc/spaces/default/intents/260802-default/README.md)
+- [System Requirement Specification](aidlc/spaces/default/intents/260802-default/inception/requirements-analysis/cloud-360-srs.md)
+- [System Architecture](aidlc/spaces/default/intents/260802-default/inception/application-design/system-architecture.md)
+- [User Stories](aidlc/spaces/default/intents/260802-default/inception/user-stories/stories.md)
+- [User Personas](aidlc/spaces/default/intents/260802-default/inception/user-stories/personas.md)
+- [ADR 0001: Repository Scope](aidlc/spaces/default/intents/260802-default/inception/decisions/0001-repo-scope.md)
+- [ADR 0002: Agent Routing Layer](aidlc/spaces/default/intents/260802-default/inception/decisions/0002-agent-routing-layer.md)
+- [ADR 0003: Web-Based Desktop and Mobile Experience](aidlc/spaces/default/intents/260802-default/inception/decisions/0003-web-based-experience.md)
+- [ADR 0004: MCP and Skill Management](aidlc/spaces/default/intents/260802-default/inception/decisions/0004-mcp-skill-management.md)
+- [ADR 0005: Bilingual Documentation](aidlc/spaces/default/intents/260802-default/inception/decisions/0005-bilingual-documentation.md)
+- [ADR 0006: Adopt AIDLC Framework](aidlc/spaces/default/intents/260802-default/inception/decisions/0006-adopt-aidlc-framework.md)
+- [ADR 0011: Adopt AI-DLC v2](aidlc/spaces/default/intents/260802-default/inception/decisions/0011-adopt-aidlc-v2.md)
 
 ## Repository Contract
 
@@ -168,6 +169,6 @@ Production credentials, environment-specific secrets, direct production IaC, and
 ## Validation
 
 ```bash
-python scripts/validate_repo_contract.py
+python3 scripts/validate_repo_contract.py
 git diff --check
 ```

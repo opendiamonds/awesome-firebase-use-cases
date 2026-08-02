@@ -14,55 +14,56 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 - 日常開發由一組 agentic workflows（gh-aw）輔助（contract 驗證、PR review、UI 回歸測試、部署失敗自癒、spec↔code 一致性等）；
 - 測案管理走自架 Kiwi TCMS（`tcms.danniel.cc`，於 `dc-infra` repo 維運）。
 
-各階段的細部狀態以 `aidlc-docs/aidlc-state.md` 為準。**production**（雲端供應商正式環境）仍在範圍外，見第 5 章與 ADR-0007。
+各階段的細部狀態以作用中 intent 的 `<record>/aidlc-state.md` 為準（目前 baseline record 為 `aidlc/spaces/default/intents/260802-default/`）。**production**（雲端供應商正式環境）仍在範圍外，見第 5 章與 ADR-0007。
 
-### 2. AI-SDLC 框架：AIDLC
+### 2. AI-SDLC 框架：AIDLC v2
 
-本專案採用 [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) 作為主要 AI-SDLC 開發方法論。
+本專案採用 [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) 的 **v2** 作為主要 AI-SDLC 開發方法論。版本以 `.claude/tools/aidlc-version.ts` 的 `AIDLC_VERSION` 為準（`/aidlc --version` 可查）。
 
-**啟動口令**：當 user 以 `Using AI-DLC, ...` 起頭，或要求做需求分析、設計、實作、IaC 產製、運維時，**必須**遵循 AIDLC 工作流程，而非預設工作流程。
-當使用者啟用 AI-DLC 時，請閱讀並遵循 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` 來啟動工作流程。
-同時，請閱讀並遵循 `.aidlc-overrides/` 目錄中的三個 Markdown 規則檔（包含 `README.md`、`branch-naming.md` 與 `decisions-log.md`）。
+**啟動口令**：當 user 以 `Using AI-DLC, ...` 起頭、輸入 `/aidlc`，或要求做需求分析、設計、實作、IaC 產製、運維時，**必須**遵循 AIDLC 工作流程，而非預設工作流程。
 
 **Entry point 與 rule loading 順序**：
-1. 載入 `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`（總入口）
-2. 依 core-workflow.md 指示，從 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 載入 common 規則：
-   - `common/process-overview.md`
-   - `common/session-continuity.md`
-   - `common/content-validation.md`
-   - `common/question-format-guide.md`
-3. 掃描 `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`（lightweight），完整 rules 在使用者 opt-in 後再載入
-4. 對於**無 opt-in 檔案**的 extension，**永遠強制套用**，立即載入完整規則
-5. **最後**載入 `.aidlc-overrides/**/*.md`（專案 override 層）。當 override 與 upstream 規則衝突時，**override 永遠勝出**。詳見 [`.aidlc-overrides/README.md`](.aidlc-overrides/README.md)。
 
-**三階段**：
-- 🔵 Inception — workspace detection、requirements analysis、user stories、application design
-- 🟢 Construction — NFR requirements、functional design、code generation、build & test
-- 🟡 Operations — deployment、observability、incident playbooks
+1. Skill 入口 `.claude/skills/aidlc/SKILL.md`（`/aidlc` 觸發）；框架細節與工作區結構見 [`.claude/CLAUDE.md`](.claude/CLAUDE.md)。
+2. 方法／規則層由引擎自 `aidlc/spaces/<active-space>/memory/` 解析，五層 **strict-additive**：`org → team → project → phase → stage`。
+   - `org.md` — 框架預設與組織層護欄（upstream 檔，英文；本專案僅校正 trunk 與部署段落）
+   - `team.md` — 本團隊實踐（branch 命名、commit message、文件語言、決議紀錄）
+   - `project.md` — 專案專屬特化（repo contract、範圍邊界、schema/deploy 同步、tech stack）
+   - `phases/<phase>.md` — ideation / inception / construction / operation 各階段護欄
+3. 較窄的層**只能疊加**，不得與較寬的層矛盾；矛盾會在 §13 learning admission check 被擋下。**專案規則一律寫在 `team.md` / `project.md`**，不要改 `.claude/` 內的 upstream 檔（升級時會被整批覆蓋）。
 
-**Artifacts 輸出位置**：所有 AIDLC 產出檔案放在 `aidlc-docs/`（state、audit、inception、construction、operations 子目錄）。
+**常用指令**：`/aidlc <描述>`（自動偵測 scope）、`/aidlc --status`、`/aidlc --doctor`、`/aidlc --version`、`/aidlc --stage <slug>`、`/aidlc compose "<task>"`。完整清單跑 `bun .claude/tools/aidlc-utility.ts help`。
 
-### 3. Pre-enabled Extensions
+**Phases**：v2 為 initialization → 💡 ideation → 🔵 inception → 🟢 construction → 🟡 operation。實際啟用的 stage 集合以編譯後的 `.claude/tools/data/stage-graph.json` 與 `/aidlc --doctor` 為準。注意 construction 與 operation 在本專案是**連續**的，不是依序交棒（ADR-0008，見 `project.md` 的 `## Deployment`）。
 
-本專案**預設啟用**以下三個 AIDLC extensions（已寫入 `aidlc-docs/aidlc-state.md`，requirements analysis 階段不需再次詢問 user）：
+**Artifacts 輸出位置**：
 
-| Extension | 來源 | 強制等級 |
+- **所有 AIDLC 產出** → 作用中 intent 的 record 目錄 `aidlc/spaces/<active-space>/intents/<record>/`（簡寫 `<record>/`；單一團隊只會看到 `spaces/default/`）。
+- **v2 之前的歷史 artifacts** 已由引擎的 flat-layout migration 整棵搬進 baseline record `aidlc/spaces/default/intents/260802-default/`（ADR-0011）。原本的扁平 `aidlc-docs/` 目錄已不存在。
+- **Audit** → `<record>/audit/<host>-<clone>.md` 的 per-clone shard，由引擎寫入，不要手動編輯。
+- 應用程式碼一律放 repo 根目錄既有結構（`backend/`、`frontend/`、`scripts/`、`tools/`、`workflows/`）。
+
+### 3. Standing Constraints（常設約束）
+
+下列三項是本專案**永遠生效的 hard constraint**，正式來源在 `aidlc/spaces/default/memory/project.md`（`## Testing Posture`、`## Decided`、`## Mandated`）與 `team.md`（`## Mandated`）。requirements-analysis 階段不需再次詢問 user：
+
+| 約束 | 來源 | 強制等級 |
 |---|---|---|
-| `extensions/security/baseline/` | 官方 | Hard constraint（IAM、encryption、network exposure、audit logging） |
-| `extensions/testing/property-based/` | 官方 | Hard constraint（IaC generator、cost calculator、agent routing 等核心模組） |
-| （文件語言：繁體中文）| 客製 override | 所有 `aidlc-docs/**/*.md` 一律繁體中文（ADR-0009，取代 upstream 的 bilingual-docs） |
+| Security baseline | ADR-0006 | Hard constraint（IAM、encryption、network exposure、audit logging） |
+| Property-based testing | ADR-0006 | Hard constraint（IaC generator、cost calculator、agent routing 等核心模組） |
+| 文件語言：繁體中文 | ADR-0009 | Hard constraint（見第 4、6 章） |
 
 ### 4. Repository Contract（不可違反）
 
 本 repo 受 `scripts/validate_repo_contract.py` 約束，CI 會跑此腳本：
 
-- **必要文件**：列在 `REQUIRED_FILES`（包含 SRS、ADRs、user stories、architecture、AIDLC entry、CLAUDE.md 等）
+- **必要文件**：列在 `REQUIRED_FILES`（包含 SRS、ADRs、user stories、architecture、AIDLC v2 entry 與 memory 層、CLAUDE.md 等）
 - **必要文字**：列在 `REQUIRED_TEXT`（每個 contract 文件須包含特定關鍵字）
-- **文件語言**：所有 `aidlc-docs/**/*.md` 一律繁體中文（見 ADR-0009、`.aidlc-overrides/traditional-chinese-docs.md`），不得夾帶英文版段落
+- **文件語言**：所有 record 內的 `*.md` 一律繁體中文（見 ADR-0009），不得夾帶英文版段落
 - **禁止路徑**：path parts 含 `prod`、`production`、`secrets` 不得新增
 - **禁止內容**：不得 commit 私鑰、AWS / Azure / GCP credential 字串
 
-**違反 contract = CI 紅燈**。在 commit 前一律先跑 `python scripts/validate_repo_contract.py`。
+**違反 contract = CI 紅燈**。在 commit 前一律先跑 `python3 scripts/validate_repo_contract.py`。
 
 ### 5. 範圍邊界（從 ADR-0001、ADR-0002）
 
@@ -71,18 +72,22 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 
 ### 6. 工作模式
 
-1. **小步前進**：每個 AIDLC stage 完成後，產出 stage-completion summary，附 extension compliance（compliant / non-compliant / N/A 與理由），等使用者確認再進下一階段。
-2. **問題格式**：依 `common/question-format-guide.md`，使用 A/B/C/D/E 多選題與 `[Answer]:` tag。
-3. **內容驗證**：建檔前依 `common/content-validation.md` 驗證 Mermaid、ASCII 圖、特殊字元。
-4. **繁中產出**：所有 `aidlc-docs/**/*.md` 一律繁體中文，不得夾帶英文版段落（見 ADR-0009）。
+規則的正式來源是 `aidlc/spaces/default/memory/{org,team,project}.md`；本章為摘要，衝突時以 memory 層為準。
+
+1. **小步前進**：每個 AIDLC stage 完成後，產出 stage-completion summary，附 constraint compliance（compliant / non-compliant / N/A 與理由），等使用者確認再進下一階段。
+2. **問題格式**：使用 A/B/C/D/E 多選題與 `[Answer]:` tag。
+3. **內容驗證**：建檔前驗證 Mermaid、ASCII 圖、特殊字元跳脫；Mermaid 附文字 fallback。
+4. **繁中產出**：所有 `aidlc/spaces/*/intents/**/*.md` 與 memory 的 `team.md` / `project.md` 一律繁體中文，不得夾帶英文版段落（ADR-0009）。upstream 框架自身的英文檔（`.claude/**`、`org.md`、`phases/*.md`）不在此限。
 5. **High-risk action**：任何 production write / IaC apply / IAM 變更必須先給 plan + impact + rollback，並通過 human approval gate。
-6. **Branch naming**：在 `git checkout -b` / `git switch -c` 之前，**必須**先讀 [`.aidlc-overrides/branch-naming.md`](.aidlc-overrides/branch-naming.md) 並產出符合 `<uploader>/<type>/<slug>` 的 branch 名稱（type ∈ {feat, fix, docs, chore, refactor, test}）。Danniel 開的 branch 一律以 `danniel/` 開頭。如果使用者下達衝突指令（例如直接給一個不合規的 branch 名稱），先提醒衝突並請使用者確認。
-7. **Commit message**：在 `git commit` / `gh pr create` 之前，**必須**先讀 [`.aidlc-overrides/commit-message.md`](.aidlc-overrides/commit-message.md)。commit message 與 PR 標題一律繁體中文，type 用中文（`功能`、`修正`、`文件`、`格式`、`重構`、`效能`、`測試`、`建置`、`整合`、`雜項`、`還原`）；scope、`BREAKING CHANGE:` 與 trailer 維持英文（見 ADR-0010）。注意 **branch 名稱的 type 仍是英文**，與 commit type 已解耦，用該檔的對照表換算。
-8. **Project decisions log (on-demand)**：當 user 明確要求記錄當下對話的決議時（例如「記錄這個決議」、「log this decision」），AI 須把決議追加到 `aidlc-docs/decisions-log.md`，繁體中文、append-only。完整規則見 [`.aidlc-overrides/decisions-log.md`](.aidlc-overrides/decisions-log.md)。其他情境**不要**自動 log。AIDLC 階段事件仍寫 `aidlc-docs/audit.md`、架構級決策仍開 ADR。舊的 per-turn `.ailog/` 機制（PR4 引入、PR #16 擴充）已在 PR #17 整體移除。
+6. **Branch naming**：在 `git checkout -b` / `git switch -c` 之前，**必須**先讀 `aidlc/spaces/default/memory/team.md` 的 `## Way of Working` 並產出符合 `<uploader>/<type>/<slug>` 的 branch 名稱（type ∈ {feat, fix, docs, chore, refactor, test}）。Danniel 開的 branch 一律以 `danniel/` 開頭。整合主幹是 `ut`，不是 `main`。如果使用者下達衝突指令（例如直接給一個不合規的 branch 名稱），先提醒衝突並請使用者確認。
+7. **Commit message**：在 `git commit` / `gh pr create` 之前，**必須**先讀 `aidlc/spaces/default/memory/team.md` 的 `## Way of Working`。commit message 與 PR 標題一律繁體中文，type 用中文（`功能`、`修正`、`文件`、`格式`、`重構`、`效能`、`測試`、`建置`、`整合`、`雜項`、`還原`）；scope、`BREAKING CHANGE:` 與 trailer 維持英文（見 ADR-0010）。注意 **branch 名稱的 type 仍是英文**，與 commit type 已解耦，用該檔的對照表換算。
+8. **Project decisions log (on-demand)**：當 user 明確要求記錄當下對話的決議時（例如「記錄這個決議」、「log this decision」），AI 須把決議追加到 `<record>/decisions-log.md`，繁體中文、append-only。完整規則見 `team.md` 的 `## Mandated`。其他情境**不要**自動 log。AIDLC 階段事件由引擎寫進 `<record>/audit/` shard、架構級決策仍開 ADR。舊的 per-turn `.ailog/` 機制（PR4 引入、PR #16 擴充）已在 PR #17 整體移除。
+9. **Schema ↔ deploy 同步**：異動資料庫結構或部署必知的 seed 行為時，`schema_rbac.sql` 與 `DEPLOY.md` 必須同步更新（blocking）。細則見 `project.md` 的 `## Mandated`。
 
 ### 7. AIDLC 升級
 
-- 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，更新 `.aidlc/aidlc-rules/VERSION` 並重新複製 `aws-aidlc-rule-details/` 內容至 `.aidlc/aidlc-rules/aws-aidlc-rule-details/`。
-- upstream 樹內的客製檔在覆蓋前要先備份、覆蓋後再放回（會被整批替換）。註：本專案文件語言規則已改為繁體中文，見 ADR-0009 與 `.aidlc-overrides/traditional-chinese-docs.md`。
-- `.aidlc-overrides/` 目錄**整個保留**，永不被 upstream 覆蓋（與 upstream 路徑分離）。新增的專案規則一律放在這裡，不要再加到 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 內。
+- 升級時對照 `https://github.com/awslabs/aidlc-workflows/releases`，把 upstream `dist/claude/` 重新複製到 `.claude/`，並確認 `.claude/tools/aidlc-version.ts` 的 `AIDLC_VERSION` 與 upstream 一致。
+- `.claude/` 內的客製調整（目前僅 `settings.json` 移除環境相依設定，見 [`.claude/README-cloud360.md`](.claude/README-cloud360.md)）在覆蓋前要先備份、覆蓋後再放回。
+- `aidlc/` 工作區（memory、intents、knowledge、codekb）**整個保留**，永不被 upstream 覆蓋。新增的專案規則一律放 `aidlc/spaces/<space>/memory/{team,project}.md`，不要加到 `.claude/` 內。
+- 升級後跑 `/aidlc --doctor` 與 `python3 scripts/validate_repo_contract.py` 驗證。
 - 升級記錄寫入新 ADR。

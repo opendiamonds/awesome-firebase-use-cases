@@ -2,61 +2,41 @@
 description: 初始化 AIDLC 生命週期
 ---
 
-請重新載入所有規則與系統規範。
-
-初始化 AIDLC 生命週期。
-
-請依照下列順序執行：
+請重新載入所有規則與系統規範，初始化 AI-DLC v2 生命週期。
 
 ## 規則載入
 
-### 步驟 1：載入 AIDLC 入口
-載入：
-`.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`
+### 步驟 1：載入 AI-DLC 入口
+載入 `.claude/skills/aidlc/SKILL.md`（`/aidlc` 的 skill 入口）；框架結構與工作區慣例見 `.claude/CLAUDE.md`。
 
-### 步驟 2：載入 upstream 規則細節
-依序載入 `.aidlc/aidlc-rules/aws-aidlc-rule-details/` 下的規範：
-- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/process-overview.md`
-- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/session-continuity.md`
-- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/content-validation.md`
-- `.aidlc/aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md`
-- 掃描 `.aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/`，僅載入 `*.opt-in.md`
-- 無 opt-in 檔的 extension（如 `bilingual-docs/`）直接載入完整規則
+### 步驟 2：載入規則層
+依序載入 `aidlc/spaces/<active-space>/memory/` 下的五層 strict-additive chain：
 
-### 步驟 3：載入 Cloud-360 專屬 override（最後載入，優先權最高）
-依序載入以下 `.aidlc-overrides/` 檔案：
-- `.aidlc-overrides/README.md`
-- `.aidlc-overrides/branch-naming.md`（Cloud-360 分支命名規則）
-- `.aidlc-overrides/decisions-log.md`（決議記錄規則：僅在使用者明確要求時觸發）
+- `org.md`（框架預設與組織層護欄）
+- `team.md`（團隊實踐：branch 命名、commit message、文件語言、決議紀錄）
+- `project.md`（專案特化：repo contract、範圍邊界、schema/deploy 同步、tech stack）
+- `phases/<phase>.md`（ideation / inception / construction / operation 各階段護欄）
 
-當 override 與 upstream 規則衝突時，**override 永遠勝出**。
+較窄的層只能疊加，不得與較寬的層矛盾。
 
-### 步驟 4：顯示歡迎訊息
-顯示：
-`.aidlc/aidlc-rules/aws-aidlc-rule-details/common/welcome-message.md`
+### 步驟 3：確認框架健康
+執行 `/aidlc --doctor`（或 `bun .claude/tools/aidlc-utility.ts doctor`）確認 hooks、settings、stage graph 完整。
 
 ---
 
 ## 初始化流程
 
-5. 檢查：
-`aidlc-docs/audit.md`
-與
-`aidlc-docs/aidlc-state.md`
+4. 解析作用中 intent 的 record 目錄，確認 `<record>/aidlc-state.md` 存在；若無 intent，引擎會在首次描述需求時自動 birth。
 
-是否存在。
+5. 初始化紀錄由引擎寫入 `<record>/audit/` 的 per-clone shard，不要手動編輯。
 
-6. 若不存在則建立。
-
-7. 在 `aidlc-docs/audit.md` 新增初始化紀錄。
-
-8. 分析目前 workspace：
+6. 分析目前 workspace：
 - 是否為 brownfield
 - 現有技術架構
 - 現有 modules
 - frontend/backend/workflows structure
 
-9. 從現在開始：
+7. 從現在開始：
 - 所有回應必須使用繁體中文
 - 所有規劃必須遵守 AI-DLC
 - 所有 code generation 前必須先產生 plan
