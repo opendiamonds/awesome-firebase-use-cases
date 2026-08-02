@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from services.design_agent import configure_openrouter_env
+from services.llm_limits import agent_sdk_env
 
 logger = logging.getLogger("cloud360.review_agent")
 
@@ -123,6 +124,9 @@ async def run_review_agent(
     payload = _compact_payload(diagram_summary, rule_result)
     user_prompt = (
         "依下列評核摘要，直接寫出繁中改善建議（精簡、可執行）。"
+        "若有 high_risk_findings／high_risk_count>0，必須優先說明如何消除每一項 HIGH_RISK；"
+        "若 overall_score < 80，亦須提出可提升分數至 ≥ 80 的改圖建議。"
+        "使架構圖不再含高風險且分數達標；其餘 findings 次之。"
         "勿呼叫任何工具：\n"
         f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
     )
@@ -150,6 +154,7 @@ async def run_review_agent(
         ],
         permission_mode="bypassPermissions",
         max_turns=2,
+        env=agent_sdk_env(),
     )
 
     streamed_parts: list[str] = []

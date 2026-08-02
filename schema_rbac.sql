@@ -92,7 +92,7 @@ COMMENT ON TABLE user_diagram_chats IS 'A4: chat messages keyed by user × diagr
 
 CREATE TABLE IF NOT EXISTS architecture_reviews (
   id SERIAL PRIMARY KEY,
-  diagram_id INTEGER NOT NULL REFERENCES user_diagrams (id) ON DELETE CASCADE,
+  diagram_id INTEGER REFERENCES user_diagrams (id) ON DELETE CASCADE,
   created_by INTEGER NOT NULL REFERENCES users (id),
   provider VARCHAR(16) NOT NULL DEFAULT 'aws',
   status VARCHAR(32) NOT NULL DEFAULT 'pending',
@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS architecture_reviews (
   suggestions_text TEXT,
   error_message TEXT,
   rule_pack_version VARCHAR(64),
+  xml_snapshot TEXT,
   archived BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -121,10 +122,15 @@ COMMENT ON COLUMN architecture_reviews.findings_json IS
   'JSON array of findings (Lens HIGH/MEDIUM preferred; heuristic fallback on lens failure)';
 COMMENT ON COLUMN architecture_reviews.status IS
   'pending | rules_complete | complete | rules_only | unsupported';
+COMMENT ON COLUMN architecture_reviews.diagram_id IS
+  'Nullable when review runs from uploaded XML without saving a workspace diagram';
+COMMENT ON COLUMN architecture_reviews.xml_snapshot IS
+  'XML snapshot at review time (required for ephemeral / audit)';
 
 CREATE TABLE IF NOT EXISTS wa_lenses (
   id SERIAL PRIMARY KEY,
   lens_id VARCHAR(64) NOT NULL DEFAULT 'cloud360-core-mvp',
+  provider VARCHAR(16) NOT NULL DEFAULT 'aws',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   body_json TEXT NOT NULL,
   updated_by INTEGER REFERENCES users (id),
@@ -134,11 +140,19 @@ CREATE TABLE IF NOT EXISTS wa_lenses (
 
 CREATE INDEX IF NOT EXISTS ix_wa_lenses_lens_id ON wa_lenses (lens_id);
 CREATE INDEX IF NOT EXISTS ix_wa_lenses_is_active ON wa_lenses (is_active);
+CREATE INDEX IF NOT EXISTS ix_wa_lenses_provider ON wa_lenses (provider);
 
 COMMENT ON TABLE wa_lenses IS
-  'A3: active Offline Custom Lens JSON edited by Security_Reviewer; reviews resolve DB-first then file fallback';
+  'A3: per-cloud Offline Custom Lens JSON; one active row per provider (aws/gcp/azure)';
 COMMENT ON COLUMN wa_lenses.body_json IS
   'Full Custom Lens JSON (schemaVersion 2021-11-01, five pillars)';
+COMMENT ON COLUMN wa_lenses.provider IS
+  'aws | gcp | azure — active lens resolved per provider';
+
+-- 既有庫升級（IF NOT EXISTS / DROP NOT NULL 可重複執行）
+ALTER TABLE architecture_reviews ALTER COLUMN diagram_id DROP NOT NULL;
+ALTER TABLE architecture_reviews ADD COLUMN IF NOT EXISTS xml_snapshot TEXT;
+ALTER TABLE wa_lenses ADD COLUMN IF NOT EXISTS provider VARCHAR(16) NOT NULL DEFAULT 'aws';
 
 -- ###########################################################################
 -- C) RBAC: role × story permissions (view / edit / review)

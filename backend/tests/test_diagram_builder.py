@@ -149,6 +149,57 @@ class TestBuildMxgraphXml(unittest.TestCase):
         self.assertIn('strokeColor=#34A853', xml)  # GCP VPC style color
         self.assertIn('strokeColor=#FBBC05', xml)  # GCP Subnet style color
 
+    @patch(
+        "services.diagram_builder.fetch_icon_from_n8n",
+        new_callable=AsyncMock,
+        return_value='<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+    )
+    def test_azure_groups_produce_mxgraph(self, mock_icon):
+        groups = [
+            {
+                "id": "g_az_cloud",
+                "name": "Azure Subscription",
+                "type": "azure_cloud",
+                "x": 0,
+                "y": 0,
+                "width": 800,
+                "height": 600,
+            },
+            {
+                "id": "g_az_vnet",
+                "name": "Azure VNet",
+                "type": "azure_vnet",
+                "x": 40,
+                "y": 40,
+                "width": 700,
+                "height": 500,
+            },
+            {
+                "id": "g_az_subnet",
+                "name": "Frontend Subnet",
+                "type": "azure_subnet",
+                "x": 80,
+                "y": 80,
+                "width": 600,
+                "height": 400,
+            }
+        ]
+        nodes = [
+            {"id": "n1", "name": "aks", "x": 100, "y": 100},
+        ]
+        edges = []
+        xml = asyncio.run(build_mxgraph_xml(groups, nodes, edges))
+        self.assertIn("<mxGraphModel>", xml)
+        self.assertIn('id="g_az_cloud"', xml)
+        self.assertIn('id="g_az_vnet"', xml)
+        self.assertIn('id="g_az_subnet"', xml)
+        self.assertIn('parent="g_az_subnet"', xml)
+        self.assertIn('strokeColor=#0078D4', xml)  # Azure Cloud style color
+        self.assertIn('strokeColor=#5C2D91', xml)  # Azure VNet style color
+        self.assertIn('strokeColor=#00BCF2', xml)  # Azure Subnet style color
+        mock_icon.assert_called_once_with("aks", provider="Azure")
+
+
 
 if __name__ == "__main__":
     unittest.main()

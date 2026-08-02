@@ -113,7 +113,10 @@ class ArchitectureReview(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     diagram_id = Column(
-        Integer, ForeignKey("user_diagrams.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer,
+        ForeignKey("user_diagrams.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     provider = Column(String(16), nullable=False, default="aws")
@@ -124,6 +127,7 @@ class ArchitectureReview(Base):
     suggestions_text = Column(Text, nullable=True)
     error_message = Column(Text, nullable=True)
     rule_pack_version = Column(String(64), nullable=True)
+    xml_snapshot = Column(Text, nullable=True)
     archived = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
@@ -132,12 +136,13 @@ class ArchitectureReview(Base):
 
 
 class WaLens(Base):
-    """A3：Offline Custom Lens 現行標準（具 A3.review 者可編輯）。"""
+    """A3：Offline Custom Lens 現行標準（具 A3.review 者可編輯；每雲一份 active）。"""
 
     __tablename__ = "wa_lenses"
 
     id = Column(Integer, primary_key=True, index=True)
     lens_id = Column(String(64), nullable=False, default="cloud360-core-mvp", index=True)
+    provider = Column(String(16), nullable=False, default="aws", index=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     body_json = Column(Text, nullable=False)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import User, UserDiagram, UserDiagramChat
+from models import User, UserDiagram, UserDiagramChat, diagram_shares
 from services.auth import get_current_user
 from services.rbac import require_arch_action, user_can_arch
 
@@ -478,6 +478,34 @@ def update_diagram(
     current_user.last_opened_diagram_id = diagram_id
     db.commit()
     return {"status": "success", "message": "Diagram updated successfully"}
+
+
+@router.delete("/diagrams/{diagram_id}")
+def delete_diagram(
+    diagram_id: int,
+    current_user: User = Depends(require_arch_action("edit")),
+    db: Session = Depends(get_db),
+):
+    """刪除架構圖（僅擁有者）。評核／聊天經 CASCADE 一併清除；分享關聯先手動移除。"""
+    diagram = db.query(UserDiagram).filter(UserDiagram.id == diagram_id).first()
+    if not diagram:
+        raise HTTPException(status_code=404, detail="Diagram not found")
+    if diagram.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can delete this diagram")
+
+    db.query(User).filter(User.last_opened_diagram_id == diagram_id).update(
+        {User.last_opened_diagram_id: None},
+        synchronize_session=False,
+    )
+    db.execute(
+        diagram_shares.delete().where(diagram_shares.c.diagram_id == diagram_id)
+    )
+    db.query(UserDiagramChat).filter(UserDiagramChat.diagram_id == diagram_id).delete(
+        synchronize_session=False
+    )
+    db.delete(diagram)
+    db.commit()
+    return {"status": "success", "diagram_id": diagram_id, "message": "Diagram deleted"}
 
 
 @router.post("/diagrams/{diagram_id}/share")

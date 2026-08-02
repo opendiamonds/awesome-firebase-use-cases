@@ -1,3 +1,5 @@
+
+
 # AIDLC Audit Log
 
 > Append-only log of AIDLC workflow events: user requests, stage transitions, extension toggles, approvals.
@@ -1835,6 +1837,72 @@ Following entries are from `luojingting/feat/a3-well-architected-review` (append
 
 **Approver**: danniel
 
+---
+
+#### 2026-07-27 23:27 +08:00 — A3 增量：上傳架構圖 ＋ GCP／Azure
+
+**User request (raw)**: 「我想加入 自行上傳架構圖來評估well architected以及完善 gcp / azure」
+**Branch**: `luojingting/feat/a3-feature-updates`
+**Stage**: Inception → Workspace Detection ✅ → Requirements Analysis（釐清中）
+**Findings**:
+- 現況僅對已入庫 diagram 評核；`provider≠aws` → `unsupported`
+- 規則包僅 AWS 啟發式；Assessment 已有 provider UI 預留
+- 既有需求明確將「未存檔上傳」與「GCP／Azure 規則」列為 out of scope
+**Artifacts**: `aidlc-docs/inception/plans/a3-upload-multicloud-questions.md`
+**Next**: 等待使用者回答 Q1–Q9 後產出 requirements 與 execution plan
+
+---
+
+#### 2026-07-27 23:30 +08:00 — A3 上傳＋多雲：RA／WP 完成（待核准）
+
+**User**: 「好了」（已填 `a3-upload-multicloud-questions.md`）
+**Decisions**: Q1=C 同期；Q2=A 僅 draw.io；Q3=B 可選建檔；Q4=C 雙入口；Q5=B 對齊 AWS 深度；Q6=C 五支柱對照＋標註；Q7=B 自動偵測可覆寫；Q8=B 每雲 Lens（可擴充）；Q9=B 不做官方 WA API
+**Artifacts**:
+- `inception/requirements/a3-upload-multicloud-requirements.md`
+- `inception/plans/a3-upload-multicloud-execution-plan.md`
+- `user-stories/stories.md` §A3 增量 AC
+**Next**: 使用者核准 Execution Plan → FD → Code Gen（建議 PR1 上傳／PR2 多雲規則／PR3 per-cloud Lens）
+
+---
+
+#### 2026-07-27 23:40 +08:00 — A3 上傳＋多雲：核准後 Code Gen
+
+**User**: 「核准」
+**Stage**: Construction FD → Code Generation
+**Delivered**:
+- FD `upload-multicloud-fd.md`
+- BE：多雲 rule pack、detect-provider、評核接受 xml／可選建檔、per-cloud lens、schema
+- FE：Assessment／Workspace 上傳、Lens provider 切換
+- `schema_rbac.sql`／`DEPLOY.md`／unit tests／`upload-multicloud-summary.md`
+**Next**: 手動驗收；可 commit／merge `ut`
+
+---
+
+#### 2026-07-28 12:30 +08:00 — A1↔A3 Multi-Agent（Design↔Review）
+
+**User**: 問答完成（Q1=A 自動、Q2=B 真雙 agent、Q3=A 硬門檻、Q4=A 兩輪、Q5=A lens、Q6=C 預覽套用、Q7=B Workspace+Assessment、Q8=A 多雲）
+**Stage**: RA → WP → FD → Code Gen
+**Delivered**:
+- `inception/plans/a1-a3-multi-agent-questions.md`／requirements／execution-plan
+- `construction/a1/functional-design/a1-a3-multi-agent-fd.md`
+- BE：`wa_score_service`、`wa_collab_orchestrator`、`POST /generate-wa-collab`
+- FE：Workspace 自動協作＋套用預覽；Assessment「優化至 WA ≥ 80」
+
+
+---
+
+#### 2026-07-29 17:14 +08:00 — Branch Naming & Service Deployment & A1 Azure Feature Completion
+
+**User request (raw)**: "A1 中要 1. 新增畫 Azure Cloud 2. 前端傳給 n8n 要帶使用者要哪一朵雲的服務 AWS , GCP or Azure 3. 新增GCP 以及 Azure 的圖範本"
+**Stage**: Operations → Deployment & Code Generation (Unit A1)
+**Outcome**:
+1. 依規範將分支更名為 `doreen/feat/a1-feature-enhancement`。
+2. 根據 DEPLOY.md 成功以 Docker Compose 部署並啟動全棧服務 (DB, Backend, Frontend)。驗證容器內 Claude Code CLI (`2.1.220`) 運作正常。
+3. 完成 A1 模組支援 Azure Cloud 產圖拓樸、Group 樣式、System Prompt、n8n provider 參數對齊與前端多雲預設 Prompt 範本。
+**Approver**: doreen
+
+---
+
 ## Workspace Initialised
 **Timestamp**: 2026-08-02T02:18:46Z
 **Event**: WORKSPACE_INITIALISED
@@ -2268,5 +2336,23 @@ Following entries are from `luojingting/feat/a3-well-architected-review` (append
 ## Human Turn
 **Timestamp**: 2026-08-02T06:18:54Z
 **Event**: HUMAN_TURN
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-08-02T06:20:27Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: /Users/jiangzhengdao/User/Developer/Opendiamonds/cloud-360/aidlc/spaces/default/intents/260802-default/operation/deployment-execution/a3-go-live-checklist.md
+**Context**: operation > deployment-execution > a3-go-live-checklist.md
+
+---
+
+## Artifact Updated
+**Timestamp**: 2026-08-02T06:21:31Z
+**Event**: ARTIFACT_UPDATED
+**Tool**: Edit
+**File**: /Users/jiangzhengdao/User/Developer/Opendiamonds/cloud-360/aidlc/spaces/default/intents/260802-default/aidlc-state.md
+**Context**: aidlc-state.md
 
 ---

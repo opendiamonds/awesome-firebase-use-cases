@@ -104,6 +104,8 @@ jobs:
           ANTHROPIC_BASE_URL=https://openrouter.ai/api
           ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6
           LLM_MODEL=anthropic/claude-sonnet-4.6
+          LLM_MAX_OUTPUT_TOKENS=12000
+          LLM_XML_CONTEXT_MAX_CHARS=32000
           N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
           APP_ENV=${APP_ENV:-staging}
           PUBLIC_URL=https://cloud360.danniel.cc
@@ -223,6 +225,8 @@ jobs:
           ANTHROPIC_BASE_URL=https://openrouter.ai/api
           ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6
           LLM_MODEL=anthropic/claude-sonnet-4.6
+          LLM_MAX_OUTPUT_TOKENS=12000
+          LLM_XML_CONTEXT_MAX_CHARS=32000
           N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
           APP_ENV=${APP_ENV:-staging}
           PUBLIC_URL=https://cloud360.danniel.cc

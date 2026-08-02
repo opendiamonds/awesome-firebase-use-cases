@@ -243,6 +243,18 @@ def _ensure_a3_schema():
         """
         CREATE INDEX IF NOT EXISTS ix_wa_lenses_is_active ON wa_lenses (is_active)
         """,
+        """
+        ALTER TABLE architecture_reviews ALTER COLUMN diagram_id DROP NOT NULL
+        """,
+        """
+        ALTER TABLE architecture_reviews ADD COLUMN IF NOT EXISTS xml_snapshot TEXT
+        """,
+        """
+        ALTER TABLE wa_lenses ADD COLUMN IF NOT EXISTS provider VARCHAR(16) NOT NULL DEFAULT 'aws'
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_wa_lenses_provider ON wa_lenses (provider)
+        """,
     ]
     with engine.begin() as conn:
         for sql in statements:

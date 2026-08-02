@@ -38,7 +38,7 @@ const EMPTY_DIAGRAM_XML =
 const DEFAULT_WELCOME: Message = {
   role: 'assistant',
   content:
-    '嗨！我是您的 AI 雲端架構助理 👋\n請描述您想建立的雲端架構，例如：\n✨ 我要做一個電商網站\n✨ 我要一個包含 WAF 與 Aurora 的高可用架構',
+    '嗨！我是您的 AI 雲端架構助理 👋\n請描述您想建立的雲端架構，例如：\n✨ AWS：建立一個包含 WAF、ALB 與 Aurora 的高可用架構\n✨ GCP：建立一個使用 GKE、Cloud SQL 與 BigQuery 的數據分析拓樸\n✨ Azure：建立一個包含 AKS、Azure SQL Database 與 Key Vault 的雲端架構',
 };
 
 /** 將後端錯誤對齊 User Story 失敗文案 */
@@ -58,6 +58,7 @@ export const WorkspacePage = () => {
   const canA3Edit = can('A3', 'edit');
   const canA3View = can('A3', 'view');
   const canvasRef = useRef<DrawioCanvasRef>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [xml, setXml] = useState<string>('');
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
@@ -65,6 +66,7 @@ export const WorkspacePage = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [bootstrapDone, setBootstrapDone] = useState(false);
+  const [deletingDiagram, setDeletingDiagram] = useState(false);
 
   const { isConnected, broadcastXml } = useCollaboration({
     workspaceId: currentDiagramId ? currentDiagramId.toString() : '',
@@ -80,6 +82,28 @@ export const WorkspacePage = () => {
   const [toast, setToast] = useState<ToastState>(null);
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME]);
   const [saveStatus, setSaveStatus] = useState<DiagramSaveStatus>('no-file');
+  const [chatCollapsed, setChatCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('cloud360.workspace.chatCollapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [canvasLayoutEpoch, setCanvasLayoutEpoch] = useState(0);
+
+  const toggleChatCollapsed = useCallback(() => {
+    setChatCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cloud360.workspace.chatCollapsed', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    // 等寬度 transition 後再通知 draw.io 重算 viewport
+    window.setTimeout(() => setCanvasLayoutEpoch((n) => n + 1), 320);
+  }, []);
 
   /** 避免 generate 閉包讀到過期的 diagram id */
   const currentDiagramIdRef = useRef<number | null>(null);
@@ -290,6 +314,57 @@ export const WorkspacePage = () => {
     await setLastOpened(null);
   };
 
+  const handleDeleteDiagram = async () => {
+    const diagramId = currentDiagramIdRef.current;
+    if (!diagramId) return;
+    const meta = diagramsRef.current.find((d) => d.id === diagramId);
+    if (meta && !meta.is_owner) {
+      showToast('僅擁有者可刪除架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法刪除架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    const title = meta?.title || `#${diagramId}`;
+    if (
+      !window.confirm(
+        `確定刪除架構圖「${title}」？\n該圖的評核紀錄與聊天也會一併刪除，且無法復原。`,
+      )
+    ) {
+      return;
+    }
+    setDeletingDiagram(true);
+    try {
+      const res = await fetch(`${API_COLLAB}/diagrams/${diagramId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `刪除失敗（HTTP ${res.status}）`);
+      }
+      setXml('');
+      setCurrentDiagramId(null);
+      currentDiagramIdRef.current = null;
+      setIsShared(false);
+      setSaveStatus('no-file');
+      setMessages([DEFAULT_WELCOME]);
+      await setLastOpened(null);
+      await fetchDiagrams();
+      showToast('架構圖已刪除', 'success', {
+        hint: '相關評核與聊天已一併清除。',
+        autoDismissMs: 3000,
+      });
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '刪除架構圖失敗', 'error', {
+        autoDismissMs: 4000,
+      });
+    } finally {
+      setDeletingDiagram(false);
+    }
+  };
+
   const showToast = (
     message: string,
     type: ToastType,
@@ -343,6 +418,28 @@ export const WorkspacePage = () => {
     navigate(`/assessment?diagramId=${diagramId}`);
   };
 
+  const appendAgentMessage = (
+    base: Message[],
+    speaker: 'design' | 'review' | 'system',
+    chunk: string,
+  ): Message[] => {
+    const last = base[base.length - 1];
+    if (
+      last &&
+      last.role === 'assistant' &&
+      last.speaker === speaker &&
+      speaker !== 'system'
+    ) {
+      const next = [...base];
+      next[next.length - 1] = {
+        ...last,
+        content: last.content + chunk,
+      };
+      return next;
+    }
+    return [...base, { role: 'assistant', content: chunk, speaker }];
+  };
+
   const handleGenerate = async (prompt: string) => {
     if (!canArch('edit')) {
       showToast('權限不足：需要架構圖「編輯」權限才能與 AI 對話產圖', 'error', {
@@ -355,19 +452,19 @@ export const WorkspacePage = () => {
     setProgress('');
 
     const newMessages: Message[] = [...messages, { role: 'user', content: prompt }];
-    let assistantMessage = '';
     let finalMessages: Message[] = [
       ...newMessages,
-      { role: 'assistant', content: '' },
+      { role: 'assistant', content: '', speaker: 'design' },
     ];
-    // 立刻顯示助理佔位＋思考動畫，避免空白對話匡
     setMessages(finalMessages);
 
     let generatedXml: string | null = null;
     let streamError: string | null = null;
+    let completeStatus: 'passed' | 'failed' | 'no_diagram' | null = null;
+    let completeScore: number | null = null;
 
     try {
-      const response = await fetch(apiUrl('/api/architecture/generate'), {
+      const response = await fetch(apiUrl('/api/architecture/generate-wa-collab'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -376,6 +473,7 @@ export const WorkspacePage = () => {
         body: JSON.stringify({
           messages: newMessages,
           current_xml: xml || undefined,
+          diagram_id: currentDiagramIdRef.current || undefined,
         }),
       });
 
@@ -404,29 +502,77 @@ export const WorkspacePage = () => {
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === 'message') {
-                  assistantMessage += data.content;
-                  finalMessages = [
-                    ...newMessages,
-                    { role: 'assistant', content: assistantMessage },
-                  ];
-                  setMessages(finalMessages);
-                } else if (data.type === 'progress') {
-                  setProgress(data.content);
-                } else if (data.type === 'xml') {
-                  generatedXml = data.content;
-                  setXml(data.content);
-                  setProgress('');
-                } else if (data.type === 'error') {
-                  streamError = formatGenerateError(String(data.content || ''));
-                  setProgress('');
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'message') {
+                const speaker =
+                  data.speaker === 'review'
+                    ? 'review'
+                    : data.speaker === 'system'
+                      ? 'system'
+                      : 'design';
+                if (
+                  finalMessages.length &&
+                  finalMessages[finalMessages.length - 1].role === 'assistant' &&
+                  !finalMessages[finalMessages.length - 1].content.trim() &&
+                  finalMessages[finalMessages.length - 1].speaker === 'design' &&
+                  speaker !== 'design'
+                ) {
+                  finalMessages = finalMessages.slice(0, -1);
                 }
-              } catch {
-                // ignore invalid JSON line
+                finalMessages = appendAgentMessage(
+                  finalMessages,
+                  speaker,
+                  String(data.content || ''),
+                );
+                setMessages(finalMessages);
+              } else if (data.type === 'progress') {
+                setProgress(String(data.content || ''));
+              } else if (data.type === 'xml_preview') {
+                // 直接呈現於畫布（不經「套用預覽」）
+                generatedXml = String(data.content || '');
+                setXml(generatedXml);
+                setProgress('');
+              } else if (data.type === 'score') {
+                const score = Number(data.overall_score);
+                const round = data.round ?? '?';
+                const passed = Boolean(data.passed);
+                const hr =
+                  typeof data.high_risk_count === 'number'
+                    ? data.high_risk_count
+                    : null;
+                finalMessages = appendAgentMessage(
+                  finalMessages,
+                  'system',
+                  `第 ${round} 輪評核：${Number.isFinite(score) ? Math.round(score) : '—'} 分` +
+                    (hr != null ? `、高風險 ${hr} 項` : '') +
+                    (passed ? '（已無高風險）' : '（仍有高風險）'),
+                );
+                setMessages(finalMessages);
+              } else if (data.type === 'complete') {
+                completeStatus =
+                  data.status === 'passed' ||
+                  data.status === 'failed' ||
+                  data.status === 'no_diagram'
+                    ? data.status
+                    : null;
+                if (typeof data.overall_score === 'number') {
+                  completeScore = data.overall_score;
+                }
+                if (typeof data.xml === 'string' && data.xml) {
+                  generatedXml = data.xml;
+                  setXml(data.xml);
+                }
+                setProgress('');
+              } else if (data.type === 'error') {
+                streamError = formatGenerateError(
+                  String(data.content || data.message || ''),
+                );
+                setProgress('');
               }
+            } catch {
+              // ignore invalid JSON line
             }
           }
         }
@@ -439,38 +585,64 @@ export const WorkspacePage = () => {
           hint: '請於對話框修改參數後重試。',
           showCtas: true,
         });
+      } else if (completeStatus === 'no_diagram') {
+        if (currentDiagramIdRef.current) {
+          await persistChat(currentDiagramIdRef.current, finalMessages);
+        }
       } else if (generatedXml) {
-        // Q2-B：僅有 diagram_id 才自動存；無 id 提示手動儲存
         const diagramId = currentDiagramIdRef.current;
+        const scoreHint =
+          completeScore != null
+            ? ` lens 總分 ${Math.round(completeScore)}。`
+            : '';
         if (diagramId) {
           const ok = await autosaveDiagramXml(diagramId, generatedXml);
           await persistChat(diagramId, finalMessages);
-          setToast({
-            message: '✔ 架構草圖已生成',
-            type: 'success',
-            hint: ok
-              ? '已自動存檔至資料庫。工具列應顯示「已儲存」。'
-              : '產圖成功，但自動存檔失敗，請點「儲存架構圖」重試。',
-            showCtas: true,
-          });
+          if (completeStatus === 'passed') {
+            setToast({
+              message: '✔ 架構圖已無高風險',
+              type: 'success',
+              hint: `${scoreHint}${ok ? '已寫入畫布並存檔。' : '已寫入畫布，但自動存檔失敗，請手動儲存。'}`,
+              showCtas: true,
+            });
+          } else if (completeStatus === 'failed') {
+            setToast({
+              message: '仍有高風險（需人工調整）',
+              type: 'error',
+              hint: `${scoreHint}目前最佳圖已寫入畫布，可繼續對話或至 Assessment 點「優化」。`,
+              showCtas: true,
+            });
+          } else {
+            setToast({
+              message: '✔ 架構草圖已生成',
+              type: 'success',
+              hint: ok
+                ? '已自動存檔至資料庫。'
+                : '產圖成功，但自動存檔失敗，請點「儲存架構圖」重試。',
+              showCtas: true,
+            });
+          }
         } else {
           setSaveStatus('no-file');
           setToast({
-            message: '✔ 架構草圖已生成',
-            type: 'success',
-            hint: '尚未建檔。點「儲存並評核」會先請您命名儲存，再進入 Well-Architected 評估儀表板。',
+            message:
+              completeStatus === 'passed'
+                ? '✔ 架構圖已無高風險'
+                : completeStatus === 'failed'
+                  ? '仍有高風險（需人工調整）'
+                  : '✔ 架構草圖已生成',
+            type: completeStatus === 'failed' ? 'error' : 'success',
+            hint: `${scoreHint}圖面已呈現。尚未建檔時可點「儲存架構圖」或「儲存並評核」。`,
             showCtas: true,
           });
         }
       } else if (currentDiagramIdRef.current) {
-        // 僅對話、未產圖：仍持久化聊天
         await persistChat(currentDiagramIdRef.current, finalMessages);
       }
     } catch (err) {
       const errMsg = formatGenerateError(
-        err instanceof Error ? err.message : '生成失敗'
+        err instanceof Error ? err.message : '生成失敗',
       );
-      // 拿掉空白助理佔位，避免失敗後留下空對話匡
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant' && !last.content.trim()) {
@@ -645,6 +817,33 @@ export const WorkspacePage = () => {
     }
   };
 
+  const handleUploadDiagramFile = async (file: File | null) => {
+    if (!file) return;
+    if (!canEditArch) {
+      showToast('僅檢視／審核權限無法上傳架構圖', 'error', { autoDismissMs: 4000 });
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        showToast('檔案內容為空', 'error', { autoDismissMs: 4000 });
+        return;
+      }
+      setXml(text);
+      setSaveStatus(currentDiagramIdRef.current ? 'unsaved' : 'no-file');
+      showToast('架構圖已上傳至畫布', 'success', {
+        hint: currentDiagramIdRef.current
+          ? '尚未寫入資料庫，請確認後儲存。'
+          : '尚未建檔。可點「儲存架構圖」或「儲存並評核」。',
+        autoDismissMs: 3500,
+      });
+    } catch {
+      showToast('讀取檔案失敗', 'error', { autoDismissMs: 4000 });
+    } finally {
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+    }
+  };
+
   const handleSaveDiagram = async (currentXml: string) => {
     await saveDiagram(currentXml);
   };
@@ -652,7 +851,7 @@ export const WorkspacePage = () => {
   return (
     <div className="relative flex h-full w-full overflow-hidden">
       {toast?.type === 'error' && (
-        <div className="absolute top-8 left-[420px] right-0 z-50 flex justify-center pointer-events-none px-4">
+        <div className={`absolute top-8 ${chatCollapsed ? 'left-12' : 'left-[420px]'} right-0 z-50 flex justify-center pointer-events-none px-4 transition-[left] duration-300`}>
         <div className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-red-100 px-6 py-4 rounded-2xl shadow-[0_12px_40px_rgba(239,68,68,0.15)] flex flex-col gap-3 animate-[slideInDown_0.4s_ease-out] max-w-lg w-[min(92vw,28rem)]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center shrink-0">
@@ -708,7 +907,7 @@ export const WorkspacePage = () => {
       )}
 
       {toast?.type === 'success' && (
-        <div className="absolute inset-y-0 left-[420px] right-0 z-50 flex items-center justify-center pointer-events-none px-4">
+        <div className={`absolute inset-y-0 ${chatCollapsed ? 'left-12' : 'left-[420px]'} right-0 z-50 flex items-center justify-center pointer-events-none px-4 transition-[left] duration-300`}>
         <div className="pointer-events-auto bg-white/95 backdrop-blur-2xl border border-white text-gray-900 px-10 py-8 rounded-[2rem] shadow-[0_24px_80px_rgba(37,99,235,0.15)] flex flex-col items-center gap-5 animate-[fadeInUp_0.4s_ease-out] max-w-md w-[min(92vw,24rem)]">
           <div className="relative">
             <div className="absolute inset-0 bg-green-200 rounded-full blur-xl opacity-60 animate-pulse"></div>
@@ -776,10 +975,14 @@ export const WorkspacePage = () => {
         canEdit={canEditArch}
         canReview={canReviewArch}
         userDisplayName={user?.username}
+        collapsed={chatCollapsed}
+        onToggleCollapsed={toggleChatCollapsed}
       />
+      <div className="flex-1 flex flex-col min-w-0 relative h-full">
       <DrawioCanvas
         ref={canvasRef}
         xml={xml}
+        layoutEpoch={canvasLayoutEpoch}
         readOnly={!canEditArch}
         diagramTitle={
           currentDiagramId
@@ -852,6 +1055,72 @@ export const WorkspacePage = () => {
                 />
               </svg>
             </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteDiagram()}
+              disabled={
+                !currentDiagramId ||
+                deletingDiagram ||
+                !canEditArch ||
+                diagrams.find((d) => d.id === currentDiagramId)?.is_owner === false
+              }
+              className="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none shrink-0"
+              title={
+                !currentDiagramId
+                  ? '請先選擇要刪除的架構圖'
+                  : diagrams.find((d) => d.id === currentDiagramId)?.is_owner === false
+                    ? '僅擁有者可刪除'
+                    : deletingDiagram
+                      ? '刪除中…'
+                      : '刪除目前架構圖'
+              }
+              aria-label="刪除架構圖"
+            >
+              {deletingDiagram ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              )}
+            </button>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".drawio,.xml,application/xml,text/xml"
+              className="hidden"
+              onChange={(e) => {
+                void handleUploadDiagramFile(e.target.files?.[0] ?? null);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={!canEditArch}
+              className="text-[11px] font-bold text-gray-600 bg-white hover:bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 disabled:opacity-30 disabled:pointer-events-none"
+              title={canEditArch ? '上傳 .drawio／.xml 至畫布' : '僅檢視／審核無法上傳'}
+            >
+              上傳架構圖
+            </button>
             <div className="w-px h-4 bg-gray-200 mx-0.5 shrink-0" />
             <div
               className="flex items-center gap-1.5 px-1 shrink-0"
@@ -888,6 +1157,7 @@ export const WorkspacePage = () => {
           </div>
         }
       />
+      </div>
 
       <ShareModal
         isOpen={isShareModalOpen}

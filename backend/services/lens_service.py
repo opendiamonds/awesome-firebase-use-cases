@@ -1,5 +1,6 @@
 """
 lens_service.py — A3 Offline Custom Lens CRUD / validation (requires A3.review).
+Per-cloud active lens: provider ∈ {aws, gcp, azure}.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from models import User, WaLens
 from services.wa_lens_engine import LENS_ID, load_lens
+from services.wa_rule_engine import SUPPORTED_PROVIDERS
 
 logger = logging.getLogger("cloud360.lens_service")
 
@@ -25,6 +27,13 @@ REQUIRED_PILLAR_IDS = frozenset(
         "operational_excellence",
     }
 )
+
+
+def _norm_provider(provider: str | None) -> str:
+    p = (provider or "aws").lower()
+    if p not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"Unsupported provider: {p}")
+    return p
 
 
 def suggest_improvement_plan(title: str) -> str:
@@ -114,44 +123,76 @@ def preserve_existing_risk_rules(
     return incoming
 
 
-def get_active_lens_row(db: Session) -> Optional[WaLens]:
-    return (
+def get_active_lens_row(
+    db: Session, provider: str = "aws"
+) -> Optional[WaLens]:
+    provider = _norm_provider(provider)
+    row = (
         db.query(WaLens)
-        .filter(WaLens.is_active.is_(True), WaLens.lens_id == LENS_ID)
+        .filter(
+            WaLens.is_active.is_(True),
+            WaLens.lens_id == LENS_ID,
+            WaLens.provider == provider,
+        )
         .order_by(WaLens.id.desc())
         .first()
     )
+    if row:
+        return row
+    # Legacy rows without provider match: treat as aws only
+    if provider == "aws":
+        return (
+            db.query(WaLens)
+            .filter(WaLens.is_active.is_(True), WaLens.lens_id == LENS_ID)
+            .order_by(WaLens.id.desc())
+            .first()
+        )
+    return None
 
 
-def resolve_active_lens(db: Optional[Session] = None) -> dict[str, Any]:
+def resolve_active_lens(
+    db: Optional[Session] = None, provider: str = "aws"
+) -> dict[str, Any]:
+    provider = _norm_provider(provider) if provider else "aws"
     if db is not None:
-        row = get_active_lens_row(db)
+        row = get_active_lens_row(db, provider)
         if row and row.body_json:
             try:
                 return json.loads(row.body_json)
             except json.JSONDecodeError:
-                logger.warning("wa_lenses body_json invalid; falling back to file")
-    return load_lens()
+                logger.warning(
+                    "wa_lenses body_json invalid provider=%s; falling back to file",
+                    provider,
+                )
+    return load_lens(provider=provider)
 
 
 def save_active_lens(
-    db: Session, lens: dict[str, Any], user: User
+    db: Session,
+    lens: dict[str, Any],
+    user: User,
+    provider: str = "aws",
 ) -> dict[str, Any]:
-    previous = resolve_active_lens(db)
+    provider = _norm_provider(provider)
+    previous = resolve_active_lens(db, provider)
     merged = preserve_existing_risk_rules(lens, previous)
     validate_lens(merged)
     body = json.dumps(merged, ensure_ascii=False)
 
-    # Deactivate other actives for this lens_id
     for row in (
         db.query(WaLens)
-        .filter(WaLens.lens_id == LENS_ID, WaLens.is_active.is_(True))
+        .filter(
+            WaLens.lens_id == LENS_ID,
+            WaLens.provider == provider,
+            WaLens.is_active.is_(True),
+        )
         .all()
     ):
         row.is_active = False
 
     active = WaLens(
         lens_id=LENS_ID,
+        provider=provider,
         is_active=True,
         body_json=body,
         updated_by=user.id,

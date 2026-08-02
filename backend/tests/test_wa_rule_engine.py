@@ -95,6 +95,56 @@ class TestWaRuleEngine(unittest.TestCase):
         pillar_scores, _ = score_findings(findings)
         self.assertEqual(pillar_scores["security"], 75.0)
 
+    def test_gcp_provider_runs(self):
+        xml = _mx(
+            [
+                '<mxCell id="10" value="Cloud SQL" style="shape=mxgraph.gcp.cloudsql;" vertex="1" parent="1"/>',
+            ]
+        )
+        result = evaluate(xml, provider="gcp")
+        self.assertEqual(result.provider, "gcp")
+        self.assertEqual(result.rule_pack_version, "wa-gcp-mvp-1")
+        codes = {f.code for f in result.findings}
+        self.assertIn("GCP-REL-DB-NO-HA", codes)
+
+    def test_azure_provider_runs(self):
+        xml = _mx(
+            [
+                '<mxCell id="10" value="Azure SQL" style="shape=mxgraph.azure.sql;" vertex="1" parent="1"/>',
+            ]
+        )
+        result = evaluate(xml, provider="azure")
+        self.assertEqual(result.rule_pack_version, "wa-azure-mvp-1")
+        codes = {f.code for f in result.findings}
+        self.assertIn("AZ-REL-DB-NO-HA", codes)
+
+    def test_detect_provider_gcp(self):
+        from services.wa_rule_engine import detect_provider, parse_diagram_summary
+
+        xml = _mx(
+            [
+                '<mxCell id="10" value="GKE cluster" style="shape=mxgraph.gcp.gke;" vertex="1" parent="1"/>',
+            ]
+        )
+        det = detect_provider(parse_diagram_summary(xml))
+        self.assertEqual(det["provider"], "gcp")
+
+    def test_parse_tolerates_bare_amp_and_nbsp(self):
+        from services.wa_rule_engine import parse_diagram_summary
+
+        xml = _mx(
+            [
+                '<mxCell id="10" value="Front Door & WAF" style="shape=mxgraph.azure.front;" vertex="1" parent="1"/>',
+                '<mxCell id="11" value="A&nbsp;B" style="shape=mxgraph.aws4.ec2;" vertex="1" parent="1"/>',
+                '<mxCell id="12" value="CPU < 80%" style="shape=mxgraph.gcp.gce;" vertex="1" parent="1"/>',
+            ]
+        )
+        summary = parse_diagram_summary(xml)
+        labels = " ".join(n["label"] for n in summary["nodes"])
+        self.assertIn("front door", labels)
+        self.assertIn("waf", labels)
+        self.assertGreaterEqual(summary["node_count"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
