@@ -88,3 +88,11 @@
 
 <!-- Project-specific corrections from human feedback. -->
 <!-- Format: NEVER/ALWAYS [behavior] (learned [date]) -->
+- stage diary（memory.md）只能使用四個標準 H2（Interpretations / Deviations / Tradeoffs / Open questions），新增條目一律 append 到既有標題下，不得使用「（續）」等變體標題 — aidlc-learnings.ts surface 只認標準標題，變體下的條目不會進入學習候選 (learned 2026-08-02) <!-- cid:intent-capture:c1 -->
+- 問授予權限的問題時，選項描述必須寫明授予後實際看得到／做得到什麼（涵蓋的頁面、欄位、操作），不能只寫 story id 或權限名 — 使用者無法從 id 評估權限邊界 (learned 2026-08-02) <!-- cid:intent-capture:c7 -->
+- 在 artifact 掛 [Q<n>] 來源標籤前，必須回頭逐字核對該題的已選選項原文，不得憑印象引用 — claim-sources sensor 只驗標籤可解析性、不驗語意支持，誤掛的標籤只有人工核對能攔住 (learned 2026-08-02) <!-- cid:intent-capture:c11 -->
+- 任何 artifact 的 Assumptions & Open Questions 有新增或刪除時，必須同步 reset 問題檔的 Assumption Confirmation 並重新取得人工確認 — 已確認集合與 artifact 現況不一致時 claim-sources sensor 必然失敗 (learned 2026-08-02) <!-- cid:intent-capture:c12 -->
+- ideation 的「禁實作細節」約束的是 artifact 內容，不是查證行為：為了把問題問對，讀 code／schema／權限矩陣是必要且允許的，查證結果用於出題與選項設計，不寫進 ideation 產出 (learned 2026-08-02) <!-- cid:intent-capture:c8 -->
+- 使用者以實作語彙（欄位、資料表、權限 id）回答 ideation 問題時，artifact 改寫到產品邊界高度（例：「稽核只需最後一次登入」而非「users 加 last_login_at」），保留決策約束力但不下沉到設計 (learned 2026-08-02) <!-- cid:intent-capture:c5 -->
+- reviewer 的修正建議若會製造新的無來源主張，以 grounding contract 為準拒絕該建議並在 diary 記明理由 — 修正手段本身不得違反 stage 的來源規則 (learned 2026-08-02) <!-- cid:intent-capture:c19 -->
+- 請使用者確認 workflow scope 時，一併揭露該 scope 的 stage 數與 approval gate 數 — 不揭露成本的確認不是知情確認 (learned 2026-08-02) <!-- cid:intent-capture:c6 -->

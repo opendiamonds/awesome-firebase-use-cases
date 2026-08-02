@@ -4,5 +4,12 @@
     "slug": "default",
     "dirName": "260802-default",
     "status": "in-flight"
+  },
+  {
+    "uuid": "019fc129-2257-7826-84b2-cad7e36eb86e",
+    "slug": "last-login-column",
+    "dirName": "260802-last-login-column",
+    "scope": "feature",
+    "status": "in-flight"
   }
 ]
