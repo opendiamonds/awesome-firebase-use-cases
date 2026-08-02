@@ -10,7 +10,7 @@ Each agent carries context across stages because they are present throughout. Th
 
 1. **User decides, AI executes** — Every material decision goes through an approval gate where the user reviews, revises, or overrides.
 2. **Adaptive depth** — Simple projects skip heavyweight stages. Complex projects get full coverage. The workflow adapts to project needs.
-3. **Traceable artifacts** — Every stage produces versioned markdown documents in `aidlc-docs/`, creating a complete decision record.
+3. **Traceable artifacts** — Every stage produces versioned markdown documents in the active intent's record directory (`aidlc/spaces/<space>/intents/<record>/`), creating a complete decision record.
 4. **Multi-role expertise** — Each stage is guided by domain-expert agent personas to ensure appropriate depth.
 5. **No emergent behavior** — Agents follow prescribed protocols. Approval menus, completion messages, and state transitions are standardized.
 6. **Questions before assumptions** — When in doubt, ask. Incomplete answers lead to poor designs.
@@ -28,7 +28,7 @@ Each agent carries context across stages because they are present throughout. Th
 
 ## Scope System
 
-Not every task requires all 32 stages. Scopes (enterprise, feature, mvp, poc, bugfix, refactor, infra, security-patch, workshop) determine which stages execute and at what depth.
+Not every task requires every stage. Scopes (see the compiled scope grid or run `/aidlc --doctor` for the enabled set) determine which stages execute and at what depth.
 
 ## Self-Learning Guardrails
 

@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 import logging
 import re
-import os
 
 from database import get_db
 from models import User, RolePermission, RoleAuthorizationRequest, UserDiagram, UserDiagramChat
@@ -185,18 +184,20 @@ class AuthorizationRequestSchema(BaseModel):
 
 
 def _audit_append(title: str, request_raw: str, outcome: str, approver: str) -> None:
-    try:
-        audit_path = "/Users/luojingting/Documents/opendimand/cloud/aidlc-docs/audit.md"
-        if os.path.exists(audit_path):
-            with open(audit_path, "a", encoding="utf-8") as f:
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                f.write(f"\n#### {timestamp} +08:00 — {title}\n\n")
-                f.write(f'**User request (raw)**: "{request_raw}"\n')
-                f.write("**Stage**: Operations → Privilege Enforcement\n")
-                f.write(f"**Outcome**: {outcome}\n")
-                f.write(f"**Approver**: {approver}\n\n---\n")
-    except Exception as e:
-        logger.error("寫入 audit.md 失敗: %s", e)
+    """記錄一筆權限稽核事件到應用程式日誌。
+
+    原本寫入某台開發機的絕對路徑（AI-DLC v1 的 `aidlc-docs/audit.md`），被
+    `os.path.exists` 擋著，實際上在任何環境都不會執行。AI-DLC 的 audit 由框架
+    引擎寫入 record 的 per-clone shard，不該由應用程式 runtime 寫入 —— 兩者
+    是不同的稽核軌跡。此處改走標準 logger，由既有的日誌收集管線承接。
+    """
+    logger.info(
+        "【權限稽核】%s | 請求: %s | 結果: %s | 核准者: %s",
+        title,
+        request_raw,
+        outcome,
+        approver,
+    )
 
 
 def _pending_request_for_user(db: Session, user_id: int) -> Optional[RoleAuthorizationRequest]:

@@ -67,7 +67,7 @@ npm run build
 schema_rbac.sql
 ```
 
-補充說明：`aidlc-docs/construction/plans/schema-rbac-notes.md`  
+補充說明：`aidlc/spaces/default/intents/260802-default/construction/plans/schema-rbac-notes.md`  
 （`schema.sql` 僅核心 DDL 參考，**完整新環境請用 `schema_rbac.sql`**。）
 
 執行：
@@ -189,8 +189,8 @@ psql "$DATABASE_URL" -c "COPY role_permissions TO STDOUT WITH CSV HEADER" > role
 | 文件 | 說明 |
 |---|---|
 | `schema_rbac.sql` | **建表 + 預設資料（含角色矩陣）** |
-| `aidlc-docs/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
-| `aidlc-docs/construction/plans/role-permission-design.md` | 角色／細項語意 |
+| `aidlc/spaces/default/intents/260802-default/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
+| `aidlc/spaces/default/intents/260802-default/construction/plans/role-permission-design.md` | 角色／細項語意 |
 | `backend/.env.example`、`frontend/.env.example` | 環境變數範本 |
 
 ---

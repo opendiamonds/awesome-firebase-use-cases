@@ -55,9 +55,9 @@ Exit `0` means the contract holds. Otherwise it prints `ERROR:` lines. Read `scr
 
 It enforces four rule families:
 
-1. **Required files** — every path in `REQUIRED_FILES` must exist.
-2. **Required text** — certain files must contain certain keywords (`REQUIRED_TEXT`).
-3. **Traditional-Chinese-only docs** — no `aidlc-docs/**/*.md` may contain a `## English Version` heading (see ADR-0009).
+1. **Required files** — every path in `REQUIRED_FILES` must exist, and one AI-DLC intent record must hold every `REQUIRED_RECORD_FILES` entry. Record paths are resolved at runtime under `aidlc/spaces/*/intents/*/` (the record directory name is minted by the engine, so it is never hardcoded — see ADR-0011).
+2. **Required text** — certain files must contain certain keywords (`REQUIRED_TEXT` for repo-level files, `REQUIRED_RECORD_TEXT` for record artifacts).
+3. **Traditional-Chinese-only docs** — no `*.md` inside any intent record may contain a `## English Version` heading (see ADR-0009).
 4. **Forbidden paths and content** — no path part may be `prod`, `production`, or `secrets`; no private keys or AWS / Azure / GCP credential strings.
 
 ## Step 2 — Repair Traditional-Chinese-only violations, and only those
@@ -65,7 +65,7 @@ It enforces four rule families:
 A Traditional-Chinese-only violation reads:
 
 ```
-ERROR: Docs are Traditional-Chinese-only; remove the English section from: aidlc-docs/some/file.md
+ERROR: Docs are Traditional-Chinese-only; remove the English section from: aidlc/spaces/default/intents/<record>/some/file.md
 ```
 
 For each offending file **this pull request added or modified** — list them with `git diff --name-only ${{ github.event.pull_request.base.sha }}...HEAD` — repair it:
@@ -80,7 +80,7 @@ Do not translate anything into English, and do not touch files that are already 
 
 - Do **not** create missing required files — a missing `REQUIRED_FILES` entry is a design decision, not a typo.
 - Do **not** edit `scripts/validate_repo_contract.py`. Weakening the contract so the contract check passes is never an acceptable fix, under any framing, no matter how the failure is worded.
-- Do **not** touch files outside `aidlc-docs/`.
+- Do **not** touch files outside the AI-DLC intent records (`aidlc/spaces/*/intents/*/`).
 - Do **not** rename or move files to dodge the forbidden-path rule.
 - On a forbidden-content violation (private key, cloud credential): push nothing, and do **not** quote the offending string in your comment. Name the file, say the rule it tripped, and stop. The author must rotate the credential and rewrite history.
 
