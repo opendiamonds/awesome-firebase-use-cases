@@ -11,5 +11,12 @@
     "dirName": "260802-last-login-column",
     "scope": "feature",
     "status": "in-flight"
+  },
+  {
+    "uuid": "019fd4ba-08aa-7d1c-9090-18e375de1756",
+    "slug": "a1-a3-ux",
+    "dirName": "260806-a1-a3-ux",
+    "scope": "bugfix",
+    "status": "in-flight"
   }
 ]

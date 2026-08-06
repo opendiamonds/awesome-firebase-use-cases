@@ -13,6 +13,7 @@
 <!-- This monorepo requires package-scoped branch names and a package owner -->
 <!-- review in addition to the team's normal merge policy. -->
 
+- Sidebar 導覽依 user story 大類分層（例如 A、J）；故事層（A1／A3、J3a／J3b）為第二層。既有 A／J 先套用，後續功能比照。 (learned 2026-08-06) <!-- cid:reverse-engineering:c3 -->
 ## Walking Skeleton
 
 <!-- Project-specific specialisation. Example: -->
@@ -38,6 +39,7 @@
 
 <!-- Project-specific specialisation. -->
 
+- 架構圖連線不得與元件 icon 重疊時，優先在 `diagram_builder` 以 exit／entry 連接點與 waypoint 修正，而不是只靠前端 post-process。 (learned 2026-08-06) <!-- cid:reverse-engineering:c7 -->
 ## Tech Stack
 
 - **Backend**：Python / FastAPI（`backend/`）
@@ -84,6 +86,8 @@
 - ALWAYS 在任何 high-risk action（production write、IaC apply、IAM 變更）前先給 plan + impact + rollback，並通過 human approval gate。
 - ALWAYS 讓引擎把 AIDLC 階段事件寫進 `<record>/audit/` 的 per-clone shard（不要手動編輯 shard）；架構級決策開 ADR 於 `<record>/inception/decisions/NNNN-*.md`。
 
+- Design／generate 進 agent 前必須做平台自我竄改預檢（Cloud-360 的 DB／系統值／API key／金鑰等）；命中則不呼叫 LLM，回固定「此需求毫無相關，請重新輸入」；並以 system prompt 補強。 (learned 2026-08-06) <!-- cid:reverse-engineering:c8 -->
+- 在 Cursor harness 執行 AIDLC 核准閘時：因無 Claude Code UserPromptSubmit hook，conductor 在呼叫 `report --result approved` 前須先執行 `bun .claude/hooks/aidlc-mint-presence.ts`，確保 audit 有對應 HUMAN_TURN（使用者須已在對話中明確核准）。 (learned 2026-08-06) <!-- cid:requirements-analysis:c2 -->
 ## Corrections
 
 <!-- Project-specific corrections from human feedback. -->

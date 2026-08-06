@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/auth-context';
 import { apiUrl } from '../config/api';
-import { SuggestionRichText } from '../components/SuggestionRichText';
 import { LensCriteriaEditor } from '../components/LensCriteriaEditor';
 import { DiagramPreviewPanel } from '../components/DiagramPreviewPanel';
 import { downloadReviewPdf } from '../utils/exportReviewPdf';
 import { exportDiagramToPngDataUrl } from '../utils/exportDiagramPng';
 import { buildOptimizeSuggestionsSummary, normalizeOptimizeFinding } from '../utils/optimizeSuggestions';
+import { toPlainSuggestionText } from '../lib/plainText';
 
 type DiagramItem = {
   id: number;
@@ -1833,11 +1833,16 @@ export const AssessmentPage = () => {
                 )}
               </h2>
               <div className="bg-white border border-gray-100 rounded-xl p-4 min-h-[6rem] shadow-sm">
-                <SuggestionRichText
-                  text={suggestionsText}
-                  streaming={Boolean(isStreamingSuggestions && suggestionsText)}
-                  empty={suggestionsPlaceholder}
-                />
+                {suggestionsText ? (
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {toPlainSuggestionText(suggestionsText)}
+                    {isStreamingSuggestions ? (
+                      <span className="inline-block w-1.5 h-4 ml-0.5 align-middle bg-brand-500 animate-pulse" />
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-400">{suggestionsPlaceholder}</p>
+                )}
               </div>
               {active.error_message && active.status === 'rules_only' && (
                 <p className="text-xs text-red-600 mt-2">

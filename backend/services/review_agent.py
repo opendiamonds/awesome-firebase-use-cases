@@ -42,26 +42,26 @@ def fallback_suggestions_from_findings(findings: list[dict[str, Any]] | None) ->
     items = findings or []
     if not items:
         return (
-            "## 備援建議\n\n"
+            "備援建議\n\n"
             "本次無法呼叫 Review Agent，且沒有規則發現可供擴寫。"
             "請確認已設定 OPENROUTER_API_KEY 後重試建議。"
         )
     lines = [
-        "## 備援建議（依規則發現自動產生）",
+        "備援建議（依規則發現自動產生）",
         "",
-        "> Review Agent 暫時不可用；以下依 findings 整理，請人工複核。",
+        "Review Agent 暫時不可用；以下依 findings 整理，請人工複核。",
         "",
     ]
     ordered = sorted(
         items,
         key=lambda f: SEVERITY_ORDER.get(str(f.get("severity") or ""), 9),
     )
-    for f in ordered:
+    for i, f in enumerate(ordered, start=1):
         code = f.get("code") or "—"
         title = f.get("title") or code
         sev = f.get("severity") or "info"
         hint = (f.get("recommendation_hint") or f.get("message") or "").strip()
-        lines.append(f"### [{sev}] {code} — {title}")
+        lines.append(f"{i}. [{sev}] {code} — {title}")
         lines.append(hint or "（無建議細節）")
         lines.append("")
     return "\n".join(lines).strip()

@@ -31,6 +31,8 @@ class TestReviewAgentFallback(unittest.TestCase):
         )
         self.assertLess(text.index("SEC-Y"), text.index("OE-X"))
         self.assertIn("hint-crit", text)
+        self.assertNotIn("##", text)
+        self.assertNotIn("###", text)
 
 
 if __name__ == "__main__":

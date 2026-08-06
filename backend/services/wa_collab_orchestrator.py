@@ -124,8 +124,8 @@ async def _review_speak(
     yield {
         "type": "progress",
         "content": (
-            f"Review Agent 發言中（高風險 {hr} 項；"
-            f"分數 {score_now}／目標 {TARGET_SCORE}）…"
+            f"進入評核建議階段，請稍待…"
+            f"（高風險 {hr} 項；分數 {score_now}／目標 {TARGET_SCORE}）"
         ),
         "round": round_no,
     }
@@ -348,6 +348,21 @@ async def run_wa_collab(
         }
         return
 
+    yield {
+        "type": "message",
+        "speaker": "system",
+        "content": (
+            "架構圖已繪製完成。接下來會進入評核階段，請稍待；"
+            "評核進行期間請先不要異動架構圖，待評核與建議完成後再調整。"
+        ),
+        "round": 1,
+    }
+    yield {
+        "type": "progress",
+        "content": "架構圖已完成，進入評核階段，請稍待（請勿異動架構圖）…",
+        "round": 1,
+    }
+
     # provider
     resolved_provider = (provider or "").lower().strip()
     if resolved_provider not in ("aws", "gcp", "azure"):
@@ -359,7 +374,10 @@ async def run_wa_collab(
 
     yield {
         "type": "progress",
-        "content": f"第 1 輪：以 {resolved_provider} Active Lens 評核中…",
+        "content": (
+            f"進入評核階段，請稍待…"
+            f"（第 1 輪：以 {resolved_provider} Active Lens 評分中；請勿異動架構圖）"
+        ),
         "round": 1,
     }
     try:
@@ -457,7 +475,10 @@ async def run_wa_collab(
         best_xml = xml_r2
         yield {
             "type": "progress",
-            "content": f"第 2 輪：以 {resolved_provider} Active Lens 再評核…",
+            "content": (
+                f"改圖完成，再次進入評核階段，請稍待…"
+                f"（第 2 輪：以 {resolved_provider} Active Lens 評分中）"
+            ),
             "round": 2,
         }
         try:
