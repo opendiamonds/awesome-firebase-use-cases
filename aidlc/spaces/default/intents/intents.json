@@ -18,5 +18,12 @@
     "dirName": "260806-a1-a3-ux",
     "scope": "bugfix",
     "status": "in-flight"
+  },
+  {
+    "uuid": "019fd5d0-8c2a-7044-acda-047f6920a469",
+    "slug": "drawio-templates",
+    "dirName": "260806-drawio-templates",
+    "scope": "bugfix",
+    "status": "complete"
   }
 ]

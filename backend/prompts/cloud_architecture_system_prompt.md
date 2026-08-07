@@ -140,34 +140,33 @@ D. 其他（請說明）
 ```
 
 #### 3. Azure 繪圖幾何範本 (參照 `Azure_template.drawio.xml` 權威架構)
-- **Azure Subscription / Cloud**: 最外層訂用帳戶邊界 (x=160, y=40, width=1170, height=370)
-- **App Service Plan Group**: 應用服務叢集區域 (x=290, y=100, width=336, height=180)
-- **Resource Group / Subnet**: 核心資源組邊界 (x=740, y=50, width=300, height=150)
-- **Azure Monitor / Diagnostic Group**: 監控治理區域 (x=1190, y=50, width=120, height=230)
+- **Integration & Compute Group**: 核心整合與運算區域 (x=260, y=100, width=690, height=760)
+- **App Group / VNet**: 應用整合虛擬網路邊界 (x=300, y=140, width=520, height=680)
+- **Database Resource Group**: 資料儲存資源組 (x=1238.81, y=320, width=240, height=240)
+- **Monitoring Group**: 監控診斷資源組 (x=1197.62, y=640, width=322.38, height=280)
 - **Azure JSON 呼叫範例**：
 ```json
 {
   "provider": "Azure",
   "groups": [
-    {"id": "az_cloud", "name": "Azure Subscription", "type": "azure_cloud", "x": 160, "y": 40, "width": 1170, "height": 370},
-    {"id": "app_rg", "name": "App Service Plan", "type": "azure_resource_group", "x": 290, "y": 100, "width": 336, "height": 180},
-    {"id": "db_rg", "name": "Database Resource Group", "type": "azure_resource_group", "x": 740, "y": 50, "width": 300, "height": 150},
-    {"id": "monitor_rg", "name": "Monitoring Group", "type": "azure_resource_group", "x": 1190, "y": 50, "width": 120, "height": 230}
+    {"id": "compute_rg", "name": "Integration & Compute", "type": "azure_resource_group", "x": 260, "y": 100, "width": 690, "height": 760},
+    {"id": "app_vnet", "name": "App Group VNet", "type": "azure_vnet", "x": 300, "y": 140, "width": 520, "height": 680},
+    {"id": "db_rg", "name": "Database Group", "type": "azure_resource_group", "x": 1238.81, "y": 320, "width": 240, "height": 240},
+    {"id": "monitor_rg", "name": "Monitoring Group", "type": "azure_resource_group", "x": 1197.62, "y": 640, "width": 322.38, "height": 280}
   ],
   "nodes": [
-    {"id": "n1", "name": "Azure CDN", "x": 191, "y": 174},
-    {"id": "n2", "name": "API Management", "x": 310, "y": 120},
-    {"id": "n3", "name": "AKS", "x": 530, "y": 120},
-    {"id": "n4", "name": "Azure SQL Database", "x": 790, "y": 60},
-    {"id": "n5", "name": "Azure Cosmos DB", "x": 930, "y": 60},
-    {"id": "n6", "name": "Azure Monitor", "x": 1218, "y": 65}
+    {"id": "n1", "name": "VPN gateway", "x": 154, "y": 387.92},
+    {"id": "n2", "name": "Azure Databricks", "x": 497.52, "y": 214.5},
+    {"id": "n3", "name": "Azure Spring Apps", "x": 377, "y": 377.09},
+    {"id": "n4", "name": "AKS", "x": 615, "y": 382.35},
+    {"id": "n5", "name": "Azure SQL Database", "x": 1278.81, "y": 370},
+    {"id": "n6", "name": "Azure Monitor", "x": 1431, "y": 671.63}
   ],
   "edges": [
-    {"source": "n1", "target": "n2"},
-    {"source": "n2", "target": "n3"},
+    {"source": "n1", "target": "n3"},
     {"source": "n3", "target": "n4"},
-    {"source": "n3", "target": "n5"},
-    {"source": "n3", "target": "n6"}
+    {"source": "n4", "target": "n5"},
+    {"source": "n4", "target": "n6"}
   ]
 }
 ```
