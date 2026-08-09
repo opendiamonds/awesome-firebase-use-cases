@@ -100,6 +100,8 @@ docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec b
 | `LLM_MAX_OUTPUT_TOKENS` | `12000` | 餘額緊時可降；見第 0.3 節 |
 | `LLM_XML_CONTEXT_MAX_CHARS` | `32000` | 大圖面可調，但會影響 token 用量 |
 | `N8N_WEBHOOK_URL` | 選填 | 有用動態 icon 再填 |
+| `N8N_USER` | 選填 | 存取 n8n webhook 所需之 Basic Auth 帳號 |
+| `N8N_PASSWORD` | 選填 | 存取 n8n webhook 所需之 Basic Auth 密碼 |
 
 #### 1.2 前端 `frontend/.env`（build 時注入）
 
