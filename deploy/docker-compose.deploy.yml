@@ -30,6 +30,7 @@ services:
   backend:
     build:
       context: ../backend
+      network: host
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -41,9 +42,11 @@ services:
       LLM_MAX_OUTPUT_TOKENS: ${LLM_MAX_OUTPUT_TOKENS:-12000}
       LLM_XML_CONTEXT_MAX_CHARS: ${LLM_XML_CONTEXT_MAX_CHARS:-32000}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      N8N_USER: ${N8N_USER}
+      N8N_PASSWORD: ${N8N_PASSWORD}
       APP_ENV: ${APP_ENV}
       # Same-origin through nginx, so CORS is belt-and-braces rather than load-bearing.
-      CORS_ORIGINS: ${PUBLIC_URL}
+      CORS_ORIGINS: ${PUBLIC_URL},http://localhost:5173,http://127.0.0.1:5173
     depends_on:
       db:
         condition: service_healthy
@@ -51,6 +54,7 @@ services:
   frontend:
     build:
       context: ../frontend
+      network: host
       args:
         # Vite inlines this at build time; changing PUBLIC_URL requires a rebuild.
         VITE_API_BASE_URL: ${PUBLIC_URL}

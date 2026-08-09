@@ -1489,6 +1489,8 @@ async def fetch_icon_from_n8n(service_name: str, provider: str = "AWS") -> str:
     若未設定 N8N_WEBHOOK_URL 或請求失敗，回傳灰底文字 fallback SVG。
     """
     webhook_url = os.environ.get("N8N_WEBHOOK_URL")
+    n8n_user = os.environ.get("N8N_USER")
+    n8n_password = os.environ.get("N8N_PASSWORD")
     fallback_svg = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
         f'<rect width="100" height="100" fill="#cccccc"/>'
@@ -1499,10 +1501,17 @@ async def fetch_icon_from_n8n(service_name: str, provider: str = "AWS") -> str:
     if not webhook_url:
         return fallback_svg
 
+    auth = None
+    if n8n_user and n8n_password:
+        auth = (n8n_user, n8n_password)
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                webhook_url, json={"service": service_name, "provider": provider}, timeout=5.0
+                webhook_url,
+                json={"service": service_name, "provider": provider},
+                auth=auth,
+                timeout=5.0
             )
             if response.status_code != 200:
                 return fallback_svg
