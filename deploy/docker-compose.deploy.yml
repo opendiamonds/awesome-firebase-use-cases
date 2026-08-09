@@ -46,7 +46,7 @@ services:
       N8N_PASSWORD: ${N8N_PASSWORD}
       APP_ENV: ${APP_ENV}
       # Same-origin through nginx, so CORS is belt-and-braces rather than load-bearing.
-      CORS_ORIGINS: ${PUBLIC_URL},http://localhost:5173,http://127.0.0.1:5173
+      CORS_ORIGINS: ${CORS_ORIGINS:-${PUBLIC_URL}}
     depends_on:
       db:
         condition: service_healthy

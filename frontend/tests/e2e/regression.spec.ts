@@ -34,7 +34,7 @@ test.describe('身分驗證', () => {
   test('管理員登入後進入工作區', async ({ page }) => {
     await login(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/workspace/);
-    await expect(page.getByText('核心工作區')).toBeVisible();
+    await expect(page.getByRole('button', { name: '架構', exact: true })).toBeVisible();
   });
 
   test('登出後返回登入頁', async ({ page }) => {
@@ -54,20 +54,8 @@ test.describe('角色權限存取控制 (RBAC)', () => {
   });
 
   test('Developer 看不到系統管理區', async ({ page }) => {
-    // Register a throwaway user; register assigns role Developer. The backend
-    // enforces ^[a-z0-9_]$ and length 3–20, so the name must stay short: a
-    // base36 timestamp plus a few digits of the run id keeps it unique across
-    // parallel/retried runs while staying well under 20 chars (github.run_id
-    // alone is ~11 digits, which is why the naive run_id+timestamp overflowed).
-    const rid = (process.env.PW_RUN_ID || '0').replace(/\D/g, '').slice(-4);
-    const uniq = `dev_${rid}${Date.now().toString(36)}`.slice(0, 20);
-    await page.goto('/');
-    await page.getByRole('button', { name: /立即註冊新帳號/ }).click();
-    await page.getByPlaceholder('請輸入您的帳號').fill(uniq);
-    await page.getByPlaceholder('請輸入密碼').fill('devpass123');
-    await page.getByPlaceholder('請再次輸入密碼').fill('devpass123');
-    await page.getByRole('button', { name: '立即註冊並登入' }).click();
-
+    // Log in as pre-seeded Developer persona 'ian' to verify RBAC restrictions
+    await login(page, 'ian', 'ian123');
     await expect(page).toHaveURL(/\/workspace/);
     // Developer has no J3 permission, so the admin section must be absent.
     await expect(page.getByText('系統管理')).toHaveCount(0);
