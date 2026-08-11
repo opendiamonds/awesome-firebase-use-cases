@@ -54,6 +54,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Drift gate 2 of 2 (the spec's gate is in the backend job below). This one
+      # regenerates the committed API types from the committed openapi.json and
+      # fails if they differ. `tsc -b` structurally cannot catch this: it checks
+      # "usage against the type file", not "type file against the spec", so a
+      # re-dumped spec whose types were never regenerated would sail through.
+      # Needs node + the generator, which is why it lives here and not in backend.
+      - name: API type contract drift
+        run: npm run check:types
+
       # `npm run build` is `tsc -b && vite build`, so this covers typecheck too.
       - name: Typecheck and build
         run: npm run build
@@ -83,6 +92,19 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cloud360
           JWT_SECRET: ci_only_not_a_real_secret
         run: python -c "import main; print('app:', main.app.title)"
+
+      # Drift gate 1 of 2 (the type file's gate is in the frontend job above).
+      # Re-dumps the OpenAPI spec from the code and fails if the committed
+      # openapi.json differs. The truth source is the backend code, and this job
+      # already has the Python env. fastapi/pydantic are pinned to exact versions
+      # in requirements.txt precisely so this gate cannot go red on an unrelated
+      # PR — the spec output is byte-deterministic within a version pair but
+      # drifts across them.
+      - name: OpenAPI spec drift
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cloud360
+          JWT_SECRET: ci_only_not_a_real_secret
+        run: python scripts/dump_openapi.py --check
 
       # Unit suite (SQLite in-memory; psycopg2 mocked in tests/helpers.py)
       - name: Run unit tests
