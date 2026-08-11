@@ -26331,3 +26331,63 @@
 **Event**: HUMAN_TURN
 
 ---
+
+## Subagent Completed
+**Timestamp**: 2026-08-11T15:51:30Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: 
+**Agent ID**: a58faffc785deef8c
+**Message**: Goal was shipping the last-activity-column feature via the AIDLC workflow. That's done: PR #493 is open against ut with all checks green, including 14/14 e2e. Next action is yours — it needs one appro
+
+---
+
+## Human Turn
+**Timestamp**: 2026-08-11T22:41:33Z
+**Event**: HUMAN_TURN
+
+---
+
+## Human Turn
+**Timestamp**: 2026-08-11T22:50:15Z
+**Event**: HUMAN_TURN
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-08-11T22:53:32Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: 
+**Agent ID**: a52627bd732abe490
+**Message**: 把示範資料的 SQL 存到 repo 裡，不要放 /tmp
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-08-11T22:59:49Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: 
+**Agent ID**: a69cbdac6dbb2094a
+**Message**: Goal was shipping the last-activity-column feature: PR #493 is open against ut with all CI green, awaiting your review approval. I gave you commands to start the stack yourself locally; next step is r
+
+---
+
+## Human Turn
+**Timestamp**: 2026-08-11T23:01:09Z
+**Event**: HUMAN_TURN
+
+---
+
+## Subagent Completed
+**Timestamp**: 2026-08-11T23:08:07Z
+**Event**: SUBAGENT_COMPLETED
+**Agent Type**: 
+**Agent ID**: a62b8ed653d41eb71
+**Message**: A
+
+---
+
+## Human Turn
+**Timestamp**: 2026-08-11T23:33:19Z
+**Event**: HUMAN_TURN
+
+---
