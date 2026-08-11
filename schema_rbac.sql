@@ -5,6 +5,7 @@
 -- 單一腳本涵蓋：
 --   A) 核心：users / user_diagrams / diagram_shares（架構圖儲存與分享）
 --   B) A4：user_diagram_chats（聊天持久化）+ users.last_opened_diagram_id
+--      另含 users.last_activity_at（最後活動時間欄位）
 --   E) A3：architecture_reviews（評核結果）+ wa_lenses（Offline Lens 現行標準）
 --   C) RBAC：role_permissions + 預設矩陣（308 列）
 --   D) 預設管理員：admin / admin123（Platform_Admin）
@@ -32,8 +33,15 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR NOT NULL,
   role VARCHAR NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
-  last_opened_diagram_id INTEGER
+  last_opened_diagram_id INTEGER,
+  last_activity_at TIMESTAMP WITH TIME ZONE
 );
+
+-- 既有資料庫補欄（本檔可重跑；後端啟動時的 _ensure_last_activity_schema 亦會補）
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP WITH TIME ZONE;
+
+COMMENT ON COLUMN users.last_activity_at IS
+  '最後活動時間（UTC）。任何以有效憑證發出的請求都更新它，同一帳號至多每 5 分鐘寫一次。NULL = 從未活動，不套用逾期標示。刻意無預設值。';
 
 CREATE UNIQUE INDEX IF NOT EXISTS ix_users_username ON users (username);
 CREATE INDEX IF NOT EXISTS ix_users_id ON users (id);
@@ -472,7 +480,7 @@ INSERT INTO role_permissions (role, story_id, can_view, can_edit, can_review) VA
   ('SRE', 'J3a', false, false, false),
   ('Ops_Lead', 'J3a', false, false, false),
   ('Platform_Engineer', 'J3a', false, false, false),
-  ('Security_Reviewer', 'J3a', false, false, false),
+  ('Security_Reviewer', 'J3a', true, false, false),   -- PU-4：稽核者可檢視使用者管理介面
   ('Platform_Admin', 'J3a', true, true, true),
   ('Platform_Owner', 'J3a', true, false, false),
   ('Project_Architect', 'J3b', false, false, false),

@@ -172,6 +172,7 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 | A | `user_diagrams` | 架構圖 XML |
 | A | `diagram_shares` | 圖分享（多對多） |
 | B | `users.last_opened_diagram_id` | 上次開啟的圖 |
+| B | `users.last_activity_at` | **最後活動時間**（UTC，可為 NULL＝從未活動）。見 2.2.3 |
 | B | `user_diagram_chats` | 使用者×圖 的聊天紀錄（A4） |
 | E | `architecture_reviews` | **A3** Well-Architected 評核結果（分數／發現／建議） |
 | E | `wa_lenses` | **A3** Offline Custom Lens 現行標準（具 A3 **審核** 者可編輯） |
@@ -217,6 +218,65 @@ psql "$DATABASE_URL" -c "\d wa_lenses"
 psql "$DATABASE_URL" -c "SELECT count(*) FROM architecture_reviews;"
 psql "$DATABASE_URL" -c "SELECT id, lens_id, provider, is_active, updated_at FROM wa_lenses ORDER BY id DESC LIMIT 5;"
 ```
+
+#### 2.2.3 `users.last_activity_at`（最後活動時間）
+
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP WITH TIME ZONE;
+```
+
+| 項目 | 說明 |
+|---|---|
+| 語意 | 該帳號**最後一次以有效憑證發出請求**的時刻（UTC）。只留最後一次，不留歷史 |
+| 寫入頻率 | 同一帳號至多**每 5 分鐘**一次（滑動視窗，基準為上次成功寫入的時刻） |
+| `NULL` 的意思 | **從未活動**。上線前的既有帳號全部為此態，管理介面顯示可聚焦的破折號，**不套用逾期標示** |
+| 預設值 | **刻意沒有**。設了預設值就無法區分「從未活動」與「剛建立」 |
+| 逾期判定 | 距今**超過 90 天**（嚴格大於）。由**後端**計算並隨 API 回應帶出，前端不自行計算（客戶端時鐘不可信） |
+
+**升級既有環境**：兩條路徑都會補上此欄，擇一即可 ——
+
+1. 重跑 `schema_rbac.sql`（可重跑安全；**但會 `DELETE` 並重播 `role_permissions`，Admin UI 調過的權限會被覆寫**，見 2.5）；
+2. **建議**：只重啟後端服務 —— 啟動時的 `_ensure_last_activity_schema()` 會執行同一段 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`，不動任何其他資料。
+
+**驗證指令**：
+
+```bash
+psql "$DATABASE_URL" -c "\d users" | grep last_activity_at
+# 應出現：last_activity_at | timestamp with time zone |
+psql "$DATABASE_URL" -c "SELECT username, last_activity_at FROM users ORDER BY id LIMIT 5;"
+# 升級後尚未有人活動時，last_activity_at 全為空 —— 這是預期行為
+```
+
+#### 2.2.4 使用者清單端點改為分頁（API 契約變更）
+
+`GET /api/auth/list` 的回應由**裸陣列**改為**分頁物件**：
+
+```json
+{ "items": [ ... ], "total": 87, "page": 1, "page_size": 20 }
+```
+
+| 項目 | 值 |
+|---|---|
+| 查詢參數 | `page`（≥1，預設 1）、`page_size`（1〜100，預設 20） |
+| 非法參數 | 回 **422**，不回傳任何帳號資料 |
+| 頁次超出範圍 | 回 **200**、`items` 為空、`page` 回顯請求值（不夾到最後一頁） |
+
+**部署注意**：這是**破壞性契約變更**。前後端必須**同一次部署**上線 —— 只更新後端會讓使用者管理頁在前端 `.map()` 一個物件時直接壞掉。本專案的 deploy-on-merge 會同時部署兩個映像，正常流程下不會出現這個中間態；**但若手動只重建後端映像，請務必一併重建前端**。
+
+#### 2.2.5 `Security_Reviewer` 取得 `J3a` 檢視權限（seed 變更）
+
+`role_permissions` 的預設矩陣中，`('Security_Reviewer', 'J3a')` 由 `false` 改為 **`can_view = true`**（`can_edit`／`can_review` 維持 `false`）。
+
+**既有環境如何生效**：`ensure_role_permissions_seeded()` **只在表為空時**寫入，既有環境不會經過它。後端啟動時另有一支 `_apply_security_reviewer_j3a_view()` 做**目標式更新**：只在該列存在**且**仍為系統種子所寫（`updated_by = 'system_seed'`）時才翻轉，不插入、不覆蓋人工調整。
+
+**驗證指令**：
+
+```bash
+psql "$DATABASE_URL" -c "SELECT role, story_id, can_view, can_edit, updated_by FROM role_permissions WHERE role='Security_Reviewer' AND story_id='J3a';"
+# 應為：Security_Reviewer | J3a | t | f | system_seed
+```
+
+啟動日誌會記錄三態之一：`已套用`／`已跳過`／`未命中目標列`。**部署後請核對這行日誌** —— 此變更沒有自動化驗證涵蓋既有環境的套用。
 
 #### 2.3 預設資料會塞什麼
 
