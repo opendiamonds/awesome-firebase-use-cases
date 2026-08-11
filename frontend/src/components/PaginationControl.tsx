@@ -21,6 +21,16 @@ interface PaginationControlProps {
  * 純函式、無副作用，可安全在 render 中呼叫。
  */
 function pageSequence(current: number, totalPages: number): Array<number | '…'> {
+  // 過渡態：刪掉某頁唯一一列後、背景重抓完成前，`page` 可能大於 `totalPages`。
+  // 若不把它加進序列，就沒有任何按鈕的 entry === page 成立 —— 目前頁次會同時
+  // 失去方括號（非色彩線索）與 aria-current，使用者與輔助技術都不知道自己在哪。
+  if (current > totalPages) {
+    const head: Array<number | '…'> =
+      totalPages <= 2
+        ? Array.from({ length: totalPages }, (_, i) => i + 1)
+        : [1, '…', totalPages];
+    return [...head, current];
+  }
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }

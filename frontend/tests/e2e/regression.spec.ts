@@ -172,14 +172,95 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
     await expect(page.getByText(/^✔ 已更新 /)).toBeVisible();
   });
 
+  test('切頁期間分頁控制不消失，且鍵盤可達可觸發（AC-5.9／AC-5.10）', async ({ page }) => {
+    const rid = (process.env.PW_RUN_ID || '0').replace(/\D/g, '').slice(-3);
+    const stamp = Date.now().toString(36);
+    await page.goto('/');
+    for (let i = 0; i < 21; i += 1) {
+      await registerUser(page, `kb${rid}${stamp}${i.toString(36)}`.slice(0, 20));
+    }
+    await gotoAdmin(page);
+    const pager = page.getByRole('navigation', { name: '使用者清單分頁' });
+
+    // AC-5.9：頁碼按鈕可用鍵盤到達並**觸發**（不只是可聚焦）。
+    const pageTwo = pager.getByRole('button', { name: '2', exact: true });
+    await pageTwo.focus();
+    await expect(pageTwo).toBeFocused();
+
+    // AC-5.10：切頁期間控制項**仍在畫面上**。刻意延遲清單回應，在回應抵達前
+    // 斷言 nav 仍然存在 —— 若控制項被放在會被整塊替換的容器內，這裡會失敗。
+    await page.route('**/api/auth/list**', async (route) => {
+      await new Promise((r) => setTimeout(r, 1200));
+      await route.continue();
+    });
+    await pageTwo.press('Enter');
+    await expect(pager).toBeVisible();
+    await expect(pager).toHaveAttribute('aria-busy', 'true');
+    await page.unroute('**/api/auth/list**');
+    await expect(pager.locator('[aria-current="page"]')).toHaveText('[2]');
+  });
+
+  test('刪除後仍停在原頁次，且清單重新同步（AC-5.6 的刪除子句）', async ({ page }) => {
+    const rid = (process.env.PW_RUN_ID || '0').replace(/\D/g, '').slice(-3);
+    const stamp = Date.now().toString(36);
+    await page.goto('/');
+    for (let i = 0; i < 21; i += 1) {
+      await registerUser(page, `dl${rid}${stamp}${i.toString(36)}`.slice(0, 20));
+    }
+    await gotoAdmin(page);
+    const pager = page.getByRole('navigation', { name: '使用者清單分頁' });
+    await pager.getByRole('button', { name: '2', exact: true }).click();
+    await expect(pager.locator('[aria-current="page"]')).toHaveText('[2]');
+
+    const totalBefore = Number(
+      ((await pager.getByText(/\d+ 筆/).innerText()).match(/(\d+)/) || ['0'])[0]
+    );
+
+    // 刪除鈕只在帳號已停用後出現，故先停用再刪除。停用沒有確認對話框，只有
+    // 刪除有 —— 為停用也掛一個 once handler 會讓它殘留到刪除時重複處理。
+    await page.getByRole('button', { name: '停用' }).first().click();
+    await expect(page.getByText(/^✔ 已停用 /)).toBeVisible();
+    page.once('dialog', (d) => d.accept());
+    await page.getByRole('button', { name: '刪除' }).first().click();
+    await expect(page.getByText(/^✔ 已刪除 /)).toBeVisible();
+
+    // AC-5.6：頁次不變（現行的整份重抓會把使用者拉回第 1 頁 —— 這條就是要抓它）。
+    await expect(pager.locator('[aria-current="page"]')).toHaveText('[2]');
+    // 總筆數本地遞減，且背景重抓完成後仍然一致。
+    await expect(pager.getByText(new RegExp(`${totalBefore - 1} 筆`))).toBeVisible();
+  });
+
+  test('超出範圍的頁次顯示空態並可回到第 1 頁（AC-5.4 的 UI 子句）', async ({ page }) => {
+    await gotoAdmin(page);
+    // 直接讓清單端點回一個超出範圍的頁 —— seed 只有 admin，第 5 頁必為空。
+    await page.route('**/api/auth/list**', async (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.set('page', '5');
+      await route.continue({ url: url.toString() });
+    });
+    await page.reload();
+    await expect(page.getByText('這一頁沒有資料。')).toBeVisible();
+    const pager = page.getByRole('navigation', { name: '使用者清單分頁' });
+    // 空態下**分頁控制仍在畫面上**（因為它在容器之外），且提供回到第 1 頁。
+    await expect(pager).toBeVisible();
+    await page.unroute('**/api/auth/list**');
+    await page.getByRole('button', { name: '回到第 1 頁' }).click();
+    await expect(page.getByText('這一頁沒有資料。')).toHaveCount(0);
+  });
+
   test('小螢幕改為卡片佈局，分頁控制仍可用', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAdmin(page);
     // 斷點以下：表格隱藏、卡片出現。
     await expect(page.getByRole('table')).toBeHidden();
     await expect(page.getByText('最後活動', { exact: true }).first()).toBeVisible();
-    await expect(
-      page.getByRole('navigation', { name: '使用者清單分頁' })
-    ).toBeVisible();
+    const pager = page.getByRole('navigation', { name: '使用者清單分頁' });
+    await expect(pager).toBeVisible();
+    // AC-5.7：小螢幕也必須能**跳至特定頁次**（不只逐頁前後移動），且呈現總筆數。
+    // 目前頁碼帶方括號（非色彩線索）；單頁時它是唯一的頁碼按鈕，且**呈現但停用**。
+    const currentPage = pager.locator('[aria-current="page"]');
+    await expect(currentPage).toBeVisible();
+    await expect(currentPage).toHaveText('[1]');
+    await expect(pager.getByText(/\d+ 筆/)).toBeVisible();
   });
 });

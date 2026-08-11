@@ -273,7 +273,10 @@ psql "$DATABASE_URL" -c "SELECT username, last_activity_at FROM users ORDER BY i
 
 ```bash
 psql "$DATABASE_URL" -c "SELECT role, story_id, can_view, can_edit, updated_by FROM role_permissions WHERE role='Security_Reviewer' AND story_id='J3a';"
-# 應為：Security_Reviewer | J3a | t | f | system_seed
+# 應為：Security_Reviewer | J3a | t | f | system_patch.j3a_view
+#   （updated_by 由啟動補丁寫成 system_patch.j3a_view —— 這正是「這一列是補丁改的」
+#    的標記，讓第二次以後的啟動落在「已跳過」而非被誤判為管理員異動。
+#    若看到 system_seed 或空值且 can_view 為 f，表示補丁**沒有執行**。）
 ```
 
 啟動日誌會記錄三態之一：`已套用`／`已跳過`／`未命中目標列`。**部署後請核對這行日誌** —— 此變更沒有自動化驗證涵蓋既有環境的套用。

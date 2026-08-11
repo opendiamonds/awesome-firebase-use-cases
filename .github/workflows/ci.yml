@@ -67,6 +67,23 @@ jobs:
       - name: Typecheck and build
         run: npm run build
 
+      # The OpenAPI spec is a complete API map (36 paths, 29 schemas) covering
+      # every user-management and permission endpoint. nginx serves dist/ as-is
+      # and Vite copies public/ into it verbatim, so a spec file that ever lands
+      # in the frontend tree would be readable by unauthenticated visitors. The
+      # current layout (spec at repo root, types compiled away) makes that
+      # impossible by construction -- this step is what stops a future edit from
+      # quietly undoing it.
+      - name: Spec must not be served statically
+        run: |
+          if find dist -type f \( -name 'openapi*' -o -name '*.openapi.*' \) | grep -q .; then
+            echo "openapi spec found inside dist/ -- it would be publicly readable:"
+            find dist -type f \( -name 'openapi*' -o -name '*.openapi.*' \)
+            exit 1
+          fi
+          echo "no spec file in dist/"
+
+
   backend:
     name: Backend (import + unit tests)
     runs-on: ubuntu-latest

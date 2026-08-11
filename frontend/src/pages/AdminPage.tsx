@@ -90,7 +90,11 @@ export const AdminPage: React.FC = () => {
     const seq = (requestSeq.current += 1);
     fetchUserPage(1)
       .then((data) => { if (!cancelled && seq === requestSeq.current) applyPage(data); })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : '連線失敗'); })
+      .catch((err) => {
+        if (!cancelled && seq === requestSeq.current) {
+          setError(err instanceof Error ? err.message : '連線失敗');
+        }
+      })
       .finally(() => { if (!cancelled) setIsLoading(false); });
     return () => { cancelled = true; };
   }, [token, fetchUserPage, applyPage]);
@@ -107,7 +111,11 @@ export const AdminPage: React.FC = () => {
     const seq = (requestSeq.current += 1);
     fetchUserPage(targetPage)
       .then((data) => { if (seq === requestSeq.current) applyPage(data); })
-      .catch((err) => setError(err instanceof Error ? err.message : '連線失敗'))
+      // 失敗分支同樣要檢查序號：否則一個較舊的失敗回應會在較新的成功之後蓋上
+      // 錯誤畫面，把已經正確載入的頁面換掉。
+      .catch((err) => {
+        if (seq === requestSeq.current) setError(err instanceof Error ? err.message : '連線失敗');
+      })
       .finally(() => setIsBusy(false));
   };
 
@@ -117,7 +125,9 @@ export const AdminPage: React.FC = () => {
     const seq = (requestSeq.current += 1);
     fetchUserPage(targetPage)
       .then((data) => { if (seq === requestSeq.current) applyPage(data); })
-      .catch(() => showToast('清單同步失敗，畫面可能不是最新的', 'error'));
+      .catch(() => {
+        if (seq === requestSeq.current) showToast('清單同步失敗，畫面可能不是最新的', 'error');
+      });
   };
 
   const handleRoleChange = async (userId: number, newRole: string) => {
@@ -132,7 +142,15 @@ export const AdminPage: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || '更新角色失敗');
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+      // 套用整個回應（與 handleToggleActive 一致），不只 role —— 回應裡的
+      // last_activity_at／is_overdue 是後端以當下時間重算的，只套 role 會讓該列
+      // 停留在載入當時的逾期判定。
+      const updated: DbUser = {
+        ...(data as DbUser),
+        last_activity_at: (data as DbUser).last_activity_at ?? null,
+        is_overdue: (data as DbUser).is_overdue ?? false,
+      };
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
       showToast(`✔ 已更新 '${data.username}' 角色為 '${newRole}'`, 'success');
     } catch (err) {
       // **不重抓** —— 操作失敗不得把使用者從目前頁次彈回第 1 頁。

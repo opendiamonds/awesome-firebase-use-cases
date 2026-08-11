@@ -86,9 +86,12 @@ def record_activity(db: Session, user: User, now: Optional[datetime] = None) -> 
     呼叫端在請求路徑上，本函式的任何失敗都不得讓使用者的請求失敗。
     """
     moment = now or datetime.now(timezone.utc)
-    if not should_record_activity(user.last_activity_at, moment):
-        return False
     try:
+        # 判定本身也在 try 內：它理論上可因非預期的欄位型別拋出，而本函式在
+        # `get_current_user` 的路徑上 —— 任何逃逸的例外會讓**每一個**已認證端點
+        # 回 500，直接牴觸 AD-8「任何失敗都不得讓使用者的原始請求失敗」。
+        if not should_record_activity(user.last_activity_at, moment):
+            return False
         user.last_activity_at = moment
         db.commit()
         return True
