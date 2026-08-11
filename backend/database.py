@@ -42,6 +42,7 @@ def init_db():
     _ensure_a4_schema()
     _ensure_j5_schema()
     _ensure_a3_schema()
+    _ensure_last_activity_schema()
 
     db = SessionLocal()
     try:
@@ -113,6 +114,11 @@ def init_db():
                 "role_permissions 已有 %d 列，略過 seed",
                 db.query(RolePermission).count(),
             )
+
+        # PU-4：既有環境的目標式權限套用。**必須在 seed 之後**——種子函式只在空表
+        # 寫入，既有環境不會經過它，改了預設值也不會生效（requirements C-3 另禁止
+        # 以重跑整份初始化腳本作為套用手段）。
+        _apply_security_reviewer_j3a_view(db)
     except Exception as e:
         logger.error(f"初始化資料庫時發生錯誤: {e}")
         db.rollback()
@@ -263,3 +269,98 @@ def _ensure_a3_schema():
             except Exception as e:
                 logger.warning("A3 schema 補丁略過/失敗: %s — %s", sql[:60], e)
     logger.info("A3 schema 檢查完成")
+
+def _ensure_last_activity_schema():
+    """為既有資料庫補上 users.last_activity_at（PU-1／C-3）。
+
+    `create_all` 不會 ALTER 既有表，因此新欄位在既有環境需要這支補丁。
+    **不補則 staging 上每個已認證的請求都會失敗，而 CI 全綠** —— 測試以
+    in-memory SQLite 直接建表、從不經過本流程。
+    """
+    from sqlalchemy import text
+
+    statements = [
+        """
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP WITH TIME ZONE
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning(
+                    "last_activity schema 補丁略過/失敗: %s — %s", sql[:60], e
+                )
+    logger.info("last_activity schema 檢查完成")
+
+
+# 本補丁的識別字。與使用者帳號共用同一個欄位，而帳號無格式約束，故理論上可能
+# 撞名；以帶點號的形式降低碰撞機率（帳號正規化只做去空白與轉小寫，不會產生點號
+# 以外的區隔，但實務上不會有人取這個名字）。
+J3A_PATCH_MARKER = "system_patch.j3a_view"
+
+
+def _apply_security_reviewer_j3a_view(db) -> None:
+    """開通 Security_Reviewer 對 J3a 的檢視權限（PU-4／C-7）。
+
+    契約（缺一不可）：
+
+    1. **只更新、不插入** —— 目標列不存在時記錄「未命中目標列」並結束。插入會在
+       空表情境下建立孤兒列，而後續的 seed 會因表非空而整份跳過，導致 308 列預設
+       矩陣不被建立、全系統 RBAC 端點盡數拒絕存取，且沒有任何測試會發現。
+    2. **條件式套用** —— 僅在該列仍為系統種子所寫（`updated_by == "system_seed"`）
+       時才翻轉，避免覆蓋管理者在 Admin UI 上的人工調整。
+    3. **自行管理交易** —— 沿用既有 `_ensure_*` 的提交慣例；不提交則寫入被靜默丟棄
+       而日誌仍報「已套用」，與「無自動化驗證」疊加成雙重靜默。
+    4. **四態日誌**（承 U4 的 business-rules R4，該站把上游的三態拆為四態）——
+       已套用／已跳過（無需動作）／**未套用：該列已被管理員異動**／**未命中目標
+       列**。**後兩態同級，皆為 warning、皆需人工處置** —— R2 的死角恰好落在
+       「已被管理員異動」，若把它併進常態的「已跳過」，這個唯一的執行期訊號就
+       正好在最該照亮的地方關掉。部署後人工核對是本變更唯一的驗證方式。
+    """
+    from models import RolePermission
+
+    try:
+        row = (
+            db.query(RolePermission)
+            .filter(
+                RolePermission.role == "Security_Reviewer",
+                RolePermission.story_id == "J3a",
+            )
+            .first()
+        )
+        if row is None:
+            logger.warning(
+                "J3a 權限套用：未命中目標列（Security_Reviewer/J3a 不存在），不插入"
+            )
+            return
+        if row.can_view:
+            logger.info("J3a 權限套用：已跳過（Security_Reviewer/J3a 已為可檢視）")
+            return
+        # 「尚未被人工調整」有**兩種**合法形態，缺一會讓套用在真實環境失靜默失敗：
+        #   - `system_seed`：由 ensure_role_permissions_seeded() 寫入（空表 seed）
+        #   - NULL／空字串：由 schema_rbac.sql 的 INSERT 寫入（該 INSERT 不含此欄）
+        # Admin UI 的人工調整會把它設成該管理者的 username（user_router.py:834/841），
+        # 只有那種情況才不覆寫。實測：以 schema_rbac.sql 建立的資料庫，本欄全為 NULL。
+        seeded_markers = {"", "system_seed", J3A_PATCH_MARKER}
+        if (row.updated_by or "") not in seeded_markers:
+            # 第三態。**與「未命中目標列」同級（warning，需人工處置）**，不是
+            # 常態跳過：管理者可能是刻意撤銷（應予尊重），也可能是本元件該做而
+            # 做不成。把該欄實際值帶進日誌供部署後判讀。
+            logger.warning(
+                "J3a 權限套用：未套用 —— 該列已被管理員異動（最後異動者=%r），"
+                "需人工核對是刻意撤銷還是套用失敗",
+                row.updated_by,
+            )
+            return
+        row.can_view = True
+        # 寫入本補丁的識別字：讓第二次以後的啟動落在「已跳過（無需動作）」而非
+        # 被誤判為管理員異動，也讓部署後的人工核對看得出這一列是誰改的。
+        row.updated_by = J3A_PATCH_MARKER
+        db.commit()
+        logger.info("J3a 權限套用：已套用（Security_Reviewer 取得 J3a 檢視權限）")
+    except Exception as e:
+        db.rollback()
+        logger.error("J3a 權限套用失敗，已復原：%s", e)

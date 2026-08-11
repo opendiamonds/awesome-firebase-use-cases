@@ -33,6 +33,10 @@ class User(Base):
     last_opened_diagram_id = Column(
         Integer, ForeignKey("user_diagrams.id", ondelete="SET NULL"), nullable=True
     )
+    # 最後活動時間（PU-1）：任何以有效憑證發出的請求都更新它，同一帳號至多每 5 分鐘寫一次。
+    # 可為空 = 從未活動（上線前的既有帳號皆為此態，且不套用逾期標示）。
+    # 刻意不設 server_default：預設值會讓「從未活動」與「剛建立」無法區分。
+    last_activity_at = Column(DateTime(timezone=True), nullable=True)
 
     authorization_requests = relationship(
         "RoleAuthorizationRequest",

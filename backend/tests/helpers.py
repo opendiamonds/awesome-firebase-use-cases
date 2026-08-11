@@ -16,6 +16,7 @@ if str(backend_dir / "services") not in sys.path:
     sys.path.insert(0, str(backend_dir / "services"))
 
 from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import Session, sessionmaker
 
 from models import Base, User, UserDiagram
@@ -23,8 +24,13 @@ from services.rbac import ensure_role_permissions_seeded
 
 
 def make_session() -> Session:
+    # StaticPool：所有連線共用同一個 in-memory 資料庫。預設的 SingletonThreadPool
+    # 會讓每個執行緒拿到各自的空資料庫，而 TestClient 在另一個執行緒裡跑 app，
+    # 沒有 StaticPool 時端點測試會看到 "no such table"。
     engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)

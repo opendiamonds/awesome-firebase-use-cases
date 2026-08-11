@@ -8,6 +8,7 @@ import bcrypt
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
+from services.activity import record_activity
 
 # Security Configurations
 SECRET_KEY = os.environ.get("JWT_SECRET", "cloud360_secret_key_change_me_in_production")
@@ -62,6 +63,10 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="該帳號已被停用"
         )
+    # PU-1：任何以有效憑證發出的請求都更新該帳號的最後活動時間（節流見 C-1）。
+    # 放在這裡而非各 router，是因為這是所有認證請求的唯一必經點。
+    # record_activity 自行管理交易並吞掉自身的失敗——記錄失敗不得讓使用者請求失敗。
+    record_activity(db, user)
     return user
 
 class RoleChecker:
