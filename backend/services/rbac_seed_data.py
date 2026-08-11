@@ -296,7 +296,8 @@ DEFAULT_ROLE_PERMISSIONS = [
     ('SRE', 'J3a', False, False, False),
     ('Ops_Lead', 'J3a', False, False, False),
     ('Platform_Engineer', 'J3a', False, False, False),
-    ('Security_Reviewer', 'J3a', False, False, False),
+    # PU-4：稽核者取得使用者管理介面的檢視權限（僅 view，不含 edit／review）。
+    ('Security_Reviewer', 'J3a', True, False, False),
     ('Platform_Admin', 'J3a', True, True, True),
     ('Platform_Owner', 'J3a', True, False, False),
     ('Project_Architect', 'J3b', False, False, False),
