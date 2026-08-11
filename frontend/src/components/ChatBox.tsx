@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { toPlainSuggestionText } from '../lib/plainText';
+import { parseChoiceOptions } from '../utils/parseChoiceOptions';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -52,6 +54,7 @@ export const ChatBox = ({
 }: ChatBoxProps) => {
   const userLabel = avatarInitials(userDisplayName);
   const [prompt, setPrompt] = useState('');
+  const [awaitingOther, setAwaitingOther] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +63,19 @@ export const ChatBox = ({
     if (!canEdit || !prompt.trim() || isGenerating) return;
     onGenerate(prompt);
     setPrompt('');
+    setAwaitingOther(false);
+  };
+
+  const handlePickOption = (sendText: string, isOther: boolean) => {
+    if (!canEdit || isGenerating) return;
+    if (isOther) {
+      setAwaitingOther(true);
+      setPrompt('');
+      window.setTimeout(() => textareaRef.current?.focus(), 0);
+      return;
+    }
+    setAwaitingOther(false);
+    void onGenerate(sendText);
   };
 
   useEffect(() => {
@@ -178,6 +194,14 @@ export const ChatBox = ({
             !msg.content.trim() &&
             isGenerating &&
             isLast;
+          const choiceOptions =
+            msg.role === 'assistant' &&
+            isLast &&
+            !isGenerating &&
+            canEdit &&
+            msg.content.trim()
+              ? parseChoiceOptions(msg.content)
+              : [];
 
           return (
             <div key={idx} className={`flex gap-4 mb-8 group ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -236,7 +260,40 @@ export const ChatBox = ({
                     )}
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <>
+                    <p className="whitespace-pre-wrap">
+                      {msg.speaker === 'review'
+                        ? toPlainSuggestionText(msg.content)
+                        : msg.content}
+                    </p>
+                    {choiceOptions.length > 0 && (
+                      <div
+                        className="mt-4 flex flex-col gap-2"
+                        data-testid="chat-choice-options"
+                      >
+                        <p className="text-[11px] font-semibold text-gray-400">
+                          請點選一項（或選「其他」後在下方輸入）
+                        </p>
+                        {choiceOptions.map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            data-testid={`chat-choice-${opt.key}`}
+                            disabled={!canEdit || isGenerating}
+                            onClick={() => handlePickOption(opt.sendText, opt.isOther)}
+                            className={`text-left px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                              opt.isOther
+                                ? 'border-dashed border-gray-300 text-gray-600 hover:border-brand-400 hover:bg-brand-50/50'
+                                : 'border-brand-100 bg-brand-50/40 text-brand-800 hover:bg-brand-50 hover:border-brand-300'
+                            } disabled:opacity-50 disabled:pointer-events-none`}
+                          >
+                            <span className="text-brand-600 mr-2">{opt.key}.</span>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -295,9 +352,11 @@ export const ChatBox = ({
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit(e); } }}
               placeholder={
-                canEdit
-                  ? '輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)'
-                  : '唯讀模式：無法送出產圖請求'
+                !canEdit
+                  ? '唯讀模式：無法送出產圖請求'
+                  : awaitingOther
+                    ? '請說明其他想法…（Ctrl+Enter 或 Cmd+Enter 送出）'
+                    : '輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)'
               }
               className="w-full max-h-[120px] pl-3 pr-2 py-2 bg-transparent text-gray-900 text-[14px] resize-none focus:outline-none placeholder:text-gray-400 min-h-[44px]"
               rows={1}

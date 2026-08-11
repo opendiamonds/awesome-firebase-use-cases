@@ -32,6 +32,11 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from services.design_agent import configure_openrouter_env, run_design_agent
+from services.prompt_guard import (
+    REFUSAL_MESSAGE,
+    is_platform_self_modification,
+    latest_user_text,
+)
 from services.rbac import require_arch_action
 from services.review_orchestrator import get_accessible_diagram
 from services.wa_collab_orchestrator import run_wa_collab
@@ -72,6 +77,27 @@ def _ensure_llm_keys() -> None:
         )
 
 
+def _refusal_sse() -> StreamingResponse:
+    """SSE: fixed refusal, no Design Agent / LLM call."""
+
+    async def event_generator():
+        yield (
+            "data: "
+            + json.dumps(
+                {"type": "message", "content": REFUSAL_MESSAGE},
+                ensure_ascii=False,
+            )
+            + "\n\n"
+        )
+        yield (
+            "data: "
+            + json.dumps({"type": "complete"}, ensure_ascii=False)
+            + "\n\n"
+        )
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 @router.post("/generate")
 async def chat_and_generate(
     request: ChatRequest,
@@ -85,10 +111,16 @@ async def chat_and_generate(
     if not messages:
         raise HTTPException(status_code=400, detail="對話不可為空")
 
+    payload = [{"role": m.role, "content": m.content} for m in messages]
+    if is_platform_self_modification(latest_user_text(payload)):
+        logger.info(
+            "prompt_guard 攔截平台自改請求 user=%s",
+            current_user.username,
+        )
+        return _refusal_sse()
+
     _ensure_llm_keys()
     logger.info("收到畫圖/對話請求（Agent SDK 路徑），user=%s", current_user.username)
-
-    payload = [{"role": m.role, "content": m.content} for m in messages]
 
     async def event_generator():
         async for event in run_design_agent(payload, request.current_xml):
@@ -111,6 +143,14 @@ async def chat_and_generate_wa_collab(
     if not request.messages:
         raise HTTPException(status_code=400, detail="對話不可為空")
 
+    payload = [{"role": m.role, "content": m.content} for m in request.messages]
+    if is_platform_self_modification(latest_user_text(payload)):
+        logger.info(
+            "prompt_guard 攔截 WA collab 平台自改請求 user=%s",
+            current_user.username,
+        )
+        return _refusal_sse()
+
     _ensure_llm_keys()
     logger.info(
         "收到 WA collab 請求 user=%s diagram_id=%s provider=%s",
@@ -125,7 +165,6 @@ async def chat_and_generate_wa_collab(
         if not diagram:
             raise HTTPException(status_code=404, detail="找不到架構圖或無權限")
 
-    payload = [{"role": m.role, "content": m.content} for m in request.messages]
     current_xml = request.current_xml
     if not current_xml and diagram is not None:
         current_xml = diagram.xml_data

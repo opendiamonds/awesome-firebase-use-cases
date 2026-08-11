@@ -34,7 +34,7 @@ test.describe('身分驗證', () => {
   test('管理員登入後進入工作區', async ({ page }) => {
     await login(page, ADMIN.username, ADMIN.password);
     await expect(page).toHaveURL(/\/workspace/);
-    await expect(page.getByText('核心工作區')).toBeVisible();
+    await expect(page.getByRole('button', { name: '架構', exact: true })).toBeVisible();
   });
 
   test('登出後返回登入頁', async ({ page }) => {
@@ -54,11 +54,7 @@ test.describe('角色權限存取控制 (RBAC)', () => {
   });
 
   test('Developer 看不到系統管理區', async ({ page }) => {
-    // Register a throwaway user; register assigns role Developer. The backend
-    // enforces ^[a-z0-9_]$ and length 3–20, so the name must stay short: a
-    // base36 timestamp plus a few digits of the run id keeps it unique across
-    // parallel/retried runs while staying well under 20 chars (github.run_id
-    // alone is ~11 digits, which is why the naive run_id+timestamp overflowed).
+    // 1. 註冊新帳號 dev_xxx
     const rid = (process.env.PW_RUN_ID || '0').replace(/\D/g, '').slice(-4);
     const uniq = `dev_${rid}${Date.now().toString(36)}`.slice(0, 20);
     await page.goto('/');
@@ -66,17 +62,32 @@ test.describe('角色權限存取控制 (RBAC)', () => {
     await page.getByPlaceholder('請輸入您的帳號').fill(uniq);
     await page.getByPlaceholder('請輸入密碼').fill('devpass123');
     await page.getByPlaceholder('請再次輸入密碼').fill('devpass123');
-    // Pre-existing breakage repaired (not part of the last-activity feature):
-    // the J5 authorization flow (commit f5214c9) renamed this button to
-    // 送出註冊申請 and made new registrations land on /waiting-approval as a
-    // pending user instead of going straight to /workspace. The assertions below
-    // were still written against the pre-J5 behaviour, so this case had been
-    // failing on every run since. The RBAC intent it checks is unchanged: a
-    // freshly registered account must not see the admin section.
     await page.getByRole('button', { name: '送出註冊申請' }).click();
 
+    // 2. 註冊後會跳至 /waiting-approval 等待審核頁
     await expect(page).toHaveURL(/\/waiting-approval/);
-    // A pending account has no J3 permission, so the admin section must be absent.
+
+    // 3. 登出並以系統管理員身分登入以審核該申請
+    await page.getByRole('button', { name: '登出' }).click();
+    await login(page, ADMIN.username, ADMIN.password);
+    await expect(page).toHaveURL(/\/workspace/);
+
+    // 4. 前往審核頁面進行核准
+    await page.goto('/admin/authorization-requests');
+    // 監聽並自動接受 confirm 彈窗
+    page.once('dialog', dialog => dialog.accept());
+    // 定位含有該使用者帳號的表格列，點擊其核准按鈕
+    const row = page.locator('tr').filter({ hasText: uniq });
+    await row.getByRole('button', { name: '核准' }).click();
+    // 等待 Toast 成功訊息出現
+    await expect(page.getByText(/已核准/)).toBeVisible();
+
+    // 5. 登出管理員，改用已核准的 Developer 登入
+    await page.getByTitle('登出系統').click();
+    await login(page, uniq, 'devpass123');
+    await expect(page).toHaveURL(/\/workspace/);
+
+    // 6. 驗證 Developer 權限：看不到系統管理區
     await expect(page.getByText('系統管理')).toHaveCount(0);
   });
 });

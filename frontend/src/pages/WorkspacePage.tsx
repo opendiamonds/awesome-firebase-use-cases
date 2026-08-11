@@ -4,6 +4,7 @@ import { ChatBox } from '../components/ChatBox';
 import type { Message } from '../components/ChatBox';
 import { DrawioCanvas } from '../components/DrawioCanvas';
 import type { DiagramSaveStatus, DrawioCanvasRef } from '../components/DrawioCanvas';
+import { useLayoutNav } from '../components/NavChromeContext';
 import { ShareModal } from '../components/ShareModal';
 import { useAuth } from '../context/auth-context';
 import { useCollaboration } from '../hooks/useCollaboration';
@@ -52,6 +53,7 @@ function formatGenerateError(raw: string): string {
 export const WorkspacePage = () => {
   const { token, canArch, can, user } = useAuth();
   const navigate = useNavigate();
+  const { sidebarCollapsed, setSidebarCollapsed } = useLayoutNav();
   const canEditArch = canArch('edit');
   const canReviewArch = canArch('review');
   const canViewOnly = canArch('view') && !canEditArch;
@@ -104,6 +106,26 @@ export const WorkspacePage = () => {
     // 等寬度 transition 後再通知 draw.io 重算 viewport
     window.setTimeout(() => setCanvasLayoutEpoch((n) => n + 1), 320);
   }, []);
+
+  // Sidebar 收合獨立於 Chat；變更時同樣 bump layoutEpoch
+  useEffect(() => {
+    window.setTimeout(() => setCanvasLayoutEpoch((n) => n + 1), 320);
+  }, [sidebarCollapsed]);
+
+  const handleCanvasExit = useCallback(() => {
+    // no-file 但畫布已有 XML（例如 AI 剛產圖尚未建檔）也視為有風險離開
+    const dirty =
+      saveStatus === 'unsaved' ||
+      saveStatus === 'saving' ||
+      (saveStatus === 'no-file' && !!xml.trim());
+    if (dirty) {
+      if (!window.confirm('有未儲存的變更，確定要退出編輯模式？')) {
+        return;
+      }
+    }
+    setSidebarCollapsed(false);
+    window.setTimeout(() => setCanvasLayoutEpoch((n) => n + 1), 320);
+  }, [saveStatus, xml, setSidebarCollapsed]);
 
   /** 避免 generate 閉包讀到過期的 diagram id */
   const currentDiagramIdRef = useRef<number | null>(null);
@@ -993,6 +1015,7 @@ export const WorkspacePage = () => {
         onLoadComplete={handleLoadComplete}
         onAutosave={canEditArch ? handleCanvasAutosave : undefined}
         onSaveClick={canEditArch ? handleSaveDiagram : undefined}
+        onExit={handleCanvasExit}
         onShareClick={
           canEditArch
             ? () => {

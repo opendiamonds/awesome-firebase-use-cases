@@ -52,3 +52,7 @@ aidlc/diagnostics/
 
 # graphify 知識圖輸出（本地衍生產物，可由來源重建）
 graphify-out/
+
+# Bun
+bun.lock
+bun.lockb

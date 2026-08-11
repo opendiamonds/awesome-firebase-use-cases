@@ -30,7 +30,26 @@
 
 | 日期 | 方式 | 結果 |
 |---|---|---|
-| 2026-08-11 | 確定性驗證（非重掃） | `HEAD` 仍為 `8c90f40`；`git diff 8c90f40 -- backend frontend scripts deploy .github schema.sql schema_rbac.sql DEPLOY.md docker-compose.yml` 為空；同範圍 `git status --porcelain` 為空。**本 codekb 對 HEAD 仍然有效。** |
+| 2026-08-11（上午） | 確定性驗證（非重掃） | ~~`HEAD` 仍為 `8c90f40`…**本 codekb 對 HEAD 仍然有效。**~~ **此判定無效，見下一列。** |
+| 2026-08-11（下午） | **更正** | 上一列的驗證是拿**過時的本地 `ut`**（`8c90f40`）做的，而 `origin/ut` 當時已是 `67be019`、領先 8 個 commit（PR #484、#489）。以正確基準重驗後：**本 codekb 已過期。** |
+
+### 過期判定（2026-08-11）
+
+`origin/ut` 的 8 個 commit 觸及應用程式碼，其中**至少一項命中本檔自訂的「觸發完整重跑」條件**：
+
+| 觸發條件 | 命中情形 |
+|---|---|
+| `backend/services/` 新增或刪除模組 | **命中** —— 新增 `backend/services/prompt_guard.py`（本 codekb 記載的「Service 模組 18」已不正確） |
+| 新增或刪除 API 端點 | 未逐一核對（`agent_router.py` 有變更，端點數是否仍為 46 未驗證） |
+| 資料表新增或刪除 | 未命中 |
+| 架構風格改變 | 未命中 |
+| 權限矩陣維度改變 | 未命中 |
+
+另有多份檔案的內容已與實況偏離（`diagram_builder.py`、`review_agent.py`、`wa_collab_orchestrator.py`、多個前端元件、`deploy/` 設定）。
+
+**對 intent `260802-last-login-column` 的影響：無。** 該 intent 的各 stage 是在 `8c90f40` 的 codekb 上作業，而 `origin/ut` 的 8 個 commit 與該 intent 依賴的介面**零重疊** —— 逐檔核對確認未觸及 `models.py`、`database.py`、`user_router.py`、`auth.py`、`rbac.py`、`rbac_seed_data.py`、`AdminPage.tsx`、`schema_rbac.sql`。故其設計決定不需重審。
+
+**但本 codekb 作為跨 intent 共用的資產已經過期**，下一個需要它的 stage 應觸發完整重跑，不得沿用。此處如實標記，不留「仍然有效」的錯誤宣稱。
 
 再確認的觸發原因：intent `260802-last-login-column` 因 scope-definition Revision 2（新增
 PU-6 使用者清單分頁）回跳上游，reverse-engineering 隨之重跑。應用程式碼零變更，

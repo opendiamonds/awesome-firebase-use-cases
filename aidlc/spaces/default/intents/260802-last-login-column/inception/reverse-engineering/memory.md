@@ -21,3 +21,4 @@
 ## Open questions
 <!-- example: 2026-05-29T10:14:32Z — confirm the retention window with compliance before the next stage hardens the schema -->
 - 2026-08-08T16:30:00Z — T1／T4 綁定問題（修 J5 schema 缺漏需重跑 schema_rbac.sql，但該檔無條件 DELETE role_permissions 會清掉 Admin UI 調整）是本 intent 在 users 加欄時的同一條路徑；具體處置手段留 application-design／construction 決定，codekb 只記載張力本身。
+- 2026-08-11T15:30:00Z — **上面那筆「以確定性驗證取代重掃」的判定是錯的，錯在基準**。`git rev-parse HEAD` 確實等於 codekb 的掃描基準 `8c90f40`，但那是因為**本地 `ut` 從未 fetch**、停在兩天前；`origin/ut` 當時已是 `67be019`、領先 8 個 commit，其中新增了 `backend/services/prompt_guard.py`（命中 codekb 自訂的「services 新增模組 → 完整重跑」條件）。教訓不是「不該用驗證取代重掃」，而是**驗證的基準必須是 remote 的 trunk，不是本地那份可能過時的複本** —— 「HEAD 等於掃描基準」在沒有 fetch 的前提下是一句恆真的廢話。codekb 的過期狀態已如實寫進 timestamp 檔。
