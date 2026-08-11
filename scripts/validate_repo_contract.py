@@ -30,6 +30,13 @@ REQUIRED_FILES = (
     ".github/workflows/ci.yml",
     "scripts/validate_repo_contract.py",
     "CLAUDE.md",
+    # Local development: the only path by which a developer can run every
+    # feature outside CI, and the only place the implicit runtime dependencies
+    # are written down.
+    "LOCAL-DEV.md",
+    # Environment-configuration separation (local dev vs deploy stack).
+    "scripts/validate_env_contract.py",
+    "deploy/render-env.sh",
     # AI-DLC v2 entry points and rule surface (ADR-0011).
     ".claude/CLAUDE.md",
     ".claude/skills/aidlc/SKILL.md",

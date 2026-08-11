@@ -65,6 +65,18 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 
 **違反 contract = CI 紅燈**。在 commit 前一律先跑 `python3 scripts/validate_repo_contract.py`。
 
+**環境設定 contract（第二支腳本）**：`scripts/validate_env_contract.py` 同樣在 CI 的 `repo-contract` job 執行，管的是**三個環境的設定不得互相混用、也不得互相漏接**：
+
+| 範圍 | 設定來源 | 消費者 |
+|---|---|---|
+| 本機 dev | `backend/.env`、`frontend/.env`（範本 `*.env.example`） | bare-metal uvicorn + vite |
+| CI 測試 | `deploy/docker-compose.test.yml`（值全內嵌且有預設） | `ui-regression` 短生命週期 stack |
+| 部署 | `deploy/.env`（由 `deploy/render-env.sh` 產生，範本 `deploy/.env.example`） | `deploy/docker-compose.deploy.yml` |
+
+它檢查六件事：deploy workflow 不得繞過 `render-env.sh` 自行寫 `deploy/.env`；compose 無 fallback 的變數必須真的被寫入；部署範本必須完整；範本不得設定 compose 自行推導的值（`DATABASE_URL`、`VITE_API_BASE_URL`）；dev 與部署設定不得互相滲透（localhost 來源、`POSTGRES_*` 等）；backend 讀得到的環境變數都必須記載於 `backend/.env.example`。
+
+**本機開發**：完整的啟動與逐功能驗證步驟在 [`LOCAL-DEV.md`](LOCAL-DEV.md)（含兩個隱性硬依賴：`claude` CLI 與 n8n webhook）。異動 `backend/database.py` 的 schema 補丁、`deploy/nginx.conf`、任一 `.env.example` 或 `render-env.sh` 時，必須同步更新 `LOCAL-DEV.md`——它是唯一寫下這些隱性前置條件的地方。
+
 ### 5. 範圍邊界（從 ADR-0001、ADR-0002）
 
 - ✅ In scope：SRS、architecture diagrams、user stories、ADRs、IaC generator design、agent routing design、MCP/skill management spec、validation scripts、baseline CI
