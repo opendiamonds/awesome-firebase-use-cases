@@ -22,6 +22,7 @@ from services.auth import (
     create_access_token,
     get_current_user,
 )
+from services.activity import as_aware_utc, is_overdue
 from services.rbac import (
     CANONICAL_ROLES,
     STORY_IDS,
@@ -115,9 +116,32 @@ class UserSchema(BaseModel):
     is_active: bool
     authorization_status: str = "approved"
     requested_role: Optional[str] = None
+    # PU-1／PU-3：兩欄**刻意不設預設值**。三個構造點皆為手寫具名引數，帶預設值時
+    # 漏傳會靜默通過（既有的 requested_role 就是這樣漏掉的）；無預設值讓漏傳在
+    # 構造當下就是 ValidationError。
+    last_activity_at: Optional[datetime]
+    is_overdue: bool
 
     class Config:
         orm_mode = True
+
+
+# 每頁筆數（AD-10）：預設 20、上限 100。上限讓單次回應有界（NFR-8）。
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+
+class UserListPage(BaseModel):
+    """使用者清單的分頁回應（PU-6／AD-10）。
+
+    四欄**皆必填、皆無預設值**：這是本 intent 的第四個回應構造點，帶預設值會讓
+    「完全沒讀查詢參數的實作」也輸出四個形狀正確的 key，使驗收只能驗到 key 存在。
+    """
+
+    items: List[UserSchema]
+    total: int
+    page: int
+    page_size: int
 
 
 class MeResponse(BaseModel):
@@ -434,30 +458,71 @@ def list_canonical_roles(
     return {"roles": CANONICAL_ROLES, "stories": STORY_IDS}
 
 
-@router.get("/list", response_model=List[UserSchema])
+def _to_user_schema(
+    user: User, now: datetime, requested_role: Optional[str] = None
+) -> UserSchema:
+    """`UserSchema` 的單一共用工廠（C-4）。
+
+    三個回應構造點（清單、啟停用、角色調整）一律經此函式，使它們不可能分歧。
+    `is_overdue` 是**衍生值**、由後端計算（AD-2：客戶端時鐘不可信，稽核用途下
+    由裝置時間決定合規標示不可接受），ORM 物件上不存在該屬性。
+    """
+    return UserSchema(
+        id=user.id,
+        username=user.username,
+        role=user.role,
+        is_active=user.is_active,
+        authorization_status=user.authorization_status or "approved",
+        requested_role=requested_role,
+        # **正規化後才輸出**：資料庫可能回傳不帶時區的值（SQLite 會，PostgreSQL
+        # 不會），而不帶位移的字串會被瀏覽器當成本地時間解讀 —— 顯示時間整體偏移
+        # 一個時區位移量，AC-1.6 失敗且畫面看起來完全正常。回應一律為 UTC。
+        last_activity_at=(
+            as_aware_utc(user.last_activity_at) if user.last_activity_at else None
+        ),
+        is_overdue=is_overdue(user.last_activity_at, now),
+    )
+
+
+@router.get("/list", response_model=UserListPage)
 def list_users(
+    page: int = Query(1, ge=1, description="頁次，1 起算"),
+    page_size: int = Query(
+        DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="每頁筆數"
+    ),
     admin_user: User = Depends(require_story_action("J3a", "view")),
     db: Session = Depends(get_db),
 ):
-    users = db.query(User).order_by(User.id).all()
-    result = []
+    """使用者清單（分頁，PU-6）。
+
+    `page`／`page_size` 的範圍約束以框架原生形式宣告（AD-11）：非法值在進入本
+    函式**之前**就被擋下並回 422，結構上到不了查詢層；且約束會出現在 OpenAPI
+    規格中，因此同時被型別契約與規格漂移 gate 覆蓋。
+
+    頁次**合法但超出範圍**時不是錯誤：offset 超過總數，查詢自然回空清單，
+    `page` 照樣回顯請求值（FR-6.4，不夾到最後一頁）。
+    """
+    now = datetime.now(timezone.utc)
+    # total 為獨立的計數查詢，**不得**由 len(items) 導出——後者只在多頁時才錯，
+    # 而目前的資料量下多頁情境不會自然出現（BR-P2）。
+    total = db.query(User).count()
+    # ORDER BY id 是「重複請求同一頁得到相同順序」的結構前提，不得移除（BR-P3）。
+    users = (
+        db.query(User)
+        .order_by(User.id)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    items = []
     for u in users:
         requested = None
         if (u.authorization_status or "approved") == "pending":
             req = _pending_request_for_user(db, u.id)
             if req:
                 requested = req.requested_role
-        result.append(
-            UserSchema(
-                id=u.id,
-                username=u.username,
-                role=u.role,
-                is_active=u.is_active,
-                authorization_status=u.authorization_status or "approved",
-                requested_role=requested,
-            )
-        )
-    return result
+        items.append(_to_user_schema(u, now, requested_role=requested))
+    return UserListPage(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/authorization-requests")
@@ -600,13 +665,7 @@ def update_user_active(
     target_user.is_active = request.is_active
     db.commit()
     db.refresh(target_user)
-    return UserSchema(
-        id=target_user.id,
-        username=target_user.username,
-        role=target_user.role,
-        is_active=target_user.is_active,
-        authorization_status=target_user.authorization_status or "approved",
-    )
+    return _to_user_schema(target_user, datetime.now(timezone.utc))
 
 
 @router.delete("/{user_id}")
@@ -702,13 +761,7 @@ def update_user_role(
         f"角色成功從 {old_role} 變更為 {target_user.role}，下次重新整理時生效。",
         admin_user.username,
     )
-    return UserSchema(
-        id=target_user.id,
-        username=target_user.username,
-        role=target_user.role,
-        is_active=target_user.is_active,
-        authorization_status=target_user.authorization_status or "approved",
-    )
+    return _to_user_schema(target_user, datetime.now(timezone.utc))
 
 
 @router.get("/role-permissions", response_model=List[RolePermissionRow])
