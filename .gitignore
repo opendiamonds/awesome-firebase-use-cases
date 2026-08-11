@@ -24,6 +24,9 @@ temp/
 
 # Node / Python local artifacts
 node_modules/
+# Playwright output from a local `npm run test:e2e` (LOCAL-DEV.md 7).
+test-results/
+playwright-report/
 __pycache__/
 *.py[cod]
 .pytest_cache/
