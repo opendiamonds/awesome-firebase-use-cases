@@ -74,7 +74,8 @@
 - NEVER 在未取得 human approval 的情況下執行 production write、IaC apply 或 IAM 變更。
 - NEVER 直接編輯 `.claude/` 下的 upstream 框架檔來表達專案規則 — 專案規則一律寫在 `aidlc/spaces/<space>/memory/{team,project}.md`，否則下次升級會被整批覆蓋。
 
-（本次無新發現。） (affirmed 2026-08-09)
+<!-- practices-discovery 2026-08-09：本節本次無新發現（affirm 紀錄，非規則）。 -->
+
 ## Mandated
 
 - ALWAYS 在 commit 前執行 `python3 scripts/validate_repo_contract.py`。違反 repo contract = CI 紅燈。contract 涵蓋 repo 層必要文件（`REQUIRED_FILES`／`REQUIRED_TEXT`）、record 層 baseline artifacts（`REQUIRED_RECORD_FILES`／`REQUIRED_RECORD_TEXT`，執行時動態解析 record 目錄）、文件語言（record 內不得有 `## English Version`）、禁止路徑與禁止內容。
