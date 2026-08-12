@@ -11,7 +11,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 專案以 **Spec-Driven Development (SDD)** 為方法論基礎（SRS、user stories、architecture、ADRs），開發與運維以連續流程進行，目前具備：
 - 可運行的 backend（FastAPI）與 frontend（React / Vite）實作；
 - 有 CI pipeline（repo contract、lint、build、Docker build）與自動化部署至自有 staging 環境（`192.168.10.10`，經 Cloudflare Tunnel 對外開放 `cloud360.danniel.cc`，見 ADR-0007）；
-- 日常開發由一組 agentic workflows（gh-aw）輔助（contract 驗證、PR review、UI 回歸測試、部署失敗自癒、spec↔code 一致性等）；
+- 日常開發由一組 agentic workflows（gh-aw）輔助（contract 驗證、PR review、UI 回歸測試、部署失敗自癒、spec↔code 一致性、本機開發文件漂移等）；
 - 測案管理走自架 Kiwi TCMS（`tcms.danniel.cc`，於 `dc-infra` repo 維運）。
 
 各階段的細部狀態以作用中 intent 的 `<record>/aidlc-state.md` 為準（目前 baseline record 為 `aidlc/spaces/default/intents/260802-default/`）。**production**（雲端供應商正式環境）仍在範圍外，見第 5 章與 ADR-0007。

@@ -89,6 +89,7 @@
   - **新增 compose 消費的變數時**，同一個 PR 必須讓 `render-env.sh` 寫它、`deploy/.env.example` 列它。原因是失敗模式無聲：無 fallback 的變數缺值時只會變成空字串，服務照常啟動但功能降級（實例：`N8N_USER`／`N8N_PASSWORD` 從未被寫入，導致每次部署的架構圖 icons 都靜默退回灰底佔位圖）。
   - **憑證不得含 `$`**：docker compose 會對 `--env-file` 的值做內插，`ab$cd` 會被無聲截斷成 `ab`，資料庫因此以遠弱於預期的密碼運行且無任何錯誤。`render-env.sh` 已對此擋下並要求改用 `openssl rand -hex 32`。
 - ALWAYS 在異動 `backend/database.py` 的 schema 補丁、`deploy/nginx.conf`、任一 `.env.example` 或 `render-env.sh` 時同步更新 `LOCAL-DEV.md`。它是唯一寫下本機執行全部功能所需隱性前置條件（`claude` CLI 子行程、n8n webhook）的文件，過期即等於沒有。
+  - 本規則由 `local-dev-drift` agentic workflow 在 PR 上提醒（非阻擋，只提問）。**本條是正式來源**；workflow 的觸發 paths 只是它的實作，兩者若不一致以本條為準，該修的是 workflow。
 - ALWAYS 在任何 high-risk action（production write、IaC apply、IAM 變更）前先給 plan + impact + rollback，並通過 human approval gate。
 - ALWAYS 讓引擎把 AIDLC 階段事件寫進 `<record>/audit/` 的 per-clone shard（不要手動編輯 shard）；架構級決策開 ADR 於 `<record>/inception/decisions/NNNN-*.md`。
 
