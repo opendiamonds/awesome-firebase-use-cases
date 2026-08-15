@@ -85,6 +85,13 @@
   - 必做 1 — `schema_rbac.sql`（repo 根目錄）：把對應 DDL 與必要 COMMENT 寫進適當區塊；使用 `IF NOT EXISTS` 等可重跑安全寫法；新增表／物件時更新檔頭涵蓋清單與驗證註解；僅改 seed 時標註重跑會覆寫的風險。
   - 必做 2 — `DEPLOY.md`（repo 根目錄）：更新「這支 SQL 會建立的表／欄位」表；新表與重要欄位補說明與建議的 `psql` 驗證指令；若影響既有環境升級，寫明「重跑 `schema_rbac.sql`」或與後端 `_ensure_*_schema` 的關係。
   - 建議一併更新（非 blocking）：`schema.sql`、`<record>/construction/plans/schema-rbac-notes.md`。
+- ALWAYS 讓三個環境的設定保持**分離且各自完整**，並在 commit 前執行 `python3 scripts/validate_env_contract.py`（CI 的 `repo-contract` job 亦會執行）。三個範圍為：本機 dev（`backend/.env`、`frontend/.env`）、CI 測試（`docker-compose.test.yml` 內嵌）、部署（`deploy/.env`，由 `deploy/render-env.sh` 產生）。
+  - **部署設定的唯一產生點是 `deploy/render-env.sh`**：`deploy.yml` 的 deploy 與 rollback 兩個 job 都呼叫它，不得任一 job 自行 `cat > deploy/.env`（此規則的由來：兩個 job 原本各有一份逐字重複的 heredoc）。
+  - 不得把本機來源（`localhost`、`127.0.0.1`）寫進 `deploy/.env.example`，亦不得把部署專屬 key（`POSTGRES_*`、`PUBLIC_URL`、`FRONTEND_HOST_PORT`、`CLOUDFLARED_*`）寫進 dev 範本。
+  - **新增 compose 消費的變數時**，同一個 PR 必須讓 `render-env.sh` 寫它、`deploy/.env.example` 列它。原因是失敗模式無聲：無 fallback 的變數缺值時只會變成空字串，服務照常啟動但功能降級（實例：`N8N_USER`／`N8N_PASSWORD` 從未被寫入，導致每次部署的架構圖 icons 都靜默退回灰底佔位圖）。
+  - **憑證不得含 `$`**：docker compose 會對 `--env-file` 的值做內插，`ab$cd` 會被無聲截斷成 `ab`，資料庫因此以遠弱於預期的密碼運行且無任何錯誤。`render-env.sh` 已對此擋下並要求改用 `openssl rand -hex 32`。
+- ALWAYS 在異動 `backend/database.py` 的 schema 補丁、`deploy/nginx.conf`、任一 `.env.example` 或 `render-env.sh` 時同步更新 `LOCAL-DEV.md`。它是唯一寫下本機執行全部功能所需隱性前置條件（`claude` CLI 子行程、n8n webhook）的文件，過期即等於沒有。
+  - 本規則由 `local-dev-drift` agentic workflow 在 PR 上提醒（非阻擋，只提問）。**本條是正式來源**；workflow 的觸發 paths 只是它的實作，兩者若不一致以本條為準，該修的是 workflow。
 - ALWAYS 在任何 high-risk action（production write、IaC apply、IAM 變更）前先給 plan + impact + rollback，並通過 human approval gate。
 - ALWAYS 讓引擎把 AIDLC 階段事件寫進 `<record>/audit/` 的 per-clone shard（不要手動編輯 shard）；架構級決策開 ADR 於 `<record>/inception/decisions/NNNN-*.md`。
 

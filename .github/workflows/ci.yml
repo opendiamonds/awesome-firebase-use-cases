@@ -34,6 +34,11 @@ jobs:
       - name: Validate repository contract
         run: python scripts/validate_repo_contract.py
 
+      # Catches drift between the three environment-config sources: nothing
+      # else notices when the deploy stack consumes a variable nobody writes.
+      - name: Validate environment configuration contract
+        run: python scripts/validate_env_contract.py
+
   frontend:
     name: Frontend (lint + typecheck + build)
     runs-on: ubuntu-latest
