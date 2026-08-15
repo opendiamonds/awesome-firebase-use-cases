@@ -447,15 +447,18 @@ async def answer_lens_with_agent(
     Ask ReviewAgent-style LLM to pick choices. Falls back to heuristic on failure.
     POC: prefer heuristic first if no API key (fast + testable); try agent when key present.
     """
-    import os
-
-    from services.design_agent import configure_openrouter_env
+    from services.llm_provider import (
+        auth_error_message,
+        configure_provider_env,
+        get_model_name,
+        llm_auth_ready,
+    )
     from services.llm_limits import agent_sdk_env, get_xml_context_max_chars
 
-    configure_openrouter_env()
-    key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    if not key and not token:
+    configure_provider_env()
+    if not llm_auth_ready():
+        # Falling back silently would look identical to a real LLM answer; say so.
+        logger.warning("A3 lens 改用規則啟發式（未呼叫 LLM）：%s", auth_error_message())
         # Caller should pass xml for heuristic; here we only have summary → empty-ish
         blob = json.dumps(diagram_summary, ensure_ascii=False).lower()
         # Minimal map from summary text
@@ -518,10 +521,7 @@ async def answer_lens_with_agent(
     mcp = create_sdk_mcp_server(
         name="cloud360-lens", version="1.0.0", tools=[emit_lens_answers]
     )
-    model_name = os.environ.get(
-        "LLM_MODEL",
-        os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "anthropic/claude-sonnet-4.6"),
-    )
+    model_name = get_model_name()
     diagram_cap = get_xml_context_max_chars()
     prompt = (
         "你是離線 Well-Architected 評核助理。根據架構圖摘要，為每題勾選適用的 best practice "

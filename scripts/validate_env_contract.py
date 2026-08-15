@@ -79,6 +79,11 @@ DEV_ONLY_MARKERS = ("localhost", "127.0.0.1")
 COMPOSE_VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(:?[-?+])?")
 ENV_ASSIGNMENT = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)=", re.MULTILINE)
 COMMENTED_ASSIGNMENT = re.compile(r"^\s*#\s*([A-Za-z_][A-Za-z0-9_]*)=", re.MULTILINE)
+# "your_openrouter_api_key_here", "changeme", "<your-token>", "TODO" ...
+PLACEHOLDER_VALUE = re.compile(
+    r"^(your[_-].*|.*[_-]here|<.*>|changeme|change[_-]me|xxx+|todo|placeholder)$",
+    re.IGNORECASE,
+)
 PY_ENV_READ = re.compile(
     r"""os\.(?:environ\.get|getenv)\(\s*["']([A-Za-z_][A-Za-z0-9_]*)["']"""
 )
@@ -255,6 +260,38 @@ def validate_local_dev_template_is_complete() -> int:
     return 0
 
 
+def validate_templates_ship_no_placeholder_values() -> int:
+    """A template must express "not configured" as an empty value.
+
+    Code decides a feature is configured by testing the variable for a non-empty
+    value. A placeholder like ``your_openrouter_api_key_here`` is non-empty, so
+    copying the template and not filling it in does not read as "unset" -- it
+    reads as a credential, and gets sent upstream. The resulting failure is an
+    authentication error three layers away from the file that caused it, rather
+    than the clear "not set" message the code already knows how to produce.
+    """
+    violations: list[str] = []
+    for template in (BACKEND_TEMPLATE, FRONTEND_TEMPLATE, DEPLOY_TEMPLATE):
+        for lineno, line in enumerate(read(template).splitlines(), start=1):
+            if line.lstrip().startswith("#"):
+                continue
+            match = re.match(r"^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line)
+            if match is None:
+                continue
+            value = match.group(2).strip().strip("\"'")
+            if PLACEHOLDER_VALUE.match(value):
+                violations.append(f"{template}:{lineno} {match.group(1)}={value}")
+
+    if violations:
+        return fail(
+            "Template(s) ship a non-empty placeholder value:\n  - "
+            + "\n  - ".join(violations)
+            + "\nLeave the value empty and put the example in a comment above it, "
+            "so an unfilled template reads as unset rather than as a credential."
+        )
+    return 0
+
+
 def main() -> int:
     checks = (
         validate_workflow_uses_the_renderer,
@@ -263,6 +300,7 @@ def main() -> int:
         validate_deploy_template_sets_nothing_derived,
         validate_scopes_are_separated,
         validate_local_dev_template_is_complete,
+        validate_templates_ship_no_placeholder_values,
     )
     for check in checks:
         result = check()
