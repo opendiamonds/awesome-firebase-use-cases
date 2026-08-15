@@ -26,6 +26,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Playwright 產出物（`playwright.config.ts` 的 reporter 會寫這幾個）。CI 的
+# ui-regression workflow 在 runner 上讀它們，不進版控。
+pw-report.json
+test-results/
+playwright-report/
 junit.xml
 junit.kiwi.xml
 eslint-report.json

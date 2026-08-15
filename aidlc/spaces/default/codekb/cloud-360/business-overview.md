@@ -1,45 +1,173 @@
-# 業務總覽（Business Overview）
+# Business Overview — Cloud-360
 
-> Reverse Engineering 合成產物｜repo `cloud`｜commit `8c90f40`｜intent `260806-a1-a3-ux`（bugfix）
+> 逆向工程產出。基準 commit `8c90f40372ac810cc8f6ef41c46fc7a723031a1e`（branch `ut`，2026-08-08）。
+> 本檔描述系統「在做什麼、服務誰、產生什麼價值」，不描述實作。實作見
+> `architecture.md`、`code-structure.md`、`api-documentation.md`。
 
-## 產品定位與價值主張
+## 系統定位
 
-Cloud-360 是 AI-native 的多雲（AWS / GCP / Azure）架構設計與運維平台。核心價值是把「用自然語言描述架構需求 → 產生可編輯的 draw.io 架構圖 → 以 Well-Architected（WA）lens 審核與改善」串成一條連續工作流，並以 RBAC 控制誰可檢視、編輯、審核。
+Cloud-360 是 **AI-native multi-cloud architecture & operations platform**，方法論基礎為
+Spec-Driven Development（SRS、user stories、architecture、ADRs）。定位來源為 ADR-0001，
+記載於 `aidlc/spaces/default/memory/project.md` 的 `## Decided`。
 
-目前可運行能力集中在自有 staging（`cloud360.danniel.cc`，見 ADR-0007）；雲端供應商正式 production 環境仍在範圍外（ADR-0001 / ADR-0002）。方法論以 Spec-Driven Development 與 AI-DLC v2 為基礎。
+用一句話描述目前**已實作**的系統：使用者用自然語言描述一套雲端架構，系統產生可編輯的
+draw.io 架構圖；接著用一套離線的 Well-Architected 規則引擎對該圖評分、指出風險，並由
+AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基礎的權限模型下管理。
 
-## 主要使用者旅程
+「AI-native」在本系統有兩層具體意義，兩層都能在程式碼中找到落點：
 
-| 故事／領域 | 主角 | 目標 | 入口 |
+1. **產品面**：核心價值鏈（產圖、評核、改善建議）由 LLM agent 驅動，不是表單填寫工具。
+2. **開發面**：repo 自身以 agentic workflow 維護（10 組 gh-aw workflow 涵蓋 contract 驗證、
+   PR review、UI 回歸測試、部署自癒、spec 與 code 一致性），開發流程本身也是 AI-native。
+
+「multi-cloud」目前的落地程度是**評核與圖形層支援三雲，佈建層尚未實作**：`backend/lenses/`
+下有 AWS／GCP／Azure 三份 lens 定義，評核可切換 provider；但基礎設施產出（Terraform／IaC）
+對應的業務能力（見下方能力表 D 群）尚無實作模組。
+
+## 服務對象與角色
+
+系統有 **11 個正式角色**（canonical roles，定義於 `backend/services/rbac.py`）。角色不是
+單純的權限桶，而是對應到不同的雲端工作職能：
+
+| 角色 handle | 中文顯示名 | 職能定位 |
+|---|---|---|
+| `Project_Architect` | 專案架構師 | 設計與評核架構的主要使用者 |
+| `Developer` | 開發者 | 消費架構設計成果，權限最窄的一般使用者 |
+| `Project_Editor` | 專案編輯者 | 可編輯專案資產，不涉管理 |
+| `Project_Admin` | 專案管理員 | 專案層級的使用者與權限管理 |
+| `FinOps_Analyst` | FinOps 分析師 | 成本相關能力的目標使用者 |
+| `SRE` | 網站可靠性工程師 | 維運相關能力的目標使用者 |
+| `Ops_Lead` | 維運主管 | 變更審批與維運決策 |
+| `Platform_Engineer` | 平台工程師 | IaC 與平台能力的目標使用者 |
+| `Security_Reviewer` | 資安審查員 | 合規與資安檢查 |
+| `Platform_Admin` | 平台管理員 | 平台層級最高管理權（可核准任何角色） |
+| `Platform_Owner` | 平台擁有者 | 平台擁有者 |
+
+另有兩個**歷史別名**會在執行期被正規化，代表文件與程式碼曾用過不同 handle：
+`Security_Admin` → `Security_Reviewer`，`Engineering_Manager` → `Project_Editor`。
+
+角色的中文顯示名來源為 `backend/services/user_router.py` 的 `ROLE_DISPLAY_NAMES`；正規化規則
+來源為 `rbac.py` 的 `ROLE_ALIASES`。
+
+## 核心業務能力
+
+系統以 **story id** 為業務能力的單位。權限矩陣涵蓋 **28 個 story**，其顯示名定義於
+`backend/services/user_router.py` 的 `STORY_FEATURE_LABELS`（該對照表同時餵給註冊頁的
+「可使用功能」目錄）。這是理解產品範圍最直接的一張表：
+
+| 群組 | Story | 業務能力 | 執行期實作狀態 |
 |---|---|---|---|
-| A1 架構圖生成 | 架構師／工程師 | 以聊天提示產生／迭代架構圖，於 embed.diagrams.net 畫布編輯並持久化 | `/workspace` → `WorkspacePage` |
-| A3 評估與審核 | 審核者／架構師 | 對已存架構圖執行 WA review、檢視 findings／scores、管理 lens | `/assessment` → `AssessmentPage` |
-| J 管理（權限） | 管理員 | 使用者、角色授權請求、角色–故事權限矩陣 | Admin 頁、`RolePermissionsPage` |
-| 協作 | 協作者 | 架構圖 CRUD、聊天歷史、分享、WebSocket 同步 | `/api/collab` + WS |
+| A 架構設計 | `A1`／`A2`／`A4` | 架構圖生成（三個 story 在執行期視為同一功能） | **已實作** |
+| A 架構設計 | `A3` | Well-Architected 評核 | **已實作** |
+| B 雲端評選 | `B1` | 單一雲端評選 | 僅存在於權限矩陣 |
+| B 雲端評選 | `B2` | 生態相容掃描 | 僅存在於權限矩陣 |
+| B 雲端評選 | `B3` | 地緣合規與延遲 | 僅存在於權限矩陣 |
+| C 成本 | `C1` | TCO 與流量預算 | 僅存在於權限矩陣 |
+| C 成本 | `C2` | 資源優化定價 | 僅存在於權限矩陣 |
+| C 成本 | `C3` | Egress 隱性成本 | 僅存在於權限矩陣 |
+| D IaC | `D1` | Terraform 產出 | 僅存在於權限矩陣 |
+| D IaC | `D2` | IaC 安全掃描 | 僅存在於權限矩陣 |
+| D IaC | `D3` | Secret 與敏感值管理 | 僅存在於權限矩陣 |
+| E 優化 | `E1` | Right-sizing | 僅存在於權限矩陣 |
+| E 優化 | `E2` | 架構現代化 | 僅存在於權限矩陣 |
+| E 優化 | `E3` | Runbooks 生成 | 僅存在於權限矩陣 |
+| F 維運 | `F1` | 跨雲健康查詢 | 僅存在於權限矩陣 |
+| F 維運 | `F2` | 變更與回滾 | 僅存在於權限矩陣 |
+| F 維運 | `F3` | 高風險審批閘門 | 僅存在於權限矩陣 |
+| G 合規 | `G1` | CSPM 持續合規 | 僅存在於權限矩陣 |
+| G 合規 | `G2` | IAM 最小權限 | 僅存在於權限矩陣 |
+| G 合規 | `G3` | Policy-as-Code | 僅存在於權限矩陣 |
+| H 平台整合 | `H1` | 內部 API 註冊 | 僅存在於權限矩陣 |
+| H 平台整合 | `H2` | Agent 存取邊界 | 僅存在於權限矩陣 |
+| H 平台整合 | `H3` | MCP 與 Skill 生命週期 | 僅存在於權限矩陣 |
+| J 系統管理 | `J1` | 登入能力（不列入註冊功能摘要） | **已實作**（無獨立 guard） |
+| J 系統管理 | `J3a` | 使用者設定 | **已實作** |
+| J 系統管理 | `J3b` | 細項設定（權限矩陣維護） | **已實作** |
 
-權限以故事級旗標（如 A1／A3 的 `view`／`edit`／`review`，J3a／J3b）驅動側欄與路由守衛；`Sidebar` 依 `can`／`canArch` 決定可見項。
+**實作狀態的判定依據**：對 28 個 story id 在 `backend/services/`（排除 seed 資料）與
+`frontend/src/` 全庫計數引用。`A1`／`A2`／`A3`／`A4`／`J3a`／`J3b` 有多處引用（權限 guard、
+前端路由、導覽），其餘 `B1`–`H3` 與 `J1` **各只出現 1 次**，且該次都在
+`STORY_FEATURE_LABELS` 顯示名對照表內，沒有任何端點或頁面掛在它們上面。
 
-## 範圍與邊界
+這代表一個對下游 stage 重要的事實：**權限矩陣的廣度（28 story）遠大於實作的廣度（6 story）**。
+矩陣先行描述了完整產品願景，實作目前落在 A 群與 J 群。新增功能時 story id 已預留，
+不需要擴充矩陣維度；但也代表矩陣的 308 列中有大部分目前不影響任何執行期行為。
 
-**In scope（目前 codekb 所見）**
+### J5 授權審核的定位
 
-- 後端 FastAPI：認證／RBAC、架構產生（agent）、協作圖庫、WA review／lens
-- 前端 React SPA：Workspace（A1）、Assessment（A3）、管理面
-- PostgreSQL schema（`schema.sql`、`schema_rbac.sql`）與 staging Docker 部署
-- CI contract／lint／build／unittest／Docker；合併至 `ut` 後部署 staging
+`J5` 是「使用者註冊後需管理員授權」這條流程的**功能代號**，出現在
+`backend/database.py::_ensure_j5_schema()` 與 `backend/tests/test_j5_authz.py`，
+但**不在 28 個 story id 之列**，也沒有專屬權限旗標。它的權限實際掛在 `J3a`
+（授權申請的核准／駁回端點 guard 為 `J3a.edit`）。
 
-**Out of scope（除非新 ADR）**
+## 業務流程主線
 
-- 雲端供應商 production credentials、destructive cloud IaC apply
-- Native iOS／Android app
+### 主線一：帳號取得與授權
 
-## 與本 intent 的業務關聯
+1. 新使用者在註冊頁選一個角色送出申請。註冊頁的角色功能目錄由
+   `GET /api/auth/roles/catalog` 動態產生，讓申請者在送出前看得到該角色能用哪些功能。
+2. 帳號建立時 `authorization_status = 'pending'`，同時建立一筆授權申請。
+3. **pending 狀態的使用者無法使用任何業務功能** —— 權限判定的第一道閘門即檢查此狀態，
+   未核准時所有 story 權限一律為否。
+4. 管理員在授權申請頁核准或駁回。核准權受 BR-04 限制：`Platform_Admin` 可核准任何角色；
+   `Project_Admin` 不可核准 `Platform_Admin` 與 `Platform_Owner`。
+5. 核准後 `authorization_status = 'approved'`，角色寫入，使用者取得該角色的能力集合。
 
-Intent `260806-a1-a3-ux` 聚焦 A1／A3 UX 缺陷，而非新業務能力。業務上使用者已能完成 generate→canvas 與 review，但下列摩擦直接傷害 A1／A3 的信任感與產出品質，屬 bugfix 優先修正項：
+### 主線二：對話產圖（A1）
 
-1. App 側欄固定寬度、不可收合 → 畫布有效工作區偏小  
-2. 產生圖的邊線／圖示重疊 → 圖面可讀性下降  
-3. draw.io 儲存／離開事件未處理 → 工作流不完整  
-4. Undo 失效 → 編輯代價升高  
-5. 無 prompt refusal（擋 DB／API key／credential／系統值變更）→ 安全與平台完整性風險  
-6. 側欄扁平 IA（缺 A／J story-group 巢狀）→ 導覽認知負擔
+使用者在工作區以自然語言描述需求，AI Design Agent 逐步回覆並產出 draw.io 架構圖 XML，
+過程即時串流到畫布。圖可存檔、可分享給其他使用者、可多人即時共編，並附帶一段對話紀錄（A4）。
+
+### 主線三：架構評核與改善（A3）
+
+對一張架構圖（既有圖或上傳的 XML）執行 Well-Architected 評核：
+
+1. **規則階段**：離線規則引擎解析圖形結構，產出支柱分數與風險發現（findings）。這一階段
+   **不呼叫任何雲端 API、不需要雲端憑證**，完全依賴圖形本身的語意。
+2. **Lens 階段**：套用可自訂的 Lens（相容 AWS Well-Architected Custom Lens 格式，
+   支援 AWS／GCP／Azure 三份預設 lens）計算風險規則。
+3. **建議階段**：Review Agent 依 findings 串流產出改善建議。此階段有逾時保護；
+   逾時或失敗時評核仍以「僅規則結果」的狀態完成，**不會整體失敗**。
+
+另有一條**雙 agent 協作**路徑：Design Agent 與 Review Agent 互相對話，最多 2 輪，
+目標是產出「lens 總分 ≥ 80 且無 HIGH_RISK」的架構圖。
+
+### 主線四：權限治理（J3a／J3b）
+
+管理員可在 Admin 區維護三件事：使用者清單與角色指派、授權申請審核、以及
+**11 角色 × 28 story 的權限矩陣本身**。矩陣是執行期的權限真實來源 —— 改矩陣即刻改變
+所有使用者能做什麼，不需要改程式碼或重新部署。
+
+矩陣的三個旗標語意（來源 `rbac.py`）：
+
+- **檢視（view）**：實際判定為「勾了 view **或** edit **或** review 任一即可檢視」。
+- **編輯（edit）**：可做除審核外的一切；勾選時自動開啟 view。
+- **審核（review）**：可檢視加審核，不可編輯。
+
+## 業務邊界與非目標
+
+依 `project.md` 的 `## Scope Overrides`：
+
+- **在範圍內**：SRS、architecture diagrams、user stories、ADRs、IaC generator 設計、
+  agent routing 設計、MCP 與 skill 管理規格、驗證腳本、baseline CI、自有 staging 的部署與維運。
+- **在範圍外（除非新 ADR 核可）**：雲端供應商 production 環境、production 憑證、
+  環境相依的機密、直接對 production 套用 IaC、破壞性雲端操作、原生 iOS／Android app。
+
+程式碼層面可觀察到的邊界一致性：Well-Architected 評核**不呼叫 AWS API**
+（`wa_rule_engine.py` 與 `wa_lens_engine.py` 都是純函式，不連外、不讀 DB），
+因此不需要任何雲端憑證即可運作。這是刻意的設計，與「production 憑證在範圍外」一致。
+
+## 詞彙表
+
+| 詞 | 意義 |
+|---|---|
+| **story** | 業務能力的最小權限單位，以 `A1`、`J3a` 等 id 標示。權限矩陣的一個維度 |
+| **canonical role** | 11 個正式角色 handle。非正式別名會在執行期被正規化 |
+| **permission matrix** | 11 角色 × 28 story = 308 列的 view／edit／review 旗標表，執行期權限真實來源 |
+| **authorization status** | 帳號的授權狀態，`pending`／`approved`／`rejected`。非 `approved` 時所有業務權限為否 |
+| **lens** | Well-Architected 評核準則集合，相容 AWS Custom Lens 格式，per-cloud 各一份 |
+| **finding** | 評核產出的單一風險發現，可帶 `HIGH_RISK` 等風險等級 |
+| **pillar score** | 依 Well-Architected 支柱切分的分數 |
+| **A1／A3 pipeline** | 兩條 LLM agent 串流管線，前者產圖、後者評核與建議 |
+| **Design Agent／Review Agent** | 兩個 LLM agent 角色；協作模式下互相對話最多 2 輪 |
+| **BR-04** | 核准權限限制規則：`Project_Admin` 不可核准平台級角色 |

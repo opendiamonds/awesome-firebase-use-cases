@@ -74,6 +74,8 @@
 - NEVER 在未取得 human approval 的情況下執行 production write、IaC apply 或 IAM 變更。
 - NEVER 直接編輯 `.claude/` 下的 upstream 框架檔來表達專案規則 — 專案規則一律寫在 `aidlc/spaces/<space>/memory/{team,project}.md`，否則下次升級會被整批覆蓋。
 
+<!-- practices-discovery 2026-08-09：本節本次無新發現（affirm 紀錄，非規則）。 -->
+
 ## Mandated
 
 - ALWAYS 在 commit 前執行 `python3 scripts/validate_repo_contract.py`。違反 repo contract = CI 紅燈。contract 涵蓋 repo 層必要文件（`REQUIRED_FILES`／`REQUIRED_TEXT`）、record 層 baseline artifacts（`REQUIRED_RECORD_FILES`／`REQUIRED_RECORD_TEXT`，執行時動態解析 record 目錄）、文件語言（record 內不得有 `## English Version`）、禁止路徑與禁止內容。
@@ -95,6 +97,7 @@
 
 - Design／generate 進 agent 前必須做平台自我竄改預檢（Cloud-360 的 DB／系統值／API key／金鑰等）；命中則不呼叫 LLM，回固定「此需求毫無相關，請重新輸入」；並以 system prompt 補強。 (learned 2026-08-06) <!-- cid:reverse-engineering:c8 -->
 - 在 Cursor harness 執行 AIDLC 核准閘時：因無 Claude Code UserPromptSubmit hook，conductor 在呼叫 `report --result approved` 前須先執行 `bun .claude/hooks/aidlc-mint-presence.ts`，確保 audit 有對應 HUMAN_TURN（使用者須已在對話中明確核准）。 (learned 2026-08-06) <!-- cid:requirements-analysis:c2 -->
+- **ALWAYS 對每一項變更檢查 ADR-0006 security baseline 的四個面向（IAM、encryption、network exposure、audit logging）**；此為 hard constraint（`CLAUDE.md` 第 3 章「Standing Constraints」逐字列為 `Hard constraint（IAM、encryption、network exposure、audit logging）`）。原承載該約束的 v1 路徑 `extensions/security/baseline/` 已隨 v2 遷移（ADR-0011）從 repo 移除（全樹搜尋僅 `project.md` 的 `## Decided` 一行與兩份 ideation 文件引用它，無任何實體檔案），使這條 hard constraint 一度失去可執行形式。本條為其在 v2 規則層的重新落點（訪談 Q5 定案 A：補進本檔）。實務上：涉及 IAM／權限矩陣／網路暴露／稽核記錄的變更，須在該 stage 產出（feasibility、scope、user-stories 等）中明列 security 影響與處置，不得僅以「已有 ADR-0006」帶過。 (affirmed 2026-08-09)
 ## Corrections
 
 <!-- Project-specific corrections from human feedback. -->
@@ -107,3 +110,55 @@
 - 使用者以實作語彙（欄位、資料表、權限 id）回答 ideation 問題時，artifact 改寫到產品邊界高度（例：「稽核只需最後一次登入」而非「users 加 last_login_at」），保留決策約束力但不下沉到設計 (learned 2026-08-02) <!-- cid:intent-capture:c5 -->
 - reviewer 的修正建議若會製造新的無來源主張，以 grounding contract 為準拒絕該建議並在 diary 記明理由 — 修正手段本身不得違反 stage 的來源規則 (learned 2026-08-02) <!-- cid:intent-capture:c19 -->
 - 請使用者確認 workflow scope 時，一併揭露該 scope 的 stage 數與 approval gate 數 — 不揭露成本的確認不是知情確認 (learned 2026-08-02) <!-- cid:intent-capture:c6 -->
+- CONDITIONAL stage 的適用性判定必須逐項對照該 stage 的 condition 條款（整合約束／法規要求／顯著技術不確定性）並把判定理由記入 stage diary，不得憑 feature 表面大小直覺 skip — 本次 feasibility 即因 RBAC seed 兩處同步與系統零既有紀錄而適用 (learned 2026-08-03) <!-- cid:feasibility:c1 -->
+- stage 檔的範例問題清單是 guidance 不是 script：與當前 intent 無關的題目（例如僅觸及自有 staging 時的「AWS services and accounts」盤點）應省略，並在 diary 記明省略理由 (learned 2026-08-03) <!-- cid:feasibility:c2 -->
+- 出題前以唯讀探查查證 code／schema／部署文件事實，查證結果登錄於問題檔的 ## Sources 供題幹與選項引用；產出 artifact 維持能力層表述，技術細節留在 Sources 登錄處 (learned 2026-08-03) <!-- cid:feasibility:c4 -->
+- 使用者答案引發跨題語意衝突時（如記錄事件的選擇改變了欄位語意），寧可加開一致性追問當場定錨並回寫問題檔，不讓歧義流入下一階段 (learned 2026-08-03) <!-- cid:feasibility:c5 -->
+- ideation 對已識別的實作層風險只記載風險本身與緩解方向（如節流／彙整／非同步），不預選具體手段；把「選定緩解手段」列為設計階段的必答項並登錄於 RAID log (learned 2026-08-03) <!-- cid:feasibility:c6 -->
+- 使用者明確選擇不把某候選項列入 Won't Have 時，以「未承諾」狀態記入 scope 文件（不在範圍、不在排除清單、不推定未來去向），不得擅自補進排除清單或視為隱含範圍 (learned 2026-08-03) <!-- cid:scope-definition:c1 -->
+- Must 能力含未定參數（如門檻 N）時，不視為矛盾也不降級該能力：把「參數於指定階段定案」升格為上線前置依賴，同步記入 assumptions 與 backlog 依賴 (learned 2026-08-03) <!-- cid:scope-definition:c2 -->
+- stage 步驟文字提及、但 outputs 清單未列的產出（如 value stream map），併入既有 produces artifact 的段落表達，不自創檔案 — produces 清單是 artifact 集合的正式來源 (learned 2026-08-03) <!-- cid:scope-definition:c3 -->
+- 上游 stage 已確認的事項（如「無時程阻塞」）不重問：省題並在問題檔前言與 diary 記明「已由上游定案、不重問」的清單 (learned 2026-08-03) <!-- cid:scope-definition:c4 -->
+- 單一決策者、全 Must、依賴序已定的 backlog 不做 WSJF／RICE 數值評分 — 沒有真實輸入的相對分數是虛假精確；以 MoSCoW＋依賴序表達優先即足 (learned 2026-08-03) <!-- cid:scope-definition:c5 -->
+- 下游 stage 的答案觸發 scope 擴充時，回跳上游 stage 以 Modify 模式疊加修訂（歸檔舊 artifact、既有答案與清單不動、修訂來源記入問題檔 Revision 段）並重走 approval gate；不得在下游 stage 擅自擴大已核可的範圍 (learned 2026-08-04) <!-- cid:scope-definition:rev1-c4 -->
+- 下游 stage 的問答引發 scope 擴充時，先依協定回跳上游修訂重審，重返本 stage 後才產出 artifact — 本 stage 的 artifact 不得夾帶未經上游核可的範圍 (learned 2026-08-06) <!-- cid:rough-mockups:c1 -->
+- ASCII 線框內的圖示一律以基本 ASCII 表達（如 (!)）；emoji 非基本 ASCII 字元，違反 stage-protocol 的線框字元標準，實作圖示樣式留設計細化階段 (learned 2026-08-06) <!-- cid:rough-mockups:c2 -->
+- 加欄型 feature 的載入／錯誤態沿用既有頁面模式，不重新設計既有狀態呈現；重新設計屬改版範圍，需明確的 scope 決定支撐 (learned 2026-08-06) <!-- cid:rough-mockups:c3 -->
+- 含 CJK 的 ASCII box 一律用腳本產生並驗證每行字元數一致後才寫入 artifact — 手寫 CJK 混排必然數錯（reviewer 實測證實） (learned 2026-08-06) <!-- cid:rough-mockups:c4 -->
+- 剛擴充進 scope 的新範圍（如 PU-5）在首個呈現階段先給單一基準方案，讓 reviewer 與 gate 有具體對象；替代方案留下一階段探索，不在同輪並列多案 (learned 2026-08-06) <!-- cid:rough-mockups:c5 -->
+- 彙整型 stage（如 approval-handoff）的範例題僅問未被上游定案的事項：已由各站 gate 核可、scope 跳過或上游問題檔確認的內容不重問，省略清單與理由記入問題檔前言與 diary (learned 2026-08-06) <!-- cid:approval-handoff:c1 -->
+- 彙整 artifact 的 Assumptions 清單若與問題檔某題的已答清單逐字對應，該題作答即為人工確認，不另設重複的 Assumption Confirmation 關卡 (learned 2026-08-06) <!-- cid:approval-handoff:c2 -->
+- dispatched agent 因 session 限額等外部因素中斷時，重跑的槓桿是控制「讀取方式」（先 glob／grep 掌握結構、只精讀關鍵檔），不是縮小掃描範圍 — 縮範圍會讓產出失去完整性 (learned 2026-08-08) <!-- cid:reverse-engineering:c5 -->
+- pipeline 各環之間以 scratchpad 檔案傳遞大型中間結果並給下一環路徑，不把全文貼進 brief — 符合 stage-protocol §11 的 context budget（artifacts by path），也讓下一環能精讀而非被動接收 (learned 2026-08-08) <!-- cid:reverse-engineering:c6 -->
+- practices-promote 是整段替換 team.md 的五個 section 而非合併：lead 起草 team-practices.md 時必須逐字保留既有非空段落（如 ADR-0010 的 branch 命名與中文 commit type 表），漏寫即等於刪除既有規則且會讓 contract 的 REQUIRED_TEXT 檢查紅燈 (learned 2026-08-09) <!-- cid:practices-discovery:c1 -->
+- dispatch support／reviewer agent 時，brief 明訂「認真找碴而非背書」並要求自行回 repo 實測而非轉引 codekb — 轉引會讓上游誤差原樣傳進規則層，實測才會揭露 lead 與 codekb 都沒查到的事實 (learned 2026-08-09) <!-- cid:practices-discovery:c3 -->
+- 撰寫「已由上游定案、不重問」清單時，每一項都必須回頭核對該事項在**最下游**的已核可 artifact 中的具體決定，不得引用較早階段的粗略措辭 — 較晚、較具體的決策會取代較早、較籠統的表述，憑舊措辭寫清單會讓需求與已核可設計直接矛盾 (learned 2026-08-09) <!-- cid:requirements-analysis:c2 -->
+- 「缺一不可」型 hard constraint（如 ADR-0006 的四面向）在 artifact 中以逐項判定表呈現，不散在各處：表格讓「是否漏項」成為可一眼核對的事實；判定為不適用的項目一律附理由，不留空白 (learned 2026-08-09) <!-- cid:requirements-analysis:c4 -->
+- 驗收標準描述系統行為（要能真的失敗），「須有某某測試」屬交付條件寫進 Definition of Done — 元層次 AC（Then 存在某測試）驗收的是有沒有寫測試而非功能對不對，且實測顯示照做也可能抓不到要防的缺陷 (learned 2026-08-09) <!-- cid:user-stories:c3 -->
+- 查出恆真（不可能失敗）的驗收標準時改寫而非刪除：防禦意圖通常是真的，錯的是落點層次；把它移到碰得到真實失敗面的層次（例如由 UI 層移到 API 契約層）才保住原本的防禦價值 (learned 2026-08-09) <!-- cid:user-stories:c4 -->
+- 合併或刪除故事時，必須逐條確認被併故事的每一條 AC 由誰承接 — 未承接的 AC 會連同故事一起靜默消失，使其獨有的需求覆蓋落空且不易察覺 (learned 2026-08-09) <!-- cid:user-stories:user-note-1 -->
+- 設計 artifact 承認某個組合是「已知風險」時，必須把該最壞情境實際畫進範例再判定可否接受 — 只在 assumptions 以文字帶過，等於在沒看過的情況下先行放行；先確認該組合是否為系統真實可達的資料狀態，再以圖本身可驗證的依據下判斷 (learned 2026-08-09) <!-- cid:refined-mockups:c4 -->
+- 下游修正上游已核可 artifact 的內部瑕疵（如順序不一致）時，必須在本站 artifact 明記「這是對齊修正、非本站新定案」並說明原瑕疵 — 否則純比對兩份文件會誤判為迴歸；上游檔案本身仍不回改 (learned 2026-08-09) <!-- cid:refined-mockups:c3 -->
+- reviewer 輪次上限依缺陷來源判斷而非計數：某輪的 Critical 若是上一輪修正時新引入的（而非原始 findings 的殘留），不得以「iterations 用罄即 proceed」放行 — 那等於把自己製造的缺陷交給下游；驗證輪不計入原始上限 (learned 2026-08-09) <!-- cid:application-design:c4 -->
+- 出選項前先實測既有結構（build context、CI job 分工、靜態服務範圍、啟動順序），否則無法判斷選項差別：條列出來的優缺點常在實測後整個翻轉 — 本站的型別檔存放位置即是，不查 build context 時兩個選項看起來差不多，查了才發現其一會讓三條建置路徑同時壞掉 (learned 2026-08-09) <!-- cid:application-design:c8 -->
+- 工作單元的切分判準是「驗證方式與失敗模式是否同類」，不是「元件該怎麼分配」：兩個元件即使有資料關係，若一個是執行期契約（端點測試）、另一個是建置期資產（CI 檢查），併入同一單元會讓「這個單元完成了嗎」同時指涉兩種不可互相替代的判準 (learned 2026-08-09) <!-- cid:units-generation:c6 -->
+- 修訂 artifact 後必須回頭同步所有由它衍生的數字與引用（統計欄、對應表、交叉引用），並逐字核對引用的上游識別碼 — 本站兩次失誤皆為機械性同步失敗而非判斷錯誤：把上游殘留項的 C-7 誤記為 C-2（讓真正有風險的單元收不到警告）、修訂後未更新依它計算的 AC 數表（而下游會拿該表做排序） (learned 2026-08-09) <!-- cid:units-generation:c6b -->
+- 判斷兩個工作單元該不該合併進同一個 Bolt，看的是「分開後每個都能湊出有意義的信心假說嗎」，不是元件數量的平均分配 — 湊不出假說的 Bolt（例如「回應多了兩個欄位但沒有任何讀取端」「產出一個型別檔」）沒有可展示的成果，也就沒有部署它的理由 (learned 2026-08-09) <!-- cid:delivery-planning:c3 -->
+- 驗收標準的 Then 子句必須逐字拆解到驗證項，不得以概括語轉述 — 本 stage 的 Critical 即源於此：AC 的 Then 寫著「帶有與資料庫一致的值……而非因構造遺漏而缺失或為 null」，那個「或為 null」正是回應模型自動補預設值的行為，上游已預見，轉譯成驗證強度表時被概括掉，導致整份設計沒有規劃任何值斷言 (learned 2026-08-09) <!-- cid:functional-design:c2 -->
+- 宣告「本站新引入的缺口」前，必須先確認該缺口在機制上是否真的存在、以及上游是否已在追蹤 — 過度謹慎產生的假警報會誤導實作走上錯路（本站曾宣稱純 CSS 斷點需管理 aria-hidden 且工具鏈不會發現不一致，實際上 display:none 原生排除於無障礙樹、問題不存在，且該關切上游的無障礙檢查清單早已列項） (learned 2026-08-09) <!-- cid:functional-design:c16 -->
+- 修訂 artifact 後必須以機械方式（grep）掃全檔的計數、序數與交叉引用，且 Revision 段的自述必須與實際改動一致 — 本 stage 同型失誤三次：狀態數由三擴為四後序數引用未同步，使同一詞在同一檔內指向兩個不同狀態；Revision 段宣稱選項描述「已更正」但選項本文未被編輯，等於把要消除的矛盾換個位置留著。既有的「同步衍生數字與引用」規則不夠具體，本條為其強化 (learned 2026-08-09) <!-- cid:functional-design:c17 -->
+- 下游查證推翻的是選項的理由而非決定本身時，只修理由不改決定：以 Revision 段記錄落差的來源與拆解，原答案與選項本文均不改寫，並在不成立的句子就地標註 — 本 stage 四題適用此形狀（依據被推翻但決定仍正確） (learned 2026-08-09) <!-- cid:functional-design:c22 -->
+- Proto-Unit／工作單元之間的排序約束必須區分「技術依賴」與「避免重工」兩種性質並明寫是哪一種 — 前者不可覆寫，後者可由下游在記明重工緩解方式的前提下覆寫；兩者在依賴圖上長得一樣，不區分會讓下游把經濟性排序當成不可動的 DAG 邊（本次 PU-6 分頁對 PU-5 卡片改造即為後者：分頁不需等任何前置，但卡片若先以「一次拿到全部」設計完成就要重做） (learned 2026-08-10) <!-- cid:scope-definition:rev2-c8 -->
+- 改變 API 回應契約的能力不得被歸類為顯示類能力的完成條件 — 它有自己的驗收面（回應形狀、型別契約、各消費端的呈現）與失敗模式，埋進顯示類能力的 Definition of Done 會使它在單元切分時失去可追蹤的獨立身分，並低估其跨層影響（本次分頁看似「頁面怎麼呈現清單」，實際同時改序列化、型別產生與前端三層） (learned 2026-08-10) <!-- cid:scope-definition:rev2-c1 -->
+- 新增的能力若與某個已列入 Won't Have 的項目同屬一個功能家族，必須在能力定義與排除項兩處都明寫「這是本次新增的唯一該家族互動」— 否則下游會把單一新增讀成整類已解禁而自行補上其餘項（本次分頁與「不做互動排序／篩選」即同屬清單互動家族，該排除項是 intent-capture 階段定案的） (learned 2026-08-10) <!-- cid:scope-definition:rev2-c2 -->
+- 引用 intent 的核心價值來支撐任何設計主張前，必須回上游 artifact（intent-statement、scope-document）**逐字核對並掛上來源標籤** — 不得憑印象重述，更不得把**現行實作的副作用**誤認為產品需求（本次把「清單不分頁所以能一次看完」這個技術現況，寫成「核心價值是一眼看出哪些帳號逾期」，而上游實際記載的是**逐帳號**的稽核證據取得；該無來源主張隨即成為一整套「分頁損害核心價值、故需補償」論證的唯一基礎，並一度寫進本規則層） (learned 2026-08-11) <!-- cid:rough-mockups:rev1-c1 -->
+- 判斷一項修改「是否需要重新取得人工確認」之前，必須先回頭確認**上次確認的內容本身是否自洽** — 若上次確認的集合內部已有矛盾，以「operative 內容未變」為由跳過重新確認是無效判準，因為那個比較基準本身不成立；修掉矛盾即構成實質變更（本次三條假設中第 1、2 條已改為「不採用」而第 3 條仍述其行為，確認是在該矛盾狀態下取得的） (learned 2026-08-10) <!-- cid:rough-mockups:rev1-c5 -->
+- 修正若涉及已被逐字轉錄到他處、或已完成人工確認的內容，傳播範圍必須一路追到**最下游的確認點**，不能只改來源 — 否則矛盾會被鎖進已核可的紀錄（本次同一決策變更在三份檔案有七處落點，連續四輪審查每輪只補上其中幾處） (learned 2026-08-10) <!-- cid:rough-mockups:rev1-c10 -->
+- 沿用既有 artifact 的格式或更正慣例前，必須先量測既有樣本的**實際**慣例，不得套用自己認為更正確的標準、也不得把別份檔案用過的手法搬過來（本次兩次違反：ASCII box 既有慣例是 len() 字元數而我用顯示寬度；更正標記既有慣例是區塊級 addendum 而我套用了別檔的行內刪除線） (learned 2026-08-10) <!-- cid:rough-mockups:rev1-c15 -->
+- 上游範圍擴充後重審 Go/No-Go 或可行性判定時，不得因「範圍變大」就自動下修信心 — 須逐項對照可行性面向（是否引入新服務／新依賴／新基礎設施／新技術層）給出判定與理由（本次分頁改的是既有端點的回應契約與兩種佈局呈現，AD-5 維持成立，故 GO 不變） (learned 2026-08-10) <!-- cid:approval-handoff:rev1-c2 -->
+- 引用程式碼行為作為需求或設計的前提時，必須逐一函式核對而非整批概括 —— 「這幾個操作都是 X」這種合併陳述是誤述的高發形狀（本次三個看似同類的前端操作，實際一個就地更新、兩個整份重抓）；讀過檔案不等於核對過，引用時一律附檔名與行號讓下游可機械複驗 (learned 2026-08-10) <!-- cid:requirements-analysis:c3 -->
+- 同一則故事的兩條 AC 互相牴觸時，「把衝突記進 Assumptions 並指派下游決定」只做到 surface、沒做到 resolve（phases/inception.md 要求兩者皆須）—— 正確處置是在 AC 本文加上適用前提使字面不再衝突，同時把收斂手段明列為下游的**開放決策**而非被動記載的已知限制；兩者缺一都會讓下游把待決事項讀成已定案 (learned 2026-08-11) <!-- cid:user-stories:c9 -->
+- 引用工具鏈設定值（Tailwind 尺度、lint 規則、建置參數）前，必須先確認**哪一份設定檔真的生效**再讀它 —— 本專案的 `frontend/tailwind.config.js` 在 Tailwind v4 下未被任何 `@config` 載入、是死碼，實際生效的是 `src/index.css` 的 `@theme`；能實際編譯驗證的數值（如 `min-w-11` 是否等於 44px）就直接編譯驗證，不停在假設 (learned 2026-08-11) <!-- cid:refined-mockups:c1 -->
+- 為新行為指定「沿用既有機制」之前，必須先寫下該既有機制的副作用是否與新需求的意圖相容 —— 缺口的共同形狀是：交界沒被寫下來，於是預設沿用，而既有機制的副作用正好破壞新需求（本次：刪除後重抓若沿用既有的 fetchUsers()，會每刪一列閃一次整頁載入，字面通過 AC 但打斷工作流） (learned 2026-08-11) <!-- cid:application-design:c15 -->
+- 引用「既有為 N 條」這類基準數時，那個 N **也要重數**，不能只重數本輪新增的部分 —— 本 intent 已在同型失誤上重複三次；另：箭頭鏈（A → B → C）是順序的語法，在禁止建議實作順序的 stage 用它說明「約束規模」等於在排序 (learned 2026-08-11) <!-- cid:units-generation:c9 -->
+- deploy-on-merge 之下，破壞性契約變更與其消費端之間存在一條隱含的「同批次」約束，**它比 DAG 邊更強** —— DAG 只說先後，這條說不得分批。它不出現在依賴圖上，只有把「每個 Bolt 邊界都是一次真實部署」實際代入才會浮現；凡涉及既有端點回應形狀變更的 Bolt 切分，都必須先問這一句 (learned 2026-08-11) <!-- cid:delivery-planning:c6 -->

@@ -1,3 +1,5 @@
+
+
 # User Stories - Cloud-360
 
 > 本文件列出 Cloud-360 的使用者故事，嚴格依據 `cloud-360-srs.md` 與 `personas.md`，將架構支柱（Pillars A-H）細分為 3~4 個具體情境（共 24 個 User Stories）。每個故事皆包含使用者需求/目標、多角色協作細節、詳細列點的驗收標準、首頁登入操作流程、正負向系統畫面回饋與引導、AI 重置/人工微調機制，以及 BDD 劇本。
@@ -6,6 +8,7 @@
 ### A. 架構設計 (AI-Driven Architecture Design)
 
 #### A1. 自然語言轉架構與草圖產出
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Ian (開發者, `Developer`)
   - **協作細節**: Alex 負責輸入自然語言並提供業務與技術需求；AI 會先進行 AWS vs GCP 評估分析並推薦最適合 the cloud 平台；Alex 確認後，AI 產出對應雲平台的初始高階架構；Ian (開發者) 可以即時檢視生成的草圖，並透過對話或「局部重置」調整元件，AI 會更新圖面並動態向 n8n 取得 AWS 或 GCP 的服務圖示。
@@ -21,10 +24,11 @@
 - **系統回饋 (System Feedback)**:
   - **成功 (Success)**: transcript 顯示 Design／Review 發言與分數；達 ≥80 時提示成功，架構圖已在畫布。**後續引導**：IaC 或正式 Well-Architected 評估。下載成功時取得 `.drawio` 檔。
   - **失敗 (Failure)**: 兩輪後仍 ＜80 時提示未達標與剩餘 findings，目前最佳圖仍寫入畫布。產圖／評核錯誤時紅色提示並可重試。無圖時下載按鈕停用。
-- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求並產圖 `Then` 系統自動跑 Design↔Review 協作且達標或明確失敗，圖面直接呈現。  
+- **BDD**: `Given` Alex 在輸入頁面 `When` 提出需求並產圖 `Then` 系統自動跑 Design↔Review 協作且達標或明確失敗，圖面直接呈現。
   `Given` 畫布已有架構圖 `When` 點擊「下載 .drawio」 `Then` 取得可用 diagrams.net 開啟的檔案。
 
 #### A2. AI + draw.io 畫布協同編輯
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`)
   - **協作細節**: Alex 在畫布上調整底層網路層時，Hannah 同時在畫布上框選應用程式層請 AI 優化。兩人可即時看到對方的游標與 AI 生成的變更，避免衝突。
@@ -41,6 +45,7 @@
 - **BDD**: `Given` 畫布已有基礎架構並存檔 `When` 使用者重新登入並進入工作區 `Then` 系統自動從資料庫載入該使用者最後一次儲存的畫布 XML 狀態。
 
 #### A3. 自動化 Well-Architected 評核與模擬
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Hannah (工程主管, `Project_Editor`), Fiona (資安審查員, `Security_Reviewer`)；Alex（`Project_Architect`）可於產圖後發起
   - **協作細節（✅ 本期 MVP）**: Hannah 發起評核後，與 Fiona **在同一份評核結果**中分別關注不同支柱／發現（例如可靠性 vs 安全性），無需各跑一次。
@@ -75,7 +80,9 @@
   - ✅ `Given` 評核已完成 `When` 下載 PDF `Then` 報告含架構圖對照頁且中文標題可讀。
   - ✅ `Given` Hannah 在 Assessment 有可評核 XML `When` 點「優化至 WA ≥ 80」`Then` 啟動 Design↔Review 協作並回傳預覽圖與分數結果。
   - ⏳ `Given` 掃出資料庫單點故障 `When` Hannah 人工補上備援並局部重置評分 `Then` 分數重新計算並達標（下期）。
+
 #### A4. 重整後仍記得對話與上次開啟的架構圖
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`)
   - **協作細節**: Alex 與 Hannah 各自在不同架構圖上與 AI 對話；重整瀏覽器或重新登入後，每人回到自己上次開啟的圖，並看到該圖對應的完整聊天紀錄，互不混淆。
@@ -90,10 +97,11 @@
 - **系統回饋 (System Feedback)**:
   - **成功 (Success)**: 進入工作區後聊天區顯示歷史訊息，畫布為上次圖表；可選 Toast「已還原上次對話」。清空成功時 Toast「✔ 已清空此架構圖的對話」。
   - **失敗 (Failure)**: 無法載入歷史時顯示預設歡迎訊息與提示「無法還原對話，請重新描述需求」；不阻擋產圖。清空失敗時紅色提示「無法清空對話，請重試」。
-- **BDD**: `Given` Alex 在 diagram#12 已與 AI 對話三輪並重整頁面 `When` 再次進入工作區 `Then` 系統自動開啟 diagram#12 且聊天區顯示原先三輪訊息。  
+- **BDD**: `Given` Alex 在 diagram#12 已與 AI 對話三輪並重整頁面 `When` 再次進入工作區 `Then` 系統自動開啟 diagram#12 且聊天區顯示原先三輪訊息。
   `Given` Alex 在 diagram#12 有歷史對話 `When` 點擊清空對話並確認 `Then` 該圖聊天被刪除、顯示歡迎訊息，且 diagram#12 的 XML 仍在。
 
 #### A5. 跨使用者架構圖分享與即時協同連線
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Hannah (工程主管, `Project_Editor`), Ian (開發者, `Developer`)
   - **協作細節**: Alex 發起架構圖分享，在彈出視窗勾選 Hannah（擁有編輯權限）與 Ian（僅檢視權限）。當 Hannah 進入工作區時，系統透過 WebSocket 自動建立協同編輯連線，其畫布操作與游標即時同步予 Alex。而當僅有檢視權限的 Ian 登入時，畫布自動鎖定且 AI 聊天區顯示「您目前為僅檢視權限，無法編輯或與 AI 對話」，同時其能即時看見 Alex 與 Hannah 的編輯進度。
@@ -114,6 +122,7 @@
 ### B. 跨雲選型 (Cross-Cloud Component Selection)
 
 #### B1. AI 驅動單一雲端評選決策
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Catherine (技術決策者, `Project_Admin`), David (FinOps 分析師, `FinOps_Analyst`)
   - **協作細節**: Catherine 關注效能與 SLA 權重；David 介入並切換為成本優先權重。雙方在同一個矩陣表上進行不同權重的沙盤推演，並將各自的分析結果整合進決策報告。
@@ -129,6 +138,7 @@
 - **BDD**: `Given` 跨雲對比表已生成 `When` 點擊局部重置要求更新 SLA，並人工隱藏 AWS `Then` 系統僅產出剩餘廠商的最新數據。
 
 #### B2. 技術生態與相容性掃描
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), George (運維負責人, `Ops_Lead`)
   - **協作細節**: Alex 匯入開發端的 CI/CD 堆疊；George 匯入維運端的監控工具 (如 Prometheus)。AI 綜合兩者的清單產出跨部門的相容性與移轉工時報告。
@@ -144,6 +154,7 @@
 - **BDD**: `Given` 獲得初始相容報告 `When` 人工標註 Jenkins 必定保留，並局部重置 `Then` AI 重新評估整合風險並更新報告。
 
 #### B3. 地緣合規與存取延遲優化
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Fiona (安全性審查員, `Security_Admin`), Catherine (技術決策者, `Project_Admin`)
   - **協作細節**: Catherine 輸入目標客群所在地以追求最低延遲；Fiona 則加入 GDPR 與當地資料落地法規限制。AI 在兩者的需求中找出交集，若有衝突則提示需取捨。
@@ -163,6 +174,7 @@
 ### C. 成本估算與 FinOps (Cost Estimation & FinOps)
 
 #### C1. 專案 TCO 與流量預算預測
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: David (FinOps 分析師, `FinOps_Analyst`), Hannah (工程主管, `Project_Editor`)
   - **協作細節**: David 設定每月的預算上限；Hannah 在架構圖上新增機器時，系統會即時通知 David 預算變化，若超支則觸發警告給雙方。
@@ -178,6 +190,7 @@
 - **BDD**: `Given` 初始 TCO 為 $5000 `When` David 人工修改開機時數為 8 小時並局部重置 `Then` TCO 更新為 $2000，並標記 Manual Override。
 
 #### C2. 專案資源優化與定價模型對比
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: David (FinOps 分析師, `FinOps_Analyst`), Ben (SRE, `SRE`)
   - **協作細節**: David 提議將一批機器轉為 Spot 實例以省錢；Ben 收到建議後，負責評估該服務是否為無狀態 (Stateless)，並由 Ben 人工決定「鎖定」不可轉換的核心節點。
@@ -193,6 +206,7 @@
 - **BDD**: `Given` AI 建議全上 Spot `When` David 人工鎖定 DB，並對 Web Tier 局部重置 Spot 效益 `Then` 系統重新算出正確的節省金額。
 
 #### C3. Data Egress 隱性成本深度追蹤
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: David (FinOps 分析師, `FinOps_Analyst`), Alex (雲端架構師, `Project_Architect`)
   - **協作細節**: David 發現跨 AZ 連線產生高昂 Egress 費用，將熱點標記並 tag Alex。Alex 收到通知後調整架構減少跨區流量，David 即時看到費用下降。
@@ -212,6 +226,7 @@
 ### D. 標準化 IaC 生成與安全交付 (IaC Generation)
 
 #### D1. 模板化 Terraform / OpenTofu 代碼自動產出
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Ian (開發者, `Developer`)
   - **協作細節**: Elena 負責制定變數與模組 (Modules) 規範；Ian 在撰寫特定服務時生成代碼。系統確保 Ian 產出的代碼自動套用 Elena 設定的企業標籤。
@@ -227,6 +242,7 @@
 - **BDD**: `Given` AI 初稿生成完畢 `When` Elena 局部重置 prefix 規則並人工改寫 tag `Then` 代碼順利生成並保留人工修改。
 
 #### D2. IaC 安全與合規自動靜態掃描
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Fiona (資安審查員, `Security_Reviewer`)
   - **協作細節**: Elena 提交 IaC 代碼觸發掃描；若掃出漏洞，Fiona 會收到通知，她可以選擇批准風險 (Risk Acceptance) 或要求 AI 提供修復建議讓 Elena 套用。
@@ -242,6 +258,7 @@
 - **BDD**: `Given` Checkov 掃描出 High 級別漏洞 `When` AI 產出三個修復方案，Elena 人工選擇其一並套用 `Then` 複掃通過，允許 Git Push。
 
 #### D3. Sensitive Values 與 Secret Manager 整合
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Ian (開發者, `Developer`)
   - **協作細節**: 系統攔截到 Ian 提交的明文密碼；Fiona 接獲警報，強制要求轉為 Secret 引用。Ian 收到修復工單，透過 AI 一鍵替換為安全的 ARN。
@@ -261,6 +278,7 @@
 ### E. 維運優化審查 (Proactive Operations Optimization)
 
 #### E1. 基於行為的自動規模調整 (Right-sizing)
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: George (運維負責人, `Ops_Lead`), Hannah (工程主管, `Engineering_Manager`)
   - **協作細節**: George 收到 5 台機器的降級建議並派發給 Hannah。Hannah 審核業務影響，人工剔除 2 台核心服務，最後 George 執行剩下的 3 台降級指令。
@@ -276,6 +294,7 @@
 - **BDD**: `Given` 降級 5 台機器的建議 `When` 人工剔除 2 台並要求 AI 局部重置剩餘 3 台 `Then` 變更單僅包含 3 台機器的安全降級。
 
 #### E2. 雲端架構演進與現代化引導
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Alex (雲端架構師, `Project_Architect`), Catherine (技術決策者, `Project_Admin`)
   - **協作細節**: Alex 透過 AI 產出移轉至 Serverless 的技術分析；Catherine 專注檢視附帶的 ROI 財務報告。兩者在同一計畫案中進行技術與商業的權衡。
@@ -291,6 +310,7 @@
 - **BDD**: `Given` 分析報告建議全上 K8s `When` 全部重置要求改看 Serverless 方案 `Then` AI 重新產出以 Lambda 為主的移轉計畫。
 
 #### E3. 自動化維運劇本 (Runbooks) 生成
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Ben (SRE, `SRE`), George (運維負責人, `Ops_Lead`)
   - **協作細節**: Ben 透過 AI 生成資料庫重啟劇本並加入人工 Timeout 設定；生成後發送給 George 進行同行審查 (Peer Review)，確認無誤後標記供自動化調用。
@@ -310,6 +330,7 @@
 ### F. AI 多雲維運與審批 (AI Multi-Cloud Operations)
 
 #### F1. 自然語言跨雲健康狀態查詢
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Ben (SRE, `SRE`), Hannah (工程主管, `Engineering_Manager`)
   - **協作細節**: Ben 查詢特定異常流量，並將產出的趨勢圖「釘選」分享給 Hannah。Hannah 點擊連結，能直接在圖表上看到 Ben 的標註與對話上下文。
@@ -325,6 +346,7 @@
 - **BDD**: `Given` 24h 流量圖 `When` 人工加入 `env:prod` tag 並局部重置 `Then` 圖表重新繪製僅顯示生產環境數據。
 
 #### F2. 引導式變更計畫與回滾策略產出
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Ben (SRE, `SRE`), Elena (平台工程師, `Platform_Engineer`)
   - **協作細節**: Ben 產生擴容計畫與回滾腳本；Elena 負責檢視該腳本是否會影響底層 K8s 節點狀態。Elena 人工加入檢查點後，腳本才視為 Ready for Review。
@@ -340,6 +362,7 @@
 - **BDD**: `Given` 基礎變更 Plan `When` 人工修改實例數至 10 並局部重置回滾邏輯 `Then` 新包裹包含更新的數字與增強的回滾腳本。
 
 #### F3. 行動端高風險操作審批閘門
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Ben (SRE, `SRE`), Karen (平台擁有者, `Platform_Owner`)
   - **協作細節**: Ben 在桌面端送出刪除資料庫指令；Karen 隨即在手機端收到推播。Karen 發現影響太大，在手機端 Reject 並寫下「請改用備份替換」，Ben 即時收到退回理由。
@@ -359,6 +382,7 @@
 ### G. 雲端安全態勢與策略顧問 (Cloud Security Posture & Policy Advisory)
 
 #### G1. 全局安全態勢與合規持續檢視 (CSPM & Continuous Compliance)
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Alex (雲端架構師, `Project_Architect`)
   - **協作細節**: Fiona 觸發全域掃描，涵蓋 Network exposure、Storage access、Encryption 與 Audit logging 配置。系統產出 Remediation Plan 與 IaC patch，Alex 套用代碼後，由於涉及高風險修復，強制進入 Human Approval Gate 由 Fiona 審批。
@@ -374,6 +398,7 @@
 - **BDD**: `Given` 掃描發現 S3 bucket 缺乏加密 `When` AI 產生 IaC Patch 並由 SRE 點擊套用 `Then` 系統攔截部署，觸發 Human Approval Gate 等待 Fiona 審批。
 
 #### G2. IAM / RBAC 與最小權限策略 (Least-Privilege & Identity Security)
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Ian (開發者, `Developer`)
   - **協作細節**: Fiona 掃描出 Ian 的專案中有過度授權的帳號。系統自動指派修復任務給 Ian；Ian 透過 AI 產出 Least-privilege 建議，修復單送交 Fiona 的 Approval Gate 確認。
@@ -389,6 +414,7 @@
 - **BDD**: `Given` 掃出 Action 為 "*" 的權限 `When` AI 產出 Least-privilege 建議並人工選擇套用 `Then` 修復行為被鎖定，等待 Fiona 透過 Human Approval Gate 核准。
 
 #### G3. 自動化策略防護網 (Policy Guardrails & Policy-as-Code)
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Fiona (資安審查員, `Security_Reviewer`), Elena (平台工程師, `Platform_Engineer`)
   - **協作細節**: Fiona 用自然語言定義 Policy guardrails；AI 轉化為 Policy-as-Code (如 Rego)。Elena 負責將代碼整合進 CI/CD 中，雙方在 IDE 共同確保策略不會誤擋正常發布。
@@ -408,6 +434,7 @@
 ### H. MCP 與 Skill 管理 (MCP & Skill Management)
 
 #### H1. 內部自定義 API 工具註冊與解析
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Jack (平台管理員, `Platform_Admin`)
   - **協作細節**: Elena 貼上 API Schema 並透過 AI 縮減 Prompt；提交後，Jack 負責審查該 API 的呼叫頻率與資源消耗，確認無安全疑慮後才核准上架。
@@ -423,6 +450,7 @@
 - **BDD**: `Given` 500 字 Prompt `When` 點擊全部重置精簡並人工補上 `region` 限制 `Then` 成功註冊且解析正確。
 
 #### H2. AI Agent 存取邊界與權限審核
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Jack (平台管理員, `Platform_Admin`), Ben (SRE, `SRE`)
   - **協作細節**: Jack 在後台將某危險工具強制設為 `Read-only`。當 Ben 的 Agent 試圖執行該工具的 Write 操作時，Agent 會提示 Ben 該操作已被 Jack 封鎖並留下紀錄。
@@ -438,6 +466,7 @@
 - **BDD**: `Given` AI 建議給予 Deploy 權限 `When` Jack 人工強制修改為 Read-only `Then` 所有 Agent 呼叫該工具時失去寫入能力。
 
 #### H3. 全域 MCP 工具與 Skill 註冊生命週期管理 (MCP & Skill Lifecycle)
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Elena (平台工程師, `Platform_Engineer`), Jack (平台管理員, `Platform_Admin`)
   - **協作細節**: Elena 註冊新的 MCP server 與雲端連接器 (Connectors)，並設定其讀寫權限範圍。系統進行依賴性與健康檢查後，交由 Jack 進行啟用審批。審批通過後，該工具正式納入 Agent Routing Layer 供 AI 選用。
@@ -457,6 +486,7 @@
 > **實作狀態標註**（Q1＝擴充需求）：✅ 已做｜⏳ 部分｜❌ 未做／下期。下列 AC 保留產品目標，並標明現況。
 
 #### J1. 統一登入入口與安全憑證驗證
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: 平台內所有使用者 (如 Alex, Fiona, Ian 等), Jack (平台管理員, `Platform_Admin`)
   - **協作細節**: 所有使用者必須通過統一登入入口完成身分認證以獲取 JWT。Jack 負責平台身分政策（密碼複雜度、MFA 等屬下期強化）。
@@ -474,6 +504,7 @@
 - **BDD**: `Given` 使用者未登入 `When` 輸入正確憑證點擊登入 `Then` 派發 JWT；若已有正式角色則導向工作區，若為待授權則導向等待授權頁。
 
 #### J2. 基於角色細項權限的頁面可見性控制
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Ian (`Developer`), David (`FinOps_Analyst`), Fiona (`Security_Reviewer`)
   - **協作細節**: 登入後 Sidebar／路由依 **角色 × Story 細項**（檢視／編輯／審核）動態計算；三旗標皆空則隱藏該功能。Ian 企圖進入無權限的 Admin 頁時被擋。
@@ -491,6 +522,7 @@
 - **BDD**: `Given` Ian 為 Developer 且對 J3a 三旗標皆空 `When` 修改 URL 訪問 `/admin/users` `Then` RouteGuard 與後端皆回 403。
 
 #### J3. 管理員專屬的使用者管理（角色指派／啟停用／刪除／授權申請核准）
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Catherine (`Project_Admin`), Jack (`Platform_Admin`), Ian (`Developer`), 新註冊待授權使用者
   - **協作細節**: 管理員於「使用者設定」頁檢視名單、指派／變更正式角色、啟停用、**刪除使用者**，並處理 J5 的角色授權申請；異動寫入稽核紀錄供 Fiona 審查。
@@ -510,6 +542,7 @@
 - **BDD**: `Given` Jack 在授權申請頁看到待處理申請（申請角色＝SRE）`When` 點擊核准 `Then` 該使用者 `role` 變為 `SRE`，重新整理後 Sidebar 依矩陣更新；`Given` Jack 刪除已停用且無擁有圖之帳號 `When` 確認刪除 `Then` 該使用者無法再登入且列表不再出現。
 
 #### J4. 細粒度角色-故事權限矩陣編輯與預設還原
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: Catherine (`Project_Admin`), Fiona (`Security_Reviewer`), Jack (`Platform_Admin`)
   - **協作細節**: 管理員編輯各角色對各 User Story 的檢視／編輯／審核；變更記錄稽核供 Fiona 審查。
@@ -528,6 +561,7 @@
 - **BDD**: `Given` Catherine 在細項設定將 Developer 對某功能的 review 開啟並儲存 `When` 該 Developer 重新整理 `Then` `/me` permissions 反映新值。
 
 #### J5. 自助註冊、角色介紹與授權申請（無預設角色）
+
 - **多角色協作 (Multi-Role Collaboration)**:
   - **參與角色**: 新註冊使用者, Jack (`Platform_Admin`), Catherine (`Project_Admin`)
   - **協作細節**: 新使用者註冊時**不賦予任何正式角色**。註冊流程詢問申請角色並展示功能摘要；管理員於 **授權申請專頁** 核准後才生效；亦可刪除帳號。
