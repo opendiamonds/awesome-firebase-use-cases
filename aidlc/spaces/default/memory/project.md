@@ -98,6 +98,14 @@
 - Design／generate 進 agent 前必須做平台自我竄改預檢（Cloud-360 的 DB／系統值／API key／金鑰等）；命中則不呼叫 LLM，回固定「此需求毫無相關，請重新輸入」；並以 system prompt 補強。 (learned 2026-08-06) <!-- cid:reverse-engineering:c8 -->
 - 在 Cursor harness 執行 AIDLC 核准閘時：因無 Claude Code UserPromptSubmit hook，conductor 在呼叫 `report --result approved` 前須先執行 `bun .claude/hooks/aidlc-mint-presence.ts`，確保 audit 有對應 HUMAN_TURN（使用者須已在對話中明確核准）。 (learned 2026-08-06) <!-- cid:requirements-analysis:c2 -->
 - **ALWAYS 對每一項變更檢查 ADR-0006 security baseline 的四個面向（IAM、encryption、network exposure、audit logging）**；此為 hard constraint（`CLAUDE.md` 第 3 章「Standing Constraints」逐字列為 `Hard constraint（IAM、encryption、network exposure、audit logging）`）。原承載該約束的 v1 路徑 `extensions/security/baseline/` 已隨 v2 遷移（ADR-0011）從 repo 移除（全樹搜尋僅 `project.md` 的 `## Decided` 一行與兩份 ideation 文件引用它，無任何實體檔案），使這條 hard constraint 一度失去可執行形式。本條為其在 v2 規則層的重新落點（訪談 Q5 定案 A：補進本檔）。實務上：涉及 IAM／權限矩陣／網路暴露／稽核記錄的變更，須在該 stage 產出（feasibility、scope、user-stories 等）中明列 security 影響與處置，不得僅以「已有 ADR-0006」帶過。 (affirmed 2026-08-09)
+- ALWAYS 在每個 intent 的 construction 階段執行 `tcms-test-cases` stage 並完成其四項產出（**blocking**，未完成不得標示該 stage 為完成，亦不得進入部署階段）。此 stage 由 `tcms` plugin 提供，`execution: ALWAYS`、涵蓋全部 scope，stage 檔為 `.claude/aidlc-common/stages/construction/tcms-test-cases.md`，撰寫標準為 `aidlc/spaces/<space>/knowledge/aidlc-quality-agent/test-case-authoring.md`。
+  - 必做 1 — **覆蓋盤點**：把本 intent 每一項外部可觀察的行為分類為「已自動化／待自動化／只能手動」三桶之一，計數寫進 stage summary。無法分類者列為未分類項並說明卡在哪，**不得預設丟給手動**（預設丟手動等於把問題藏進一份沒人會跑的文件）。
+  - 必做 2 — **手動測案**：只為「只能手動」桶寫案例，產出 `<record>/construction/tcms-test-cases/manual-test-cases.md`。每案必須有目的、背景、前置條件、逐步驟表（操作 ↔ **可觀察的**預期結果）、通過條件、追溯。預期結果寫「正常」「成功」者不算步驟。回歸案例的背景必須寫出症狀、錯誤訊息逐字、以及**既有自動化層為何沒抓到**。
+  - 必做 3 — **自動化腳本**：為「待自動化」桶**實際寫出腳本**並跑綠，不是列願望清單；落點依 `team.md` 的既成事實（backend `unittest`／`TestClient`／Playwright e2e，前端無 unit 測試框架）。每支腳本都必須做**突變驗證**——把修正改回錯的行為、確認測試紅燈、還原複驗——並把突變內容與結果寫進 `automation-test-plan.md`。未寫出腳本的項目列為 open item 並說明理由。
+  - 必做 4 — **TCMS 同步**：先 `python3 scripts/tcms_sync.py --file <path> --dry-run` 預覽並在 gate 呈現，核可後才實際寫入，結果記入 `tcms-sync-report.md`。`~/.tcms.conf` 不存在時**不得靜默跳過**，記為未完成項並在 gate 說明。
+  - **不得**為自動化層已斷言的行為另寫手動案例——`operation/test-case-management-plan.md` 定下「每種測案有單一真實來源」：自動化的主檔是 repo 的 spec code（TCMS 只存中繼資料與歷史結果），手動的主檔才是 TCMS。雙份維護必有一份悄悄過期。
+  - 本規則的由來：本 repo 的自動化層有三塊**結構性**盲區（所有 LLM 路徑、n8n 圖示取得、本機環境殘值），實測證實六道 CI 閘門全綠時仍會放行這三類缺陷。 (affirmed 2026-08-16)
+
 ## Corrections
 
 <!-- Project-specific corrections from human feedback. -->
