@@ -2209,6 +2209,82 @@
     ]
   },
   {
+    "slug": "tcms-test-cases",
+    "number": "3.8",
+    "name": "Tcms Test Cases",
+    "plugin": "tcms",
+    "phase": "construction",
+    "execution": "ALWAYS",
+    "condition": "Always executes once after build-and-test, for every scope. Every change ships with test cases that are executable by a person who was not in the room.",
+    "lead_agent": "aidlc-quality-agent",
+    "support_agents": [
+      "aidlc-developer-agent"
+    ],
+    "mode": "inline",
+    "produces": [
+      "manual-test-cases",
+      "automation-test-plan",
+      "tcms-sync-report"
+    ],
+    "consumes": [
+      {
+        "artifact": "stories",
+        "required": true
+      },
+      {
+        "artifact": "build-and-test-summary",
+        "required": true
+      },
+      {
+        "artifact": "code-summary",
+        "required": true
+      }
+    ],
+    "requires_stage": [
+      "build-and-test"
+    ],
+    "sensors": [
+      "required-sections"
+    ],
+    "scopes": [
+      "enterprise",
+      "feature",
+      "mvp",
+      "poc",
+      "bugfix",
+      "refactor",
+      "security-patch",
+      "workshop"
+    ],
+    "inputs": "Approved user stories with acceptance criteria, the build-and-test summary and its test instructions, and the code summary for every unit in this intent.",
+    "outputs": "manual-test-cases.md, automation-test-plan.md, tcms-sync-report.md (under this stage's record dir, engine-resolved)",
+    "rules_in_context": [
+      {
+        "path": "aidlc/spaces/default/memory/org.md",
+        "scope": "org"
+      },
+      {
+        "path": "aidlc/spaces/default/memory/team.md",
+        "scope": "team"
+      },
+      {
+        "path": "aidlc/spaces/default/memory/project.md",
+        "scope": "project"
+      },
+      {
+        "path": "aidlc/spaces/default/memory/phases/construction.md",
+        "scope": "phase"
+      }
+    ],
+    "sensors_applicable": [
+      {
+        "id": "required-sections",
+        "path": ".claude/sensors/aidlc-required-sections.md",
+        "matches": "**/{aidlc-docs,intents}/**"
+      }
+    ]
+  },
+  {
     "slug": "deployment-pipeline",
     "number": "4.1",
     "name": "Deployment Pipeline",

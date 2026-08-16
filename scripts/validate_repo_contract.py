@@ -44,6 +44,20 @@ REQUIRED_FILES = (
     "aidlc/spaces/default/memory/org.md",
     "aidlc/spaces/default/memory/team.md",
     "aidlc/spaces/default/memory/project.md",
+    # The tcms plugin's stage (see .claude/README-cloud360.md § 調整 3). It is
+    # hand-written but sits under .claude/, so an AI-DLC upgrade's bulk copy of
+    # upstream dist/claude/ can remove it. Losing it is silent -- the stage
+    # simply stops running and project.md's blocking rule points at a stage that
+    # no longer exists. Listing it here turns that into a red CI gate.
+    ".claude/aidlc-common/stages/construction/tcms-test-cases.md",
+    # The verification gate. Hand-written and under .claude/, so it carries the
+    # same upgrade risk as the stage file above.
+    ".claude/skills/tcms-verify/SKILL.md",
+    # The authoring standard the stage is judged against. Outside .claude/, so
+    # an upgrade cannot touch it -- listed because the stage is useless without it.
+    "aidlc/spaces/default/knowledge/aidlc-quality-agent/test-case-authoring.md",
+    "scripts/tcms_sync.py",
+    "scripts/tcms_validate.py",
 )
 
 # Baseline artifacts, declared relative to the intent record that carries them.

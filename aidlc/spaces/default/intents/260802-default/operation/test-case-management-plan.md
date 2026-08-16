@@ -83,3 +83,24 @@ TCMS 服務本身的 compose、tunnel（`dc-tcms` → `tcms.danniel.cc`）、DNS
 1. 工具：方案 A（Kiwi 自架）或 B（Qase SaaS）？
 2. 是否為此開新 ADR（自架納 scope／SaaS 資料外送）？
 3. 追溯粒度：case 對應到 story（A1）即可，或需細到 acceptance criteria？
+
+> 第 1 項已於第 3 節定案為方案 A（2026-07-13），此處為撰寫時的殘留，保留原文不回改。第 2、3 項仍待決。
+
+---
+
+### 附記（2026-08-16）：Phase 2 的承載機制已落地
+
+第 5 節的 Phase 2「為未自動化的流程撰寫手動測案」原本只是規劃，沒有承載它的機制——手動測案要不要寫、寫成什麼樣、由誰在什麼時候寫，都沒有落點。現已補上：
+
+| 元件 | 位置 | 作用 |
+|---|---|---|
+| `tcms-test-cases` stage | `.claude/aidlc-common/stages/construction/tcms-test-cases.md` | `tcms` plugin 的 construction 階段 stage，`execution: ALWAYS`、涵蓋全部 scope |
+| Blocking 規則 | `aidlc/spaces/default/memory/project.md` `## Mandated` | 未完成不得標示該 stage 為完成，亦不得進入部署階段 |
+| 撰寫標準 | `aidlc/spaces/default/knowledge/aidlc-quality-agent/test-case-authoring.md` | 分流判準、格式契約、步驟品質標準、自動化落點、突變驗證 |
+| 同步工具 | `scripts/tcms_sync.py` | 解析 stage artifact 寫入 TCMS，以標題為鍵、可重跑 |
+
+**第 2 節的「單一真實來源」原則在新機制中是硬約束**：stage 要求先做覆蓋盤點，把每個行為分類為「已自動化／待自動化／只能手動」，並明文禁止為自動化層已斷言的行為另寫手動案例。
+
+第 3 節指出的 repo 邊界不變：TCMS 服務本身仍在 `dc-infra` 維運，本 repo 只有測案內容、自動化 code 與同步整合。
+
+Phase 1 的自動化案例回寫（junit plugin）與 Phase 3 的儀表板／追溯矩陣不受影響，仍依原規劃進行。

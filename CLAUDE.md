@@ -52,6 +52,9 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 | Security baseline | ADR-0006 | Hard constraint（IAM、encryption、network exposure、audit logging） |
 | Property-based testing | ADR-0006 | Hard constraint（IaC generator、cost calculator、agent routing 等核心模組） |
 | 文件語言：繁體中文 | ADR-0009 | Hard constraint（見第 4、6 章） |
+| TCMS 測試案例產出 | `project.md` `## Mandated` | **Blocking**（每個 intent 的 construction 必經 `tcms-test-cases` stage；見下方） |
+
+**`tcms-test-cases` stage**（`tcms` plugin，`execution: ALWAYS`，涵蓋全部 scope）：每個 intent 都必須產出覆蓋盤點、手動測案、自動化腳本（含突變驗證）與 TCMS 同步報告。撰寫標準在 `aidlc/spaces/default/knowledge/aidlc-quality-agent/test-case-authoring.md`，同步工具是 `scripts/tcms_sync.py`。它存在的理由是本 repo 的自動化層有三塊**結構性**盲區——所有 LLM 路徑、n8n 圖示取得、本機環境殘值——實測證實六道 CI 閘門全綠時仍會放行這三類缺陷。stage 檔位於 `.claude/` 之下，升級時的處理見 [`.claude/README-cloud360.md`](.claude/README-cloud360.md) 調整 3。
 
 ### 4. Repository Contract（不可違反）
 
