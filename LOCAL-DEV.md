@@ -14,23 +14,54 @@
 | 登入／RBAC／使用者管理（J1、J3a、J3b） | **只要 PostgreSQL** | — |
 | 架構圖 CRUD／分享（A2、A4） | 只要 PostgreSQL | — |
 | Well-Architected 離線規則打分（A3 的規則層） | 只要 PostgreSQL | — |
-| **A1 對話產圖** | PostgreSQL ＋ **Node ＋ Claude Code CLI** ＋ **OpenRouter 金鑰** | API 回 **500** |
+| **A1 對話產圖** | PostgreSQL ＋ **一個能認證的 LLM 供應商**（見下方 H1） | API 回 **500** |
 | **A3 改善建議** | 同上 | 建議階段降級為 `rules_only` |
 | **A3「優化」（Design↔Review 協作）** | 同上 | 失敗 |
-| **Offline Lens agent 填答** | 同上 | 失敗 |
-| 動態 SVG 圖示 | n8n webhook（**選填**） | 用灰底 fallback 圖示，不中斷 |
+| **Offline Lens agent 填答** | 同上 | 降級為規則啟發式（會寫 WARNING log） |
+| 動態 SVG 圖示 | n8n webhook（**選填**，見下方「圖示目錄」） | 用灰底 fallback 圖示，不中斷 |
 
 ### 兩個「不在 requirements.txt 裡」的硬依賴
 
-**H1 — Claude Code CLI**：`claude-agent-sdk` 不是 HTTP client，它會 **spawn 一個 `claude` CLI 子行程**。所以主機上必須有 Node 與全域安裝的 `@anthropic-ai/claude-code`。這件事只寫在 `backend/Dockerfile` 與 `DEPLOY.md` §0 —— 一個「只看 requirements.txt 就以為能跑」的 venv，會在你按下 A1 產圖時才失敗，而且錯誤訊息未必指向缺少 CLI。
-
-**LLM 鏈路長這樣**（不是直連 Anthropic）：
+**H1 — LLM 供應商**：`claude-agent-sdk` 不是 HTTP client，它會 **spawn 一個 `claude` CLI 子行程**。鏈路長這樣：
 
 ```
-FastAPI → claude-agent-sdk → claude CLI 子行程 → OpenRouter → 模型
+FastAPI → claude-agent-sdk → claude CLI 子行程 → 供應商 → 模型
 ```
 
-`OPENROUTER_API_KEY` 在啟動時被 `configure_openrouter_env()` 映射為 `ANTHROPIC_AUTH_TOKEN`。**`ANTHROPIC_API_KEY` 必須留空**，否則 SDK 會繞過 OpenRouter 直連 Anthropic。
+供應商由 `LLM_PROVIDER` 決定（`backend/services/llm_provider.py`），本機有兩條路：
+
+| `LLM_PROVIDER` | 認證來源 | 適用 |
+|---|---|---|
+| `cli`（本機範本的預設） | 你自己 `claude login` 的登入（macOS 存在 Keychain） | 本機。不需金鑰、不燒 OpenRouter 額度 |
+| `openrouter`（程式預設、部署用） | `OPENROUTER_API_KEY` | 部署；本機想用 OpenRouter 時也可 |
+
+`cli` 模式需要**登入過**的 CLI。SDK 自帶一份 `claude` 執行檔（`claude_agent_sdk/_bundled/claude`），所以不一定要全域安裝 `@anthropic-ai/claude-code`——但**登入不是自帶的**，你得先在終端機跑過 `claude login`（或已在用 Claude Code）。驗證：
+
+```bash
+claude -p "回一個字：好"      # 有回應 = 登入可用
+```
+
+`cli` 模式下程式會**主動刪除**兩組變數。這不是潔癖：`.env` 是以 `override=True` 載入的，磁碟上或 shell 裡的殘值都會傳進子行程，而設成空字串不夠，必須刪掉。
+
+| 被刪除的變數 | 留著會怎樣 |
+|---|---|
+| `ANTHROPIC_BASE_URL`／`ANTHROPIC_AUTH_TOKEN`／`ANTHROPIC_API_KEY` | 只要**非空**就會蓋掉 CLI 自己的登入；前兩者還會讓請求被導去別的端點 |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL`／`_OPUS_`／`_HAIKU_` | 它們定義 CLI 的**別名**指向哪個實際模型，會把正規化後的 `sonnet` 又映射回 OpenRouter slug |
+
+第二組特別容易漏，因為它既不認證也不路由。實際踩過的症狀：`.env` 留著 `ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6` 時，即使程式已把模型正規化成 `sonnet`，CLI 仍回 404 —— `There's an issue with the selected model (anthropic/claude-sonnet-4.6)`。
+
+`openrouter` 模式下，`OPENROUTER_API_KEY` 會在啟動時被映射為 `ANTHROPIC_AUTH_TOKEN`，且 `ANTHROPIC_API_KEY` 必須留空，否則 SDK 會繞過 OpenRouter 直連 Anthropic。
+
+> ⚠️ **金鑰欄位留空就是留空，不要填佔位字串。** 程式判斷「有沒有設定」看的是非空，所以 `OPENROUTER_API_KEY=your_openrouter_api_key_here` 會被當成真金鑰送出去，換來一個離肇因三層遠的 401。範本現在一律出空值、範例寫在註解裡，`scripts/validate_env_contract.py` 也會擋下佔位值。同一個陷阱也適用 `N8N_WEBHOOK_URL`：留著 `your_n8n_webhook_url_here` 會讓每個節點發一次必然失敗的請求，圖照樣出來、但圖示全是灰底。
+
+### 圖示目錄
+
+`N8N_WEBHOOK_URL` 那支 webhook 回傳的是**整份目錄**（一次約 1.1 MB），由後端自己在裡面比對服務名稱。兩件事值得先知道：
+
+- **目錄目前只收 AWS**（315 項）。GCP／Azure 的服務一定比對不到，圖示會是灰底 —— 這是預期行為，不是壞掉。
+- **目錄用服務全名，架構圖用縮寫**。`SNS` 在目錄裡叫 `Simple Notification Service`，兩者沒有共同子字串。後端有一份對照表處理常見縮寫（S3、SNS、SQS、SES、KMS、ELB、MSK、IAM、ECS、EKS、ECR、VPC、CDN、ASG）；表以外的縮寫比對不到就落到灰底，並寫一行 WARNING。
+
+比對不到時**一律**回灰底佔位圖，不會退而求其次給一個相近的圖示 —— 錯的圖示比灰底更難發現。
 
 ---
 
@@ -112,12 +143,15 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cloud360
 JWT_SECRET=dev_only_change_me
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
-# --- 以下只有 A1／A3／優化 需要 ---
-OPENROUTER_API_KEY=sk-or-v1-...        # 你自己的金鑰
-ANTHROPIC_BASE_URL=https://openrouter.ai/api
-ANTHROPIC_API_KEY=                     # 必須留空
-LLM_MODEL=anthropic/claude-sonnet-4.6
-LLM_MAX_OUTPUT_TOKENS=12000
+# LLM 供應商：cli 用你已登入的 claude CLI，不需任何金鑰（見第 0 節 H1）
+LLM_PROVIDER=cli
+
+# 只有 LLM_PROVIDER=openrouter 時才需要。留空＝未設定；
+# 千萬不要填佔位字串，那會被當成真金鑰送出去。
+OPENROUTER_API_KEY=
+
+# 留空即依供應商取預設（cli → sonnet）
+LLM_MODEL=
 
 # --- 選填 ---
 # N8N_WEBHOOK_URL=https://.../webhook/get-icon
@@ -126,9 +160,12 @@ LLM_MAX_OUTPUT_TOKENS=12000
 EOF
 ```
 
+> `JWT_SECRET` 未設時會**靜默 fallback 到程式碼內的預設字串**（依賴風險 R2），不會報錯。本機無所謂，但要知道它不會提醒你。
+
+要改用 OpenRouter 的話，把 `LLM_PROVIDER` 改成 `openrouter` 並填入 `OPENROUTER_API_KEY` 即可，其餘不用動——所有 `ANTHROPIC_*` 變數都由程式依模式自動處理（openrouter 模式自動填寫，cli 模式主動刪除，見第 0 節 H1 的表）。
+
 > **本機設定與部署設定是分開的兩套，不要互相抄。** `backend/.env`／`frontend/.env` 只服務本機 bare-metal 執行；部署走 `deploy/.env`（由 `deploy/render-env.sh` 產生，範本 `deploy/.env.example`）。把 `localhost` 來源寫進部署範本、或把 `POSTGRES_*`／`PUBLIC_URL` 寫進本機範本，`scripts/validate_env_contract.py` 都會擋下（CI 紅燈）。
 
-> `JWT_SECRET` 未設時會**靜默 fallback 到程式碼內的預設字串**（依賴風險 R2），不會報錯。本機無所謂，但要知道它不會提醒你。
 
 > **金鑰安全**：`.env` 已被 `.gitignore` 涵蓋（`.gitignore:17`），可以安心放 `OPENROUTER_API_KEY`。但要知道**這是唯一的防線** —— `validate_repo_contract.py` 的 secret 掃描只讀 contract 清單內的檔案，**看不到 `backend/`／`frontend/`**（`team.md` 已記為既有機制落差）。所以金鑰**絕不要**寫進 `.env` 以外的地方，例如貼進程式碼、測試或文件。
 

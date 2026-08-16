@@ -9,17 +9,15 @@ design_agent.py — A1 Design Agent（Anthropic Agent SDK + OpenRouter）
   - allowed_tools 僅開放 mcp__cloud360-design__draw_architecture_diagram
   - 明確禁用 Bash / Read / Write / Edit 等檔案與終端工具（Web API 不可開）
 
-環境變數（OpenRouter 官方接法）：
-  ANTHROPIC_BASE_URL=https://openrouter.ai/api
-  ANTHROPIC_AUTH_TOKEN=<OPENROUTER_API_KEY>
-  ANTHROPIC_API_KEY=（必須為空字串）
+供應商與環境變數：
+  由 services.llm_provider 決定（LLM_PROVIDER=openrouter｜cli）。部署走
+  OpenRouter，本機可改用已登入的 claude CLI；細節見該模組。
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -36,8 +34,13 @@ from claude_agent_sdk import (
 from services.diagram_builder import build_mxgraph_xml
 from services.llm_limits import (
     agent_sdk_env,
-    apply_agent_token_limits_to_env,
     truncate_text_for_llm,
+)
+from services.llm_provider import (
+    auth_error_message,
+    configure_provider_env,
+    get_model_name,
+    llm_auth_ready,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,32 +57,6 @@ PROMPT_PATH = (
 # 執行期間由 run_design_agent 注入：進度佇列與最後產出的 XML
 _progress_queue: asyncio.Queue[dict[str, str]] | None = None
 _last_xml: str | None = None
-
-
-def configure_openrouter_env() -> None:
-    """
-    將 OPENROUTER_API_KEY 映射為 Agent SDK 所需的 Anthropic 相容環境變數。
-    必須把 ANTHROPIC_API_KEY 設成空字串，否則 SDK 可能走 Anthropic 直連而非 OpenRouter。
-    """
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if not openrouter_key:
-        return
-
-    os.environ["ANTHROPIC_BASE_URL"] = os.environ.get(
-        "ANTHROPIC_BASE_URL", "https://openrouter.ai/api"
-    )
-    # AUTH_TOKEN 優先使用既有值；否則用 OpenRouter key
-    if not os.environ.get("ANTHROPIC_AUTH_TOKEN"):
-        os.environ["ANTHROPIC_AUTH_TOKEN"] = openrouter_key
-    # 強制清空，避免誤走 Anthropic 官方 API
-    os.environ["ANTHROPIC_API_KEY"] = ""
-
-    if not os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL"):
-        os.environ["ANTHROPIC_DEFAULT_SONNET_MODEL"] = os.environ.get(
-            "LLM_MODEL", "anthropic/claude-sonnet-4.6"
-        )
-
-    apply_agent_token_limits_to_env()
 
 
 def load_system_prompt() -> str:
@@ -287,15 +264,10 @@ async def run_design_agent(
     """
     global _progress_queue, _last_xml
 
-    configure_openrouter_env()
+    configure_provider_env()
 
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    if not openrouter_key and not auth_token:
-        yield {
-            "type": "error",
-            "content": "尚未設定 OPENROUTER_API_KEY（或 ANTHROPIC_AUTH_TOKEN）",
-        }
+    if not llm_auth_ready():
+        yield {"type": "error", "content": auth_error_message()}
         return
 
     _progress_queue = asyncio.Queue()
@@ -304,10 +276,7 @@ async def run_design_agent(
 
     system_prompt = build_system_prompt(current_xml)
     user_prompt = format_user_prompt(messages)
-    model_name = os.environ.get(
-        "LLM_MODEL",
-        os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "anthropic/claude-sonnet-4.6"),
-    )
+    model_name = get_model_name()
 
     mcp_server = _create_design_mcp_server()
 

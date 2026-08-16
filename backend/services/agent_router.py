@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,7 +30,12 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import User
-from services.design_agent import configure_openrouter_env, run_design_agent
+from services.design_agent import run_design_agent
+from services.llm_provider import (
+    auth_error_message,
+    configure_provider_env,
+    llm_auth_ready,
+)
 from services.prompt_guard import (
     REFUSAL_MESSAGE,
     is_platform_self_modification,
@@ -67,14 +71,9 @@ class WaCollabRequest(BaseModel):
 
 
 def _ensure_llm_keys() -> None:
-    configure_openrouter_env()
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
-    if not openrouter_key and not auth_token:
-        raise HTTPException(
-            status_code=500,
-            detail="尚未設定 OPENROUTER_API_KEY（Agent SDK 經 OpenRouter 需要此金鑰）",
-        )
+    configure_provider_env()
+    if not llm_auth_ready():
+        raise HTTPException(status_code=500, detail=auth_error_message())
 
 
 def _refusal_sse() -> StreamingResponse:

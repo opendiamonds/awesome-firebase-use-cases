@@ -22,6 +22,10 @@
 #   N8N_PASSWORD       optional   basic auth for the n8n webhook
 #   APP_ENV            optional   defaults to staging
 #
+# LLM_PROVIDER is pinned to openrouter here and is not overridable: the other
+# mode (cli) needs an interactively logged-in claude CLI, which a container
+# does not have.
+#
 # Usage: deploy/render-env.sh [output-path]   (default: deploy/.env)
 
 set -euo pipefail
@@ -60,6 +64,7 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 POSTGRES_DB=cloud360
 JWT_SECRET=${JWT_SECRET}
+LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
 ANTHROPIC_BASE_URL=https://openrouter.ai/api
 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6

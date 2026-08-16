@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import re
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -1483,6 +1484,105 @@ def _waypoints_xml(waypoints: list[tuple[float, float]]) -> str:
     )
 
 
+# n8n 的圖示目錄用服務全名（`Simple Notification Service`），架構圖用縮寫
+# （`SNS`）。兩者沒有共同子字串，純比對必然落空——這裡把縮寫展開成目錄裡
+# 實際存在的名稱。每一條都對照 webhook 回傳的目錄驗證過；查無對應的縮寫
+# （如 EFS）不放進來，寧可落到灰底也不要指向錯的圖示。
+_SERVICE_ABBREVIATIONS = {
+    "asg": "auto scaling",
+    "cdn": "cloudfront",
+    "ecr": "elastic container registry",
+    "ecs": "elastic container service",
+    "eks": "elastic kubernetes service",
+    "elb": "elastic load balancing",
+    "iam": "identity and access management",
+    "kms": "key management service",
+    "msk": "managed streaming for apache kafka",
+    "s3": "simple storage service",
+    "ses": "simple email service",
+    "sns": "simple notification service",
+    "sqs": "simple queue service",
+    "vpc": "virtual private cloud",
+}
+
+
+def _normalise_icon_name(text: str) -> str:
+    """比對用的正規化形式。
+
+    目錄裡同一個服務有三種寫法：`AWS Lambda`、`CloudWatch`、
+    `Auto-Scaling-group.svg`。統一成小寫、無副檔名、無 AWS/Amazon 前綴、
+    以單一空白分隔的詞序列，好讓「完全相同」成為可判定的條件。
+    """
+    text = re.sub(r"\.svg$", "", text.strip(), flags=re.IGNORECASE)
+    text = re.sub(r"[^a-zA-Z0-9]+", " ", text).lower().strip()
+    text = re.sub(r"^(aws|amazon)\s+", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _icon_match_score(service_name: str, icon_name: str) -> int:
+    """這個目錄項有多像目標服務。0 代表不算匹配。
+
+    分數的用途是**排序候選**，不是門檻。關鍵在於精確匹配必須贏過子字串
+    包含：`S3` 對 `S3 on Outposts` 是子字串命中，對 `Simple Storage
+    Service` 才是（展開後的）完全相同，而後者才是要的那一個。
+    """
+    service = _normalise_icon_name(service_name)
+    icon = _normalise_icon_name(icon_name)
+    if not service or not icon:
+        return 0
+
+    if service == icon:
+        return 100
+
+    expanded = _SERVICE_ABBREVIATIONS.get(service)
+    if expanded and expanded == icon:
+        return 90
+    if expanded and expanded in icon:
+        return 60
+
+    # 詞邊界包含優於單純的字元包含：`ecs` 不該命中 `secsomething`。
+    if f" {service} " in f" {icon} ":
+        return 50
+    # 只認「服務名是目錄名的一部分」這個方向。反向（目錄名是服務名的一部分）
+    # 實測會讓 `BigQuery` 命中目錄裡叫 `Q` 的圖示、`Cloud Spanner` 命中
+    # `AWS-Cloud`——目錄只收 AWS，非 AWS 服務本來就該落到灰底。長度下限擋掉
+    # 短字串的偶然包含；縮寫由上面的對應表處理，不倚賴這條。
+    if len(service) >= 4 and service in icon:
+        return 10
+    return 0
+
+
+def _select_icon_entry(entries: list[dict[str, Any]], service_name: str) -> dict[str, Any] | None:
+    """挑出最像 `service_name` 的目錄項；沒有像的回 None。
+
+    回 None 而不是退回 `entries[0]`：退回第一項會讓「查無此圖示」看起來
+    像成功，實際交出的是目錄裡碰巧排第一的那個服務（實測是
+    `Auto-Scaling-group`）。錯的圖示比灰底佔位圖更難發現。
+    """
+    best: tuple[int, int, dict[str, Any]] | None = None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name") or entry.get("icon_name") or entry.get("service") or ""
+        score = _icon_match_score(service_name, name)
+        if score == 0:
+            continue
+        # 同分時取較短的名稱：`CloudWatch` 勝過 `CloudWatch Logs`。
+        candidate = (score, -len(name), entry)
+        if best is None or candidate[:2] > best[:2]:
+            best = candidate
+    return best[2] if best else None
+
+
+def _svg_from_entry(entry: dict[str, Any]) -> str | None:
+    """目錄項裡的 SVG 內容，欄位名兩種都接受。"""
+    for key in ("svg_content", "svg"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
+
 async def fetch_icon_from_n8n(service_name: str, provider: str = "AWS") -> str:
     """
     向 n8n webhook 取得服務 SVG。
@@ -1514,6 +1614,14 @@ async def fetch_icon_from_n8n(service_name: str, provider: str = "AWS") -> str:
                 timeout=5.0
             )
             if response.status_code != 200:
+                # 這條路徑原本靜默 return，是最難查的一種降級：服務照常回圖，
+                # 只是每個 icon 都變灰底，沒有任何地方說得出為什麼。
+                logger.warning(
+                    "n8n 取得 %s 圖示（供應商：%s）回應 HTTP %s，改用灰底佔位圖",
+                    service_name,
+                    provider,
+                    response.status_code,
+                )
                 return fallback_svg
 
             content = response.text.strip()
@@ -1523,30 +1631,35 @@ async def fetch_icon_from_n8n(service_name: str, provider: str = "AWS") -> str:
             try:
                 data = response.json()
 
-                if isinstance(data, list) and len(data) > 0:
-                    for item in data:
-                        name = item.get(
-                            "name", item.get("icon_name", item.get("service", ""))
+                if isinstance(data, list):
+                    entry = _select_icon_entry(data, service_name)
+                    if entry is None:
+                        logger.warning(
+                            "n8n 目錄（%d 項）查無 %s（供應商：%s）的圖示，改用灰底佔位圖",
+                            len(data),
+                            service_name,
+                            provider,
                         )
-                        if service_name.lower() in name.lower() or name.lower() in service_name.lower():
-                            if "svg_content" in item:
-                                    return item["svg_content"]
-                            if "svg" in item:
-                                return item["svg"]
-
-                    item = data[0]
-                    if "svg_content" in item:
-                        return item["svg_content"]
-                    if "svg" in item:
-                        return item["svg"]
+                        return fallback_svg
+                    svg = _svg_from_entry(entry)
+                    if svg:
+                        return svg
+                    logger.warning(
+                        "n8n 目錄項 %r 匹配到 %s，但不含 SVG 內容，改用灰底佔位圖",
+                        entry.get("icon_name") or entry.get("name"),
+                        service_name,
+                    )
+                    return fallback_svg
 
                 elif isinstance(data, dict):
-                    if "svg_content" in data:
-                        return data["svg_content"]
-                    if "svg" in data:
-                        return data["svg"]
-                    if "data" in data and "svg" in data["data"]:
-                        return data["data"]["svg"]
+                    svg = _svg_from_entry(data)
+                    if svg:
+                        return svg
+                    nested = data.get("data")
+                    if isinstance(nested, dict):
+                        svg = _svg_from_entry(nested)
+                        if svg:
+                            return svg
 
             except Exception as e:
                 logger.warning("解析 n8n 回應失敗: %s", e)

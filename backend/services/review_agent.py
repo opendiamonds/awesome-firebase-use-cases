@@ -9,12 +9,16 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-from services.design_agent import configure_openrouter_env
+from services.llm_provider import (
+    auth_error_message,
+    configure_provider_env,
+    get_review_model_name,
+    llm_auth_ready,
+)
 from services.llm_limits import agent_sdk_env
 
 logger = logging.getLogger("cloud360.review_agent")
@@ -115,11 +119,9 @@ async def run_review_agent(
         TextBlock,
     )
 
-    configure_openrouter_env()
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    if not openrouter_key and not auth_token:
-        raise RuntimeError("尚未設定 OPENROUTER_API_KEY（或 ANTHROPIC_AUTH_TOKEN）")
+    configure_provider_env()
+    if not llm_auth_ready():
+        raise RuntimeError(auth_error_message())
 
     payload = _compact_payload(diagram_summary, rule_result)
     user_prompt = (
@@ -130,13 +132,8 @@ async def run_review_agent(
         "勿呼叫任何工具：\n"
         f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
     )
-    # Prefer faster model for review suggestions; override with REVIEW_LLM_MODEL
-    model_name = (
-        os.environ.get("REVIEW_LLM_MODEL", "").strip()
-        or os.environ.get("LLM_MODEL", "").strip()
-        or os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "").strip()
-        or "anthropic/claude-3.5-haiku"
-    )
+    # Prefers a faster model; override with REVIEW_LLM_MODEL.
+    model_name = get_review_model_name()
     options = ClaudeAgentOptions(
         system_prompt=load_review_system_prompt(),
         model=model_name,
