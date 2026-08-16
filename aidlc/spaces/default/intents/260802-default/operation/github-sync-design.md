@@ -89,7 +89,63 @@ AI-DLC 產出 artifact → commit → push → `on: push` 的 paths 過濾觸發
 | assignee | — | **GH → repo** |
 | comments | — | 不同步（只在 GitHub） |
 
-### 1.3 unit of work → Issue 的子任務
+### 1.3 從 AI-DLC 流程看：什麼時候會動到 GitHub
+
+**AI-DLC 流程本身零改動。** 33 個 stage 一個都不新增、不修改、不重排；沒有新 hook、沒有改 `settings.json`。同步只發生在「artifact 進版控之後」。
+
+33 個 stage 裡，**只有 5 個的產出會觸發內容同步**；其餘 28 個對 GitHub 的內容毫無影響：
+
+| Phase | Stage | 產出 | GitHub 上發生什麼 |
+|---|---|---|---|
+| inception | `requirements-analysis` | `requirements` | Wiki 新增／更新需求頁 |
+| inception | `user-stories` | `stories` | **每個 `US-n` 建立或更新一則 Issue**（受管區塊） |
+| inception | `application-design` | `decisions`（ADR） | Wiki 新增／更新 ADR 頁 |
+| inception | `units-generation` | `unit-of-work` | 對應 story 的 Issue 內，task list 增減項目 |
+| inception | `delivery-planning` | `bolt-plan` | Project 的 iteration 欄位建立／更新 |
+
+另有一項與 stage 無關、但**每個 stage 完成時都會發生**：
+
+| 觸發 | 來源 | GitHub 上發生什麼 |
+|---|---|---|
+| 任一 stage 完成 | `aidlc-state.md` 的 `Current Stage` / `Phase Progress` 更新 | Project 卡片的 **Status 欄位**移動到對應 phase |
+
+也就是說，**看板上的卡片會隨流程推進自己移動**（ideation → inception → construction → operation），而 Issue 的內容只在上表那 5 個 stage 才變。這正是「狀態」與「內容」分屬不同真實來源的體現：狀態頻繁變動、內容經 gate 才變。
+
+### 1.3.1 一個 intent 的完整時序
+
+以 `feature` scope 為例，從頭到尾 GitHub 上依序看到的東西：
+
+```
+ideation（7 stages）
+  └─ 每個 stage 完成 → Project 卡片停在「Ideation」欄
+     GitHub 上還沒有任何 Issue —— 此時需求尚未成形，開 issue 只會是雜訊
+
+inception
+  ├─ requirements-analysis → Wiki 出現需求頁
+  ├─ user-stories          → ★ Issues 大量出現（每個 US-n 一則）
+  │                           卡片移到「Inception」欄
+  ├─ application-design    → Wiki 出現 ADR 頁
+  ├─ units-generation      → 既有 Issue 的 task list 被填入實作單元
+  └─ delivery-planning     → Project 出現 iteration（Bolt 1、Bolt 2…）
+
+construction（8 stages，含 tcms-test-cases）
+  └─ 每個 stage 完成 → 卡片移到「Construction」欄
+     Issue 內容不再變動（除非回頭修 stories 或 units）
+     人在此期間勾 task list、關閉 issue、指派 assignee ← 這些會被反向同步拉回
+
+operation（7 stages）
+  └─ 卡片移到「Operation」欄
+```
+
+**Issue 出現的時機是 `user-stories` 完成之後**，不是 intent 一開始。ideation 階段的產出（intent statement、scope、feasibility）刻意不同步——那時需求還在成形，開 issue 只會製造需要回頭清理的雜訊。
+
+### 1.3.2 反向同步與 stage 無關
+
+反向同步（GitHub → repo）是**定時**的（每 6 小時），不掛在任何 stage 上。它在 intent 的任何階段都可能發生，包括 AI-DLC 完全沒在跑的時候——人在週末拖了卡片，週一的第一次同步就會產生 PR。
+
+這是刻意的：協作者的操作不該等 AI-DLC 跑到某個 stage 才被承認。
+
+### 1.4 unit of work → Issue 的子任務
 
 `unit-of-work.md` 的每個單元渲染成受管區塊內的 task list：
 
