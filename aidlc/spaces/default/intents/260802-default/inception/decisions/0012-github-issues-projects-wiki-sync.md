@@ -156,7 +156,27 @@ Wiki 是**單向鏡像**（repo → Wiki），不回寫。Wiki 頁首自動加�
 |---|---|---|
 | **1** | repo → Issues 單向：intent 的 stories 建立／更新 issue（受管區塊） | 一個 intent 的所有 story 在 GitHub 有對應 issue，重跑不產生重複 |
 | **2** | Issues → repo 反向：狀態（open/closed、assignee、labels）定時拉回，開 PR | 在 GitHub 關掉 issue，下次同步產生一個更新 `aidlc-state.md` 的 PR |
+| **2.5** | **bug 路徑 B（半自動）**：列出待修 bug，人選一個帶入 `/aidlc --scope bugfix` | 從 issue 挑一個 bug 到產出帶 `Closes #N` 的 PR，全程可在本機完成 |
 | **3** | Projects v2：intent → Project、看板欄位 ↔ 階段狀態、Bolt → iteration | 看板反映真實進度；拖動卡片會回寫 repo |
+| **3.5** | **bug 路徑 A（自動）**：`aidlc:auto` label 觸發，自架 runner 跑完並開 PR | 貼 label 後不需人介入即產出 PR，且 PR 說明揭露未經 stage gate |
 | **4** | Wiki 單向鏡像 | 已核可 artifacts 與根層文件出現在 Wiki，頁首帶來源警語 |
 
 階段 1 完成前不啟用階段 2 —— 沒有穩定的正向同步，反向同步沒有比對基準。
+階段 2.5 先於 3.5 —— 半自動只用本機既有環境，自動路徑要先在自架 runner 上備妥 `bun`、`claude` CLI 與 LLM 憑證。先讓 issue → intent 的轉換被人工驗證過，再投資 CI 基礎設施。
+
+#### 外部進入點：GitHub 上回報的 bug
+
+`bugfix` scope 的 8 個 stage **不含 `user-stories`**，因此走 bugfix 的 intent 不產生 stories，Decision 第 1 點的 story → Issue 映射對它不適用。**bug issue 本身就是工作項**，不再產生第二則 issue 代表同一件事。
+
+bug issue 是**回報者寫的**，因此：**不加受管區塊、內文永不被覆寫**。同步只做三件事——加進 Project 看板、在三個節點留言（已接受／PR 已開／合併時由 `Closes #N` 自動關）、以及 PR 合併後關閉。
+
+兩條路徑並存，差別**只有 gate 的位置**：
+
+| | 路徑 A（自動，label 觸發） | 路徑 B（半自動，終端機挑） |
+|---|---|---|
+| stage approval gate | **跳過** | 完整執行 |
+| PR review | 有 | 有 |
+
+**路徑 A 的 PR 必須在說明中揭露「本 PR 由自動路徑產生，未經 stage approval gate」。** 這是 reviewer 判斷該用多少力氣審的依據；少了它，自動路徑就是繞過方法論的後門。兩條路徑都以 PR 為最終關卡，PR 不自動合併，人的決定權完整保留。
+
+此分界與 repo 既有實務一致：`deploy-doctor` 只診斷不修（明文寫「so a human can fix」），`lint-fix` 自動修但僅限機械性、零判斷的問題。bug 修復介於兩者之間，故保留自動路徑但把 gate 明確移到 PR。

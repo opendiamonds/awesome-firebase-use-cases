@@ -310,7 +310,91 @@ clone `<repo>.wiki.git` → 渲染（頁首加來源警語與原始路徑連結�
 
 ---
 
-## 7. 開放問題（實作前要有答案）
+## 7. 外部進入點：GitHub 上回報的 bug
+
+前面幾節處理的是 **AI-DLC → GitHub** 的產出同步。bug 的方向相反：它從 GitHub 進來，是外部進入點。
+
+### 7.1 bug 不套用 story → Issue 映射
+
+查證 stage graph 後確認：**`bugfix` scope 的 8 個 stage 裡沒有 `user-stories`**。
+
+```
+workspace-scaffold → workspace-detection → state-init → reverse-engineering
+→ requirements-analysis → code-generation → build-and-test → tcms-test-cases
+```
+
+走 bugfix 的 intent 根本不產生 stories，所以 §1.2 的映射對它不適用。**bug issue 本身就是那個工作項**，AI-DLC 不該再產生第二則 issue 代表同一件事——那是重複，且會讓回報者的原 issue 變成孤兒。
+
+### 7.2 兩類 issue 的所有權必須分清
+
+| | 來源 | 受管區塊 | 內容誰的 |
+|---|---|---|---|
+| story issue | AI-DLC 產生 | 有 | repo 覆寫受管區塊 |
+| **bug issue** | **人寫的** | **不得加** | **完全屬於回報者，永不覆寫** |
+
+同步機制**永遠不寫 bug issue 的內文**。它只做三件事：加進 Project 看板、在關鍵節點留言、由 PR 的 `Closes #N` 關閉。
+
+### 7.3 兩條路徑
+
+**路徑 A — 自動（在 GitHub 上跑完）**
+
+```
+人貼 aidlc:auto label
+  → workflow 觸發，在自架 runner 上跑 bugfix 流程
+  → 產出修正 code + 測案 + AI-DLC record
+  → 開 PR（帶 Closes #N）
+  → 在 issue 留言「已接受、PR #M 已開」
+  → 人 review 並合併  ← gate 在這裡
+  → issue 自動關閉
+```
+
+**路徑 B — 半自動（人在終端機挑）**
+
+```
+人跑 scripts/aidlc_sync_buglist.py    列出待修的 bug（label=bug 且未被接受）
+  → 選一個
+  → /aidlc --scope bugfix（自動帶入該 issue 的標題與內文）
+  → 正常的 AI-DLC 流程，含每個 stage 的 approval gate
+  → 產出 PR（帶 Closes #N）
+  → 同樣的留言與關閉機制
+```
+
+### 7.4 兩條路徑的差別只有一個：gate 在哪
+
+| | 路徑 A（自動） | 路徑 B（半自動） |
+|---|---|---|
+| stage approval gate | **跳過** | 完整執行 |
+| PR review | 有 | 有 |
+| 適用 | 有明確重現步驟、影響面清楚的 bug | 需要判斷範圍或牽動設計的 bug |
+
+**路徑 A 的 PR 必須在說明中揭露「本 PR 由自動路徑產生，未經 stage approval gate」。** 這句話不是形式——它是 reviewer 判斷該用多少力氣審的依據。少了它，自動路徑就成了繞過方法論的後門。
+
+這條分界線與 repo 既有的自動化實務一致：`deploy-doctor` 只診斷不修（「so a human can fix」），`lint-fix` 會自動修但只限機械性、零判斷的 lint 問題。bug 修復介於兩者之間，所以保留自動路徑，但把 gate 明確地移到 PR。
+
+### 7.5 進度回報：三個節點，不多不少
+
+只在這三個時機於 issue 留言：
+
+1. **已接受** —— intent 建立時：「已建立 bugfix intent `<slug>`，走路徑 A／B」
+2. **修正 PR 已開** —— PR 編號與一句摘要
+3. **已合併** —— 由 `Closes #N` 自動關閉時（GitHub 原生行為，不需額外留言）
+
+bugfix scope 有 8 個 stage，若每個 stage 都留言會產生 8 則機器留言，把回報者的討論淹掉。細部進度看 Project 卡片。
+
+### 7.6 技術前置（路徑 A 專屬）
+
+路徑 A 要在 CI 裡跑 AI-DLC，不是跑 gh-aw 的 copilot engine：
+
+| 需求 | 說明 |
+|---|---|
+| 執行環境 | 自架 runner（`[self-hosted, linux, x64, cloud360]`），需裝 `bun` 與 `claude` CLI |
+| LLM 憑證 | runner 上的 `claude` CLI 需可認證（`LLM_PROVIDER` 的兩種模式擇一） |
+| 權限 | `contents: write`（推分支）、`pull-requests: write`（開 PR）、`issues: write`（留言與標籤） |
+| 隔離 | 同 §0：workflow 與腳本都不進 `.claude/` |
+
+**路徑 B 沒有這些前置**——它在開發者自己的機器上跑，用的是既有的本機環境。所以實作順序是 **B 先於 A**：先讓半自動可用，確認 issue → intent 的轉換正確，再投資自動路徑的 CI 基礎設施。
+
+## 8. 開放問題（實作前要有答案）
 
 1. **一個 intent 的 stories 改名或刪除時**，對應的 issue 怎麼處理？關閉並加 `wontfix`？還是留著？（傾向：關閉並在受管區塊註記「此 story 已從需求移除」，不刪 issue——issue 編號是外部引用點。）
 2. **`daily-digest` 每天產生 issue** 已使 issue 列表達 200+ 筆。是否該讓 digest 改用 discussion 或直接關閉舊的？這會影響同步進來的 issue 的可見度。
