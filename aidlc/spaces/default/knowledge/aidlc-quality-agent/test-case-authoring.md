@@ -173,7 +173,58 @@
   ```
 - **不要**在 e2e 裡觸及任何 LLM 路徑。那是這套套件刻意的邊界，破壞它會讓每個 PR 都花錢且不穩。
 
-### 4.4 `team.md` 的三條測試底線（本 stage 一併檢查）
+### 4.4 自動化案例也要有規格 —— 但規格的來源是 code 旁的註解
+
+TCMS 上的自動化案例由 `kiwitcms-junit.xml-plugin` 從測試結果建立，預設**沒有任何描述**——點進去只看得到 `Author: ci-bot` 和一片空白。這對要判讀測試涵蓋範圍的人沒有幫助。
+
+但**不可以直接在 TCMS 手寫描述**：spec code 才是會被改的那份，手抄的描述必定過期，而且沒有任何機制會告訴你它過期了。
+
+做法是讓描述也從 code 產生 —— 在每個 `test()` 前加結構化註解：
+
+```ts
+/**
+ * @purpose 錯誤憑證必須被拒絕，且使用者留在登入頁看得到原因。
+ * @given seed 帳號 admin 存在
+ * @step 以 admin 與一組錯誤密碼送出登入 | 後端回 401「帳號或密碼錯誤」
+ * @step 檢視頁面 | 出現「帳號或密碼錯誤」
+ * @step 檢視當前路徑 | 未被導向 `/workspace`
+ * @pass 錯誤訊息可見，且 URL 不含 `/workspace`
+ * @story J1
+ * @note 「不得導向 workspace」是關鍵斷言：只驗錯誤訊息無法排除
+ *       「顯示了錯誤但仍然放行」這種更嚴重的實作。
+ */
+test('錯誤密碼被拒並停留在登入頁', async ({ page }) => {
+```
+
+標記說明：
+
+| 標記 | 必填 | 說明 |
+|---|---|---|
+| `@purpose` | ✅ | 這個測試保護什麼 |
+| `@given` | ✅ | 前置狀態（seed 資料、需先建立的帳號、視窗尺寸等） |
+| `@step` | ✅ | `操作 \| 預期結果`，一行一步，順序即步驟編號 |
+| `@pass` | ✅ | 通過條件 |
+| `@story` | ✅ | 對應的 user story id |
+| `@note` | — | 這個斷言為何長這樣、它在防哪個具體的錯誤實作 |
+
+每個標記都可跨行（續行不加 `@`，會被接到前一個標記上）。
+
+同步（**只更新、不建立**）：
+
+```bash
+python3 scripts/tcms_sync.py --spec frontend/tests/e2e/regression.spec.ts --dry-run
+python3 scripts/tcms_sync.py --spec frontend/tests/e2e/regression.spec.ts
+```
+
+三個必須知道的約束：
+
+1. **TCMS 案例名稱是 `<describe> › <test>`**，與 junit plugin 的 `--summary-template '${name}'` 一致。改動 `describe` 或 `test` 的字串會讓既有案例變孤兒（新名稱建新案例，舊的留著沒有執行結果）。
+2. 工具**不建立**自動化案例。案例是 plugin 從測試結果建的；本工具建的會是永遠沒有執行結果的孤兒。找不到對應案例通常表示該測試還沒在 CI 跑過一次。
+3. 工具**只寫 `text`**，不碰 `is_automated` 與 `case_status`——那兩個由 plugin 維護，兩個寫入者搶同一個欄位遲早出事。
+
+寫進 TCMS 的內容開頭會帶一段警語，說明它是自動產生、在 TCMS 改會被覆蓋。
+
+### 4.5 `team.md` 的三條測試底線（本 stage 一併檢查）
 
 - **A**：`role_permissions` 預設值變更 → 必須有 allow/deny **雙向**測試。
 - **B**：新增或修改 HTTP 端點 → 必須有 `TestClient` 測試。

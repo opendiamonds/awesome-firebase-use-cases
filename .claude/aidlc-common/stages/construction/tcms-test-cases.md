@@ -152,6 +152,13 @@ land in the repo in this stage, run green, and are referenced by path and test
 name from the plan. A plan entry with no script is an open item and must be
 listed as such in the summary, with the reason.
 
+Every automated test — new or touched — also carries a structured spec comment
+(`@purpose` / `@given` / `@step` / `@pass` / `@story`, see the authoring
+knowledge file § 4.4). That comment is what gives the automated case a readable
+description in TCMS. Writing the description in TCMS by hand instead is not an
+option: the code is the copy that gets changed, so a hand-written description
+goes stale with nothing to announce it.
+
 For every script written, verify it actually catches what it claims:
 
 ```
@@ -167,8 +174,10 @@ only proof is having seen it fail.
 
 ### Step 5: Sync to TCMS
 
-Manual cases are authored in the record but *executed* in TCMS. Generate
-`<record>/construction/tcms-test-cases/tcms-sync-report.md` and perform the sync:
+Two syncs, two sources — they are not interchangeable. Generate
+`<record>/construction/tcms-test-cases/tcms-sync-report.md` covering both.
+
+**Manual cases** — authored in the record, executed in TCMS:
 
 1. Preview — never write blind:
    ```
@@ -176,6 +185,18 @@ Manual cases are authored in the record but *executed* in TCMS. Generate
    ```
 2. Show the user the preview at the approval gate.
 3. After approval, run without `--dry-run`.
+
+**Automated cases** — the case is owned by the junit plugin; only the
+description comes from here:
+
+```
+python3 scripts/tcms_sync.py --spec frontend/tests/e2e/regression.spec.ts --dry-run
+python3 scripts/tcms_sync.py --spec frontend/tests/e2e/regression.spec.ts
+```
+
+This updates existing cases only. A test that has never run in CI has no case
+yet — the tool lists those rather than creating orphans, and the sync report
+records them.
 
 The tool is idempotent: it keys on the case title, updating an existing case
 rather than creating a duplicate. It requires `~/.tcms.conf`; if that file is

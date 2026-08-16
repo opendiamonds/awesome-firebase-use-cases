@@ -7,6 +7,17 @@
     python3 scripts/tcms_sync.py --file <path> --dry-run   # 預覽，不寫入
     python3 scripts/tcms_sync.py --file <path>             # 實際寫入
 
+兩種案例的來源不同，因此有兩個模式，不可混用：
+
+    --file <manual-test-cases.md>   手動案例。TCMS 是主檔，本工具建立＋更新。
+    --spec <regression.spec.ts>     自動化案例。**repo 的 spec code 是主檔**，
+                                    案例本身由 kiwitcms-junit.xml-plugin 從測試
+                                    結果建立；本工具只把 code 旁的規格註解渲染
+                                    成描述寫回去，不建立案例、不碰 is_automated。
+
+這個分工來自 operation/test-case-management-plan.md 的「每種測案有單一真實來源」：
+把自動化案例的步驟手抄進 TCMS 會變成兩份維護，而被改的永遠是 code 那份。
+
 前置：
     pip install tcms-api
     ~/.tcms.conf：
@@ -115,6 +126,181 @@ def parse(path: Path) -> list[Case]:
         )
 
     return cases
+
+
+# --- 自動化案例：規格來源是 spec 檔的註解，不是 TCMS ------------------------
+
+DESCRIBE_LINE = re.compile(r"^test\.describe\(\s*'(?P<name>[^']+)'")
+TEST_LINE = re.compile(r"^\s*test\(\s*'(?P<name>[^']+)'")
+DOC_OPEN = re.compile(r"^\s*/\*\*\s*$")
+DOC_CLOSE = re.compile(r"^\s*\*/\s*$")
+DOC_TAG = re.compile(r"^\s*\*\s*@(?P<tag>purpose|given|step|pass|story|note)\s*(?P<value>.*)$")
+DOC_CONT = re.compile(r"^\s*\*\s?(?P<value>.*)$")
+
+AUTOMATED_BANNER = (
+    "> ⚠️ **本內容由 `{source}` 的規格註解自動產生，請勿在 TCMS 手動編輯。**\n"
+    "> 這是**自動化**案例——執行主體是該檔的 Playwright test，由 `ui-regression`\n"
+    "> workflow 在每個 PR 對短生命週期 stack 執行。要修改規格，請改 code 旁的\n"
+    "> 註解後重新同步；在 TCMS 這邊改的內容會在下次同步時被覆蓋。\n"
+)
+
+
+@dataclass
+class SpecCase:
+    summary: str
+    purpose: list[str] = field(default_factory=list)
+    given: list[str] = field(default_factory=list)
+    steps: list[tuple[str, str]] = field(default_factory=list)
+    passes: list[str] = field(default_factory=list)
+    story: str = ""
+    note: list[str] = field(default_factory=list)
+
+    def render(self, source: str, describe: str, test_name: str) -> str:
+        out = [AUTOMATED_BANNER.format(source=source).rstrip(), ""]
+        if self.purpose:
+            out += ["### 目的", "", " ".join(self.purpose), ""]
+        if self.given:
+            out += ["### 前置條件", "", " ".join(self.given), ""]
+        if self.steps:
+            out += ["### 測試步驟", "", "| # | 操作 | 預期結果 |", "|---|---|---|"]
+            out += [f"| {i} | {a} | {e} |" for i, (a, e) in enumerate(self.steps, 1)]
+            out += [""]
+        if self.passes:
+            out += ["### 通過條件", "", " ".join(self.passes), ""]
+        if self.note:
+            out += ["### 備註", "", " ".join(self.note), ""]
+        out += [
+            "### 追溯",
+            "",
+            f"- 自動化腳本：`{source}`",
+            f"- 測試路徑：`{describe}` › `{test_name}`",
+            f"- User story：{self.story or '（未標註）'}",
+            "- 執行：`ui-regression` workflow（每個 PR，對短生命週期 stack）",
+        ]
+        return "\n".join(out).strip()
+
+
+def parse_spec(path: Path) -> list[tuple[str, SpecCase]]:
+    """解析 spec 檔，回傳 [(TCMS summary, SpecCase)]。
+
+    TCMS summary 的組法必須與 junit plugin 一致：`<describe> › <test>`。plugin
+    以 `--summary-template '${name}'` 產生案例名稱，改動任一邊都會讓既有案例
+    變成孤兒。
+    """
+    source = path.as_posix()
+    describe = ""
+    pending: SpecCase | None = None
+    current_tag = ""
+    found: list[tuple[str, SpecCase]] = []
+
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        d = DESCRIBE_LINE.match(raw)
+        if d:
+            describe = d.group("name")
+            continue
+
+        if DOC_OPEN.match(raw):
+            pending = SpecCase(summary="")
+            current_tag = ""
+            continue
+
+        if pending is not None and DOC_CLOSE.match(raw):
+            current_tag = ""
+            continue
+
+        if pending is not None:
+            tag = DOC_TAG.match(raw)
+            if tag:
+                current_tag = tag.group("tag")
+                value = tag.group("value").strip()
+                if current_tag == "step":
+                    action, _, expected = value.partition("|")
+                    pending.steps.append((action.strip(), expected.strip()))
+                elif current_tag == "story":
+                    pending.story = value
+                elif current_tag == "purpose":
+                    pending.purpose.append(value)
+                elif current_tag == "given":
+                    pending.given.append(value)
+                elif current_tag == "pass":
+                    pending.passes.append(value)
+                elif current_tag == "note":
+                    pending.note.append(value)
+                continue
+            cont = DOC_CONT.match(raw)
+            if cont and current_tag:
+                value = cont.group("value").strip()
+                if value:
+                    if current_tag == "step" and pending.steps:
+                        action, expected = pending.steps[-1]
+                        pending.steps[-1] = (action, f"{expected} {value}".strip())
+                    elif current_tag == "purpose":
+                        pending.purpose.append(value)
+                    elif current_tag == "given":
+                        pending.given.append(value)
+                    elif current_tag == "pass":
+                        pending.passes.append(value)
+                    elif current_tag == "note":
+                        pending.note.append(value)
+                continue
+
+        t = TEST_LINE.match(raw)
+        if t and pending is not None:
+            test_name = t.group("name")
+            summary = f"{describe} › {test_name}"
+            pending.summary = summary
+            found.append((summary, pending))
+            # render 需要 describe/test 名稱，先存起來供 sync 使用
+            pending.__dict__["_source"] = source
+            pending.__dict__["_describe"] = describe
+            pending.__dict__["_test"] = test_name
+            pending = None
+            current_tag = ""
+
+    return found
+
+
+def sync_automated(specs: list[tuple[str, SpecCase]], *, dry_run: bool) -> int:
+    """把規格註解寫進**既有**的自動化案例。
+
+    只更新、不建立：自動化案例是 junit plugin 從測試結果建立的，由本工具建立
+    會製造出永遠不會有執行結果的孤兒。找不到對應案例時明確列出——通常表示該
+    測試還沒在 CI 跑過一次。
+    """
+    rpc = connect()
+    prefix = "[dry-run] " if dry_run else ""
+
+    products = rpc.Product.filter({"name": PRODUCT_NAME})
+    if not products:
+        raise SystemExit(f"TCMS 上找不到 Product {PRODUCT_NAME!r}")
+    pid = products[0]["id"]
+    existing = {c["summary"]: c for c in rpc.TestCase.filter({"category__product": pid})}
+
+    updated, missing = 0, []
+    for summary, spec in specs:
+        found = existing.get(summary)
+        if not found:
+            missing.append(summary)
+            continue
+        text = spec.render(
+            spec.__dict__["_source"], spec.__dict__["_describe"], spec.__dict__["_test"]
+        )
+        if dry_run:
+            print(f"{prefix}case     將更新 TC-{found['id']} ({len(text)} 字元) {summary[:44]}")
+        else:
+            # 只寫 text：is_automated 與 case_status 由 junit plugin 維護，
+            # 這裡不碰，避免兩個寫入者互相打架。
+            rpc.TestCase.update(found["id"], {"text": text})
+            print(f"case     已更新 TC-{found['id']} ({len(text)} 字元) {summary[:44]}")
+        updated += 1
+
+    print()
+    print(f"{prefix}完成：更新 {updated} 筆，共 {len(specs)} 個規格註解")
+    if missing:
+        print(f"\n⚠️  TCMS 上找不到對應案例（{len(missing)} 筆）——該測試可能還沒在 CI 跑過：")
+        for m in missing:
+            print(f"  - {m}")
+    return 0
 
 
 def connect():
@@ -240,18 +426,39 @@ def sync(cases: list[Case], *, dry_run: bool) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument(
         "--file",
-        required=True,
         type=Path,
-        help="manual-test-cases.md 的路徑（tcms-test-cases stage 的 artifact）",
+        help="manual-test-cases.md 的路徑（手動案例；tcms-test-cases stage 的 artifact）",
+    )
+    source.add_argument(
+        "--spec",
+        type=Path,
+        help="Playwright spec 檔的路徑（自動化案例；讀取其規格註解，只更新既有案例）",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="只列出將要建立／更新的內容，不連線寫入",
+        help="只列出將要建立／更新的內容，不寫入",
     )
     args = parser.parse_args()
+
+    if args.spec:
+        if not args.spec.exists():
+            raise SystemExit(f"找不到檔案：{args.spec}")
+        specs = parse_spec(args.spec)
+        if not specs:
+            raise SystemExit(
+                f"{args.spec} 沒有解析到任何規格註解。"
+                "每個 test 前需要一個含 @purpose／@step 等標記的 /** */ 區塊。"
+            )
+        print(f"解析到 {len(specs)} 個規格註解：")
+        for summary, spec in specs:
+            print(f"  {summary[:62]}")
+            print(f"        步驟 {len(spec.steps)} 個，story={spec.story or '（未標註）'}")
+        print()
+        return sync_automated(specs, dry_run=args.dry_run)
 
     if not args.file.exists():
         raise SystemExit(f"找不到檔案：{args.file}")

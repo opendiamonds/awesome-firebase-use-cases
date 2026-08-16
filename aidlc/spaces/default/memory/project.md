@@ -102,7 +102,9 @@
   - 必做 1 — **覆蓋盤點**：把本 intent 每一項外部可觀察的行為分類為「已自動化／待自動化／只能手動」三桶之一，計數寫進 stage summary。無法分類者列為未分類項並說明卡在哪，**不得預設丟給手動**（預設丟手動等於把問題藏進一份沒人會跑的文件）。
   - 必做 2 — **手動測案**：只為「只能手動」桶寫案例，產出 `<record>/construction/tcms-test-cases/manual-test-cases.md`。每案必須有目的、背景、前置條件、逐步驟表（操作 ↔ **可觀察的**預期結果）、通過條件、追溯。預期結果寫「正常」「成功」者不算步驟。回歸案例的背景必須寫出症狀、錯誤訊息逐字、以及**既有自動化層為何沒抓到**。
   - 必做 3 — **自動化腳本**：為「待自動化」桶**實際寫出腳本**並跑綠，不是列願望清單；落點依 `team.md` 的既成事實（backend `unittest`／`TestClient`／Playwright e2e，前端無 unit 測試框架）。每支腳本都必須做**突變驗證**——把修正改回錯的行為、確認測試紅燈、還原複驗——並把突變內容與結果寫進 `automation-test-plan.md`。未寫出腳本的項目列為 open item 並說明理由。
-  - 必做 4 — **TCMS 同步**：先 `python3 scripts/tcms_sync.py --file <path> --dry-run` 預覽並在 gate 呈現，核可後才實際寫入，結果記入 `tcms-sync-report.md`。`~/.tcms.conf` 不存在時**不得靜默跳過**，記為未完成項並在 gate 說明。
+  - 必做 3b — **自動化案例的規格註解**：每個新增或改動的自動化測試，都要在 `test()` 前加結構化註解（`@purpose`／`@given`／`@step`／`@pass`／`@story`，格式見撰寫標準 §4.4）。這是自動化案例在 TCMS 上唯一的描述來源——**不得直接在 TCMS 手寫描述**，因為會被改的是 code 那份，手抄的描述必定過期且無人察覺。
+  - 必做 4 — **TCMS 同步（兩種來源分開跑）**：手動案例 `--file <manual-test-cases.md>`（建立＋更新）；自動化案例 `--spec <spec 檔>`（**只更新既有案例**，案例本身由 junit plugin 從測試結果建立，本工具不建立、不碰 `is_automated`）。兩者都先 `--dry-run` 預覽並在 gate 呈現，核可後才實際寫入，結果記入 `tcms-sync-report.md`。`~/.tcms.conf` 不存在時**不得靜默跳過**，記為未完成項並在 gate 說明。
+  - TCMS 案例名稱是 `<describe> › <test>`，與 junit plugin 的 `--summary-template '${name}'` 一致；改動 describe／test 字串會讓既有案例變成沒有執行結果的孤兒。
   - **不得**為自動化層已斷言的行為另寫手動案例——`operation/test-case-management-plan.md` 定下「每種測案有單一真實來源」：自動化的主檔是 repo 的 spec code（TCMS 只存中繼資料與歷史結果），手動的主檔才是 TCMS。雙份維護必有一份悄悄過期。
   - 本規則的由來：本 repo 的自動化層有三塊**結構性**盲區（所有 LLM 路徑、n8n 圖示取得、本機環境殘值），實測證實六道 CI 閘門全綠時仍會放行這三類缺陷。 (affirmed 2026-08-16)
 
