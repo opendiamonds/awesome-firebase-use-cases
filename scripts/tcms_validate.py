@@ -41,7 +41,27 @@ DEFAULT_MANUAL = (
 )
 DEFAULT_SPEC = ROOT / "frontend/tests/e2e/regression.spec.ts"
 
-REQUIRED_SECTIONS = ("目的", "受測介面", "前置條件", "測試步驟", "通過條件", "追溯")
+TESTING_DOC = ROOT / "TESTING.md"
+# 後備值：只在 TESTING.md 不存在或標記被刪時使用。正常情況下必要欄位由
+# TESTING.md 第 2 節的標記決定——契約寫在文件裡，程式讀它，兩者不會分歧。
+_FALLBACK_SECTIONS = ("目的", "受測介面", "前置條件", "測試步驟", "通過條件", "追溯")
+REQUIRED_MARKER = re.compile(r"<!--\s*required-sections:\s*(?P<list>[^>]+?)\s*-->")
+
+
+def required_sections() -> tuple[str, ...]:
+    """必要欄位清單，來源是 TESTING.md 的 `required-sections` 標記。
+
+    刻意不把清單寫死在程式裡：欄位定義是給人看的契約，而人會去讀
+    TESTING.md。兩邊各存一份的話，改了文件沒改程式（或反過來）不會有任何
+    東西發出聲音——這個 repo 已經在別的地方吃過這種虧。
+    """
+    if not TESTING_DOC.exists():
+        return _FALLBACK_SECTIONS
+    m = REQUIRED_MARKER.search(TESTING_DOC.read_text(encoding="utf-8"))
+    if not m:
+        return _FALLBACK_SECTIONS
+    names = tuple(n.strip() for n in m.group("list").split(",") if n.strip())
+    return names or _FALLBACK_SECTIONS
 
 # 單獨出現時無法判定的預期結果。執行的人看到這些，不知道要比對什麼。
 HOLLOW = {
@@ -153,6 +173,9 @@ def parse_spec_file(path: Path) -> list[Target]:
         t.uis = [p for p, _ in getattr(spec, "uis", [])]
         t.sections = {
             "目的": " ".join(spec.purpose),
+            # @note 在自動化案例裡承載的就是背景（這個斷言在防什麼），
+            # 渲染進 TCMS 時也是寫成「### 背景」。
+            "背景": " ".join(spec.note),
             "前置條件": " ".join(spec.given),
             "通過條件": " ".join(spec.passes),
             "受測介面": "有" if (t.apis or t.uis) else "",
@@ -199,6 +222,7 @@ def _extract_common(t: Target) -> None:
 def check(targets: list[Target]) -> list[Finding]:
     api_index = load_api_index()
     routes = load_routes()
+    sections = required_sections()
     findings: list[Finding] = []
 
     def err(t: Target, msg: str) -> None:
@@ -209,9 +233,18 @@ def check(targets: list[Target]) -> list[Finding]:
 
     for t in targets:
         # 1. 必填欄位
-        for section in REQUIRED_SECTIONS:
+        for section in sections:
             if not t.sections.get(section, "").strip():
                 err(t, f"缺少「{section}」段落或該段落是空的")
+
+        # 條件式必填：回歸案例沒有背景，一年後沒人知道它在防什麼。
+        is_regression = "回歸" in t.summary or "回歸" in t.sections.get("目的", "")
+        if is_regression and not t.sections.get("背景", "").strip():
+            err(
+                t,
+                "回歸案例必須有「背景」段落——寫出症狀、錯誤訊息逐字、"
+                "以及既有自動化層為何沒抓到",
+            )
 
         # 2. 步驟與空洞預期
         if not t.steps:
