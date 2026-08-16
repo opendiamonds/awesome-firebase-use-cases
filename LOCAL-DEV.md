@@ -18,7 +18,7 @@
 | **A3 改善建議** | 同上 | 建議階段降級為 `rules_only` |
 | **A3「優化」（Design↔Review 協作）** | 同上 | 失敗 |
 | **Offline Lens agent 填答** | 同上 | 降級為規則啟發式（會寫 WARNING log） |
-| 動態 SVG 圖示 | n8n webhook（**選填**） | 用灰底 fallback 圖示，不中斷 |
+| 動態 SVG 圖示 | n8n webhook（**選填**，見下方「圖示目錄」） | 用灰底 fallback 圖示，不中斷 |
 
 ### 兩個「不在 requirements.txt 裡」的硬依賴
 
@@ -52,7 +52,16 @@ claude -p "回一個字：好"      # 有回應 = 登入可用
 
 `openrouter` 模式下，`OPENROUTER_API_KEY` 會在啟動時被映射為 `ANTHROPIC_AUTH_TOKEN`，且 `ANTHROPIC_API_KEY` 必須留空，否則 SDK 會繞過 OpenRouter 直連 Anthropic。
 
-> ⚠️ **金鑰欄位留空就是留空，不要填佔位字串。** 程式判斷「有沒有設定」看的是非空，所以 `OPENROUTER_API_KEY=your_openrouter_api_key_here` 會被當成真金鑰送出去，換來一個離肇因三層遠的 401。範本現在一律出空值、範例寫在註解裡，`scripts/validate_env_contract.py` 也會擋下佔位值。
+> ⚠️ **金鑰欄位留空就是留空，不要填佔位字串。** 程式判斷「有沒有設定」看的是非空，所以 `OPENROUTER_API_KEY=your_openrouter_api_key_here` 會被當成真金鑰送出去，換來一個離肇因三層遠的 401。範本現在一律出空值、範例寫在註解裡，`scripts/validate_env_contract.py` 也會擋下佔位值。同一個陷阱也適用 `N8N_WEBHOOK_URL`：留著 `your_n8n_webhook_url_here` 會讓每個節點發一次必然失敗的請求，圖照樣出來、但圖示全是灰底。
+
+### 圖示目錄
+
+`N8N_WEBHOOK_URL` 那支 webhook 回傳的是**整份目錄**（一次約 1.1 MB），由後端自己在裡面比對服務名稱。兩件事值得先知道：
+
+- **目錄目前只收 AWS**（315 項）。GCP／Azure 的服務一定比對不到，圖示會是灰底 —— 這是預期行為，不是壞掉。
+- **目錄用服務全名，架構圖用縮寫**。`SNS` 在目錄裡叫 `Simple Notification Service`，兩者沒有共同子字串。後端有一份對照表處理常見縮寫（S3、SNS、SQS、SES、KMS、ELB、MSK、IAM、ECS、EKS、ECR、VPC、CDN、ASG）；表以外的縮寫比對不到就落到灰底，並寫一行 WARNING。
+
+比對不到時**一律**回灰底佔位圖，不會退而求其次給一個相近的圖示 —— 錯的圖示比灰底更難發現。
 
 ---
 
