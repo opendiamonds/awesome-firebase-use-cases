@@ -67,7 +67,10 @@ class Story:
 
     @property
     def summary(self) -> str:
-        return f"{self.story_id} {self.title}"
+        # issue 標題是純文字欄位，markdown 不會被渲染——`**Revision 1 新增**`
+        # 會原樣顯示出星號。實測 US-5 的標題就帶著它。
+        title = re.sub(r"(\*\*|__|`)", "", self.title).strip()
+        return f"{self.story_id} {title}"
 
     def managed_block(self, intent: str, source: str) -> tuple[str, str]:
         """回傳 (受管區塊全文, 內容雜湊)。雜湊只涵蓋內容，不含開頭標記本身。"""
