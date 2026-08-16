@@ -29,6 +29,8 @@ MANAGED = (
     "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
     "LLM_MODEL",
     "REVIEW_LLM_MODEL",
 )
@@ -97,6 +99,45 @@ class CliModeClearsConflictingVars(unittest.TestCase):
             configure_provider_env()
             configure_provider_env()
             self.assertNotIn("ANTHROPIC_API_KEY", os.environ)
+
+    def test_deletes_the_alias_model_family(self):
+        """These name what `sonnet`/`opus`/`haiku` resolve to, not the model.
+
+        Observed 404: with ANTHROPIC_DEFAULT_SONNET_MODEL left at an OpenRouter
+        slug, `claude -p ... --model sonnet` reported "There's an issue with the
+        selected model (anthropic/claude-sonnet-4.6)". Normalising the model
+        name is not enough while the alias maps it back.
+        """
+        with env(
+            LLM_PROVIDER="cli",
+            ANTHROPIC_DEFAULT_SONNET_MODEL="anthropic/claude-sonnet-4.6",
+            ANTHROPIC_DEFAULT_OPUS_MODEL="anthropic/claude-opus-4.1",
+            ANTHROPIC_DEFAULT_HAIKU_MODEL="anthropic/claude-3.5-haiku",
+        ):
+            configure_provider_env()
+            for name in (
+                "ANTHROPIC_DEFAULT_SONNET_MODEL",
+                "ANTHROPIC_DEFAULT_OPUS_MODEL",
+                "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+            ):
+                self.assertNotIn(name, os.environ, f"{name} should be removed entirely")
+
+    def test_no_gateway_slug_survives_anywhere(self):
+        """The real `backend/.env` shape that produced the 404, end to end."""
+        with env(
+            LLM_PROVIDER="cli",
+            ANTHROPIC_BASE_URL="https://openrouter.ai/api",
+            ANTHROPIC_DEFAULT_SONNET_MODEL="anthropic/claude-sonnet-4.6",
+            LLM_MODEL="anthropic/claude-sonnet-4.6",
+        ):
+            configure_provider_env()
+            leftovers = {
+                name: value
+                for name, value in os.environ.items()
+                if name.startswith("ANTHROPIC_") and "/" in value
+            }
+            self.assertEqual(leftovers, {}, "a gateway slug reached the CLI subprocess")
+            self.assertEqual(get_model_name(), "sonnet")
 
 
 class OpenRouterModeMapsTheKey(unittest.TestCase):
@@ -168,6 +209,24 @@ class ModelSelection(unittest.TestCase):
     def test_openrouter_keeps_the_gateway_slug(self):
         with env(LLM_PROVIDER="openrouter", LLM_MODEL="anthropic/claude-opus-4.1"):
             self.assertEqual(get_model_name(), "anthropic/claude-opus-4.1")
+
+    def test_openrouter_falls_back_to_the_sonnet_alias_variable(self):
+        with env(
+            LLM_PROVIDER="openrouter",
+            ANTHROPIC_DEFAULT_SONNET_MODEL="anthropic/claude-opus-4.1",
+        ):
+            self.assertEqual(get_model_name(), "anthropic/claude-opus-4.1")
+
+    def test_cli_never_reads_the_sonnet_alias_variable(self):
+        """Even a bare name there means "what `sonnet` resolves to", not "use this".
+
+        Asserted without calling configure_provider_env() on purpose: the model
+        choice must not depend on whether the environment has been cleaned yet.
+        """
+        with env(LLM_PROVIDER="cli", ANTHROPIC_DEFAULT_SONNET_MODEL="opus"):
+            self.assertEqual(get_model_name(), "sonnet")
+        with env(LLM_PROVIDER="cli", ANTHROPIC_DEFAULT_SONNET_MODEL="opus"):
+            self.assertEqual(get_review_model_name(), "haiku")
 
     def test_review_model_prefers_its_own_override(self):
         with env(LLM_PROVIDER="cli", LLM_MODEL="opus", REVIEW_LLM_MODEL="haiku"):

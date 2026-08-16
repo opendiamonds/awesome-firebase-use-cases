@@ -41,7 +41,14 @@ FastAPI → claude-agent-sdk → claude CLI 子行程 → 供應商 → 模型
 claude -p "回一個字：好"      # 有回應 = 登入可用
 ```
 
-`cli` 模式下程式會**主動刪除** `ANTHROPIC_BASE_URL`／`ANTHROPIC_AUTH_TOKEN`／`ANTHROPIC_API_KEY`。這不是潔癖：這三個只要**非空**就會蓋掉 CLI 自己的登入（前兩者還會讓請求被導去別的端點），而 `.env` 是以 `override=True` 載入的，所以磁碟上或 shell 裡的殘值都會傳進子行程。設成空字串不夠，必須刪掉。
+`cli` 模式下程式會**主動刪除**兩組變數。這不是潔癖：`.env` 是以 `override=True` 載入的，磁碟上或 shell 裡的殘值都會傳進子行程，而設成空字串不夠，必須刪掉。
+
+| 被刪除的變數 | 留著會怎樣 |
+|---|---|
+| `ANTHROPIC_BASE_URL`／`ANTHROPIC_AUTH_TOKEN`／`ANTHROPIC_API_KEY` | 只要**非空**就會蓋掉 CLI 自己的登入；前兩者還會讓請求被導去別的端點 |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL`／`_OPUS_`／`_HAIKU_` | 它們定義 CLI 的**別名**指向哪個實際模型，會把正規化後的 `sonnet` 又映射回 OpenRouter slug |
+
+第二組特別容易漏，因為它既不認證也不路由。實際踩過的症狀：`.env` 留著 `ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6` 時，即使程式已把模型正規化成 `sonnet`，CLI 仍回 404 —— `There's an issue with the selected model (anthropic/claude-sonnet-4.6)`。
 
 `openrouter` 模式下，`OPENROUTER_API_KEY` 會在啟動時被映射為 `ANTHROPIC_AUTH_TOKEN`，且 `ANTHROPIC_API_KEY` 必須留空，否則 SDK 會繞過 OpenRouter 直連 Anthropic。
 
@@ -146,7 +153,7 @@ EOF
 
 > `JWT_SECRET` 未設時會**靜默 fallback 到程式碼內的預設字串**（依賴風險 R2），不會報錯。本機無所謂，但要知道它不會提醒你。
 
-要改用 OpenRouter 的話，把 `LLM_PROVIDER` 改成 `openrouter` 並填入 `OPENROUTER_API_KEY` 即可，其餘不用動——`ANTHROPIC_*` 三個變數由程式依模式自動處理。
+要改用 OpenRouter 的話，把 `LLM_PROVIDER` 改成 `openrouter` 並填入 `OPENROUTER_API_KEY` 即可，其餘不用動——所有 `ANTHROPIC_*` 變數都由程式依模式自動處理（openrouter 模式自動填寫，cli 模式主動刪除，見第 0 節 H1 的表）。
 
 > **本機設定與部署設定是分開的兩套，不要互相抄。** `backend/.env`／`frontend/.env` 只服務本機 bare-metal 執行；部署走 `deploy/.env`（由 `deploy/render-env.sh` 產生，範本 `deploy/.env.example`）。把 `localhost` 來源寫進部署範本、或把 `POSTGRES_*`／`PUBLIC_URL` 寫進本機範本，`scripts/validate_env_contract.py` 都會擋下（CI 紅燈）。
 

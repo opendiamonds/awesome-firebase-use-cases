@@ -21,6 +21,15 @@ ones are not. So cli mode DELETES those variables instead of blanking them.
 Blanking is what the old code did, and it is not enough: `.env` is loaded with
 override=True, so any value on disk or in the shell reaches the subprocess.
 
+The ANTHROPIC_DEFAULT_*_MODEL family has to be deleted for the same reason,
+and it is easy to miss because it neither authenticates nor routes. Those
+variables define what the CLI's *aliases* resolve to: with
+ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-4.6 in the environment,
+asking the CLI for `sonnet` gets you that OpenRouter slug sent to Anthropic,
+which answers 404. That silently cancels the model normalisation below --
+:func:`get_model_name` maps the leftover slug to a bare `sonnet`, and the alias
+mapping maps it straight back.
+
 Why an explicit switch rather than "no OpenRouter key means use the CLI": the
 deployed stack must fail loudly when its secret is missing. Auto-detection
 would turn a missing deploy secret into a confusing CLI auth error instead of
@@ -44,11 +53,21 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api"
 
 # Anything that routes or authenticates the CLI subprocess. In cli mode each of
 # these must be ABSENT from the environment, not merely empty.
-_CLI_CONFLICTING_VARS = (
+_CLI_AUTH_VARS = (
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_API_KEY",
 )
+
+# What the CLI's model aliases (sonnet/opus/haiku) resolve to. A gateway slug
+# left here re-applies itself after normalisation and every request 404s.
+_CLI_ALIAS_MODEL_VARS = (
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+)
+
+_CLI_CONFLICTING_VARS = _CLI_AUTH_VARS + _CLI_ALIAS_MODEL_VARS
 
 # OpenRouter addresses models as "<vendor>/<model>"; the CLI uses bare names or
 # aliases. A slug from the wrong provider is rejected at request time, which is
@@ -165,15 +184,25 @@ def _resolve(candidates: tuple[str, ...], default: str, *, provider: str) -> str
     return default
 
 
+def _sonnet_alias_candidate(provider: str) -> tuple[str, ...]:
+    """ANTHROPIC_DEFAULT_SONNET_MODEL as a model source, where that is meaningful.
+
+    Only under openrouter. Under cli the variable does not name the model to
+    use -- it redefines what the `sonnet` alias points at -- so reading it as a
+    model name would reintroduce the very slug :func:`_configure_cli_env`
+    deletes, and would do so even before that function has run.
+    """
+    if provider == CLI:
+        return ()
+    return (os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", ""),)
+
+
 def get_model_name() -> str:
     """Model for the design/lens agents."""
     provider = get_provider()
     default = _CLI_DEFAULT_MODEL if provider == CLI else _OPENROUTER_DEFAULT_MODEL
     return _resolve(
-        (
-            os.environ.get("LLM_MODEL", ""),
-            os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", ""),
-        ),
+        (os.environ.get("LLM_MODEL", ""),) + _sonnet_alias_candidate(provider),
         default,
         provider=provider,
     )
@@ -187,8 +216,8 @@ def get_review_model_name() -> str:
         (
             os.environ.get("REVIEW_LLM_MODEL", ""),
             os.environ.get("LLM_MODEL", ""),
-            os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", ""),
-        ),
+        )
+        + _sonnet_alias_candidate(provider),
         default,
         provider=provider,
     )
