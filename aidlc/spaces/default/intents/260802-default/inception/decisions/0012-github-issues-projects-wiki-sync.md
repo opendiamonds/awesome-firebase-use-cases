@@ -98,6 +98,33 @@ Wiki 是**單向鏡像**（repo → Wiki），不回寫。Wiki 頁首自動加�
 - 反向同步（GitHub → repo）**一律開 PR，不直接推 `ut`**。人審過才進 trunk，保住 approval gate 的精神。
 - Projects token 存為獨立 secret，不重用既有的。
 
+#### 6. 與 AI-DLC 主流程零耦合（硬約束）
+
+**同步機制不得修改 AI-DLC 主流程，也不得在 `.claude/` 下新增任何檔案。**
+
+這條的由來是升級韌性：upstream 升級的動作是「把 `dist/claude/` 重新複製到 `.claude/`」，任何放在該目錄下的東西都在覆蓋範圍內。
+
+查證後確認 **AI-DLC 的 plugin 機制不提供檔案系統層級的隔離**：
+
+- `harness.json` 的 `plugins` 欄位只是一個**啟用 allowlist**，決定哪些 plugin 的 stage 生效。
+- 沒有任何工具會從 `plugins/<name>/` 安裝東西；stage 檔仍然**只能**放在 `.claude/aidlc-common/stages/<phase>/`（`aidlc-graph.ts` 的 `stagesDir()` 只掃這一個目錄，`AIDLC_STAGES_DIR` 是測試 seam 而非安裝點）。
+- 因此 `plugin:` 欄位給的是**邏輯**歸屬（標記擁有者、可整組停用），不是升級隔離。本 repo 的 `tcms-test-cases` 就是實例：它是 plugin stage，仍然得靠 repo contract 與 `README-cloud360.md` 登記才不會在升級時無聲消失。
+
+所以「做成 plugin」**不足以**達成升級韌性。真正有效的做法是**完全不進 `.claude/`**：
+
+| 元件 | 位置 | 升級影響 |
+|---|---|---|
+| 同步 workflows | `.github/workflows/aidlc-sync-*.md` | 無 —— upstream 不碰 `.github/` |
+| 同步腳本 | `scripts/aidlc_sync_*.py` | 無 |
+| 同步狀態 | `<record>/.aidlc-sync-state.json` | 無 —— `aidlc/` 工作區永不被覆蓋 |
+| 規則與說明 | `aidlc/spaces/*/memory/project.md` | 無 |
+
+**觸發方式是 git push，不是 AI-DLC 的 stage 或 hook。** AI-DLC 產出 artifact 並 commit 之後，`on: push` 的 paths 過濾自然觸發同步。AI-DLC 對此一無所知，也不需要知道。這讓同步機制與框架版本完全解耦：升級 AI-DLC 不影響同步，停用同步不影響 AI-DLC。
+
+代價是**同步的時機是「commit 之後」而不是「stage 完成的當下」**。實務上兩者相差一次 commit，而 AI-DLC 的 artifact 本來就要進版控才算數，這個延遲沒有實際損失。
+
+若未來真的需要 stage 內的即時掛鉤（例如 stage 一完成就更新 Project 欄位而不等 commit），那才評估新增 plugin stage，且屆時必須比照 `tcms-test-cases` 的既有機制：列入 `REQUIRED_FILES`、登記於 `README-cloud360.md` 的升級步驟。**在那之前，不碰 `.claude/`。**
+
 ### Consequences
 
 - **協作者不必讀 repo 就能看到進度**，這是本 ADR 的目的。代價是多一套需要維護的同步機制。
@@ -107,6 +134,7 @@ Wiki 是**單向鏡像**（repo → Wiki），不回寫。Wiki 頁首自動加�
 - **Wiki 是第二份副本**。即使有「請勿直接編輯」的警語，仍會有人編輯而後被覆蓋。單向設計讓資料不會遺失到無法追溯（Wiki 有自己的 git 歷史），但體驗上會是「我的修改不見了」。
 - **既有的 `spec-sync` 與 `issue-triage` 需要重審**：新機制會建立大量帶 `aidlc` 標籤的 issue，`issue-triage` 對它們的分類行為要排除或特化，否則會互相干擾。
 - **200+ 既有 issue 不回溯**。同步只作用於本 ADR 之後的 intent；歷史 issue 維持原狀。
+- **升級 AI-DLC 不會影響同步，這是刻意換來的**（第 6 點）。代價是同步時機為 commit 之後而非 stage 完成的當下，且無法取得 stage 內部的中間狀態——同步看得到的只有進版控的 artifact。若日後證明這個粒度不夠，才需要重新評估是否值得為此新增 plugin stage 並承擔升級維護成本。
 
 ### Alternatives
 
@@ -115,6 +143,8 @@ Wiki 是**單向鏡像**（repo → Wiki），不回寫。Wiki 頁首自動加�
 **B. GitHub 永遠贏，repo 跟隨。** 符合「GitHub 是團隊的協作中心」的直覺。否決原因：直接摧毀 approval gate——經人工核可的驗收標準會被任何有 issue 權限的人改掉，且 AI-DLC 的下一階段會照著改過的內容繼續推進，沒有任何地方會發出聲音。
 
 **C. 偵測到雙邊修改就開 issue 請人決定。** 最安全，不會遺失資料。否決原因：狀態欄位的雙邊修改是**常態**而非例外（人拖卡片的同時 AI-DLC 正在推進階段），衝突 issue 會迅速變成新的噪音來源，重演 `daily-digest` 淹沒 issue 列表的情況。逐欄位切分讓常態不成為衝突，只有真正罕見的情況才需要人介入。
+
+**E. 做成 AI-DLC plugin stage（在流程內同步）。** 直覺上最「正統」：同步是流程的一環，就該是 stage。否決原因有二。其一，**plugin 不提供升級隔離**——stage 檔仍須放在 `.claude/aidlc-common/stages/`，upstream 升級照樣覆蓋；`plugin:` 欄位只是啟用開關與歸屬標記（見 Decision 第 6 點的查證）。其二，**同步不需要流程內的資訊**：它要的是 artifact 的最終內容，而 artifact 進版控本來就是流程的完成條件，`on: push` 拿得到一模一樣的東西。付出升級維護成本卻換不到額外能力。保留為未來選項：若出現「必須在 commit 之前取得 stage 中間狀態」的真實需求，再重新評估。
 
 **D. 不做 Wiki，只做 Issues／Projects。** 合理的減法，GitHub 本來就能直接瀏覽 repo 內的 markdown。保留為可退回的選項：若 Wiki 的維護成本高於價值，階段 4 可以直接取消而不影響前三階段。
 

@@ -10,7 +10,47 @@
 
 ---
 
-## 0. 前置條件（實作前必須先完成）
+## 0. 隔離邊界（最重要的實作約束）
+
+**同步機制的任何檔案都不得放進 `.claude/`。** 依據見 [ADR-0012 Decision 第 6 點](../inception/decisions/0012-github-issues-projects-wiki-sync.md)：upstream 升級會把 `dist/claude/` 整批複製到 `.claude/`，而 AI-DLC 的 plugin 機制**不提供**檔案系統層級的隔離（`plugin:` 只是啟用開關，stage 檔仍須放在 upstream 目錄）。
+
+允許動到的位置，全部在升級範圍之外：
+
+```
+.github/workflows/aidlc-sync-*.md        同步 workflow（gh-aw 來源）
+.github/workflows/aidlc-sync-*.lock.yml  gh aw compile 的產物
+scripts/aidlc_sync_*.py                  解析與渲染的實作
+<record>/.aidlc-sync-state.json          同步狀態（進版控）
+aidlc/spaces/*/memory/project.md         規則層的一條說明
+```
+
+**禁止動到**：`.claude/` 下的任何路徑（stages、hooks、skills、tools、settings.json）。
+
+### 升級韌性的驗收方式
+
+不是宣稱，是可執行的檢查。實作完成後跑一次：
+
+```bash
+# 1. 同步機制沒有任何檔案落在 .claude/
+git log --oneline --name-only -20 -- .claude/ | grep -i sync   # 應無輸出
+
+# 2. 模擬升級：暫時移走 .claude/ 的 stage 與 hook，同步腳本仍可獨立執行
+mv .claude /tmp/claude-backup
+python3 scripts/aidlc_sync_push.py --dry-run                    # 應正常執行
+mv /tmp/claude-backup .claude
+```
+
+第 2 項是關鍵：**同步腳本不得 import 或讀取 `.claude/` 下的任何東西**。它讀的是 `aidlc/` 工作區的 artifact（那是永不被覆蓋的區域）與 GitHub API。
+
+### 觸發方式：git push，不是 stage
+
+AI-DLC 產出 artifact → commit → push → `on: push` 的 paths 過濾觸發同步。AI-DLC 對同步一無所知。
+
+代價是同步時機為「commit 之後」而非「stage 完成的當下」。artifact 本來就要進版控才算數，所以這個延遲沒有實際損失。
+
+---
+
+## 0.1 前置條件（實作前必須先完成）
 
 | # | 項目 | 怎麼做 | 沒做會怎樣 |
 |---|---|---|---|
