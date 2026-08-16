@@ -52,11 +52,15 @@ cp .claude/settings.local.json.example .claude/settings.local.json
 
 | 項目 | 路徑 | 性質 |
 |---|---|---|
-| Stage 檔（**唯一需要備份的手寫檔**） | `.claude/aidlc-common/stages/construction/tcms-test-cases.md` | 手寫來源 |
+| Stage 檔（**手寫，需備份**） | `.claude/aidlc-common/stages/construction/tcms-test-cases.md` | 手寫來源 |
+| 驗證 skill（**手寫，需備份**） | `.claude/skills/tcms-verify/SKILL.md` | 手寫來源，`/tcms-verify` |
 | Runner skill | `.claude/skills/tcms-test-cases/` | 由 `aidlc-runner-gen.ts write` 產生 |
 | 編譯產物 | `.claude/tools/data/stage-graph.json`、`scope-grid.json` | 由 `aidlc-graph.ts compile` 產生 |
 
-只有 stage 檔需要保存；另外兩者都能從它重新產生。
+兩個手寫檔需要保存；runner skill 與編譯產物都能從 stage 檔重新產生。
+
+`aidlc-runner-gen.ts check` 只管它自己產生的 runner 集合，多一個手寫的
+`tcms-verify` skill 不會讓 drift guard 紅燈（已實測）。
 
 **不在 `.claude/` 之下、因此不受升級影響**（不需備份）：
 

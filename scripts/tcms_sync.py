@@ -134,7 +134,13 @@ DESCRIBE_LINE = re.compile(r"^test\.describe\(\s*'(?P<name>[^']+)'")
 TEST_LINE = re.compile(r"^\s*test\(\s*'(?P<name>[^']+)'")
 DOC_OPEN = re.compile(r"^\s*/\*\*\s*$")
 DOC_CLOSE = re.compile(r"^\s*\*/\s*$")
-DOC_TAG = re.compile(r"^\s*\*\s*@(?P<tag>purpose|given|step|pass|story|note)\s*(?P<value>.*)$")
+DOC_TAG = re.compile(
+    r"^\s*\*\s*@(?P<tag>purpose|given|step|pass|story|note|api|ui)\s*(?P<value>.*)$"
+)
+# @api POST /api/auth/login -> 200 | 說明
+SPEC_API = re.compile(
+    r"^(?P<method>[A-Z]+)\s+(?P<path>\S+)\s*(?:->|→)\s*(?P<status>\d{3})\s*(?:\|\s*(?P<note>.*))?$"
+)
 DOC_CONT = re.compile(r"^\s*\*\s?(?P<value>.*)$")
 
 AUTOMATED_BANNER = (
@@ -154,11 +160,25 @@ class SpecCase:
     passes: list[str] = field(default_factory=list)
     story: str = ""
     note: list[str] = field(default_factory=list)
+    apis: list[tuple[str, str, str]] = field(default_factory=list)  # method, path, status
+    api_notes: list[str] = field(default_factory=list)
+    uis: list[tuple[str, str]] = field(default_factory=list)  # path, 關鍵元素
 
     def render(self, source: str, describe: str, test_name: str) -> str:
         out = [AUTOMATED_BANNER.format(source=source).rstrip(), ""]
         if self.purpose:
             out += ["### 目的", "", " ".join(self.purpose), ""]
+        if self.apis or self.uis:
+            out += ["### 受測介面", ""]
+            for (method, path, status), note in zip(
+                self.apis, self.api_notes + [""] * len(self.apis)
+            ):
+                suffix = f" — {note}" if note else ""
+                out += [f"- API: `{method} {path}` → {status}{suffix}"]
+            for path, elements in self.uis:
+                suffix = f" — {elements}" if elements else ""
+                out += [f"- UI: `{path}`{suffix}"]
+            out += [""]
         if self.given:
             out += ["### 前置條件", "", " ".join(self.given), ""]
         if self.steps:
@@ -216,6 +236,18 @@ def parse_spec(path: Path) -> list[tuple[str, SpecCase]]:
                 if current_tag == "step":
                     action, _, expected = value.partition("|")
                     pending.steps.append((action.strip(), expected.strip()))
+                elif current_tag == "api":
+                    m = SPEC_API.match(value)
+                    if not m:
+                        raise SystemExit(
+                            f"@api 格式錯誤：{value!r}\n"
+                            "正確格式：@api POST /api/auth/login -> 200 | 說明"
+                        )
+                    pending.apis.append((m.group("method"), m.group("path"), m.group("status")))
+                    pending.api_notes.append((m.group("note") or "").strip())
+                elif current_tag == "ui":
+                    path, _, elements = value.partition("|")
+                    pending.uis.append((path.strip(), elements.strip()))
                 elif current_tag == "story":
                     pending.story = value
                 elif current_tag == "purpose":

@@ -172,7 +172,37 @@ the broken code protects nothing. Record the mutation and its result in the plan
 — per `construction.md`, a test that always passes is not acceptable, and the
 only proof is having seen it fail.
 
-### Step 5: Sync to TCMS
+### Step 5: Verify — the gate before anything reaches TCMS
+
+Run `/tcms-verify`. It is the blocking gate; nothing syncs before it passes.
+
+The mechanical layer first:
+
+```
+python3 scripts/tcms_validate.py --all
+```
+
+It checks four things, all decidable: required sections present, no
+undecidable expected results ("正常", "成功"), every traced path and test name
+actually exists in the repo, and every declared API endpoint / UI route matches
+`openapi.json` and `App.tsx`. A non-zero exit stops the stage here.
+
+Then the semantic layer, per the skill: does each purpose point at a failure
+that can actually happen; does a regression case say what broke and why the
+automated layer missed it; can a person who was not in the room execute the
+steps; does the declared interface list cover what the case actually touches;
+is the pass condition binary; does it duplicate something the automated suite
+already asserts; does it verify what the acceptance criterion actually says.
+
+**Do not sync a case that failed verification and plan to fix it after.** A
+wrong case in TCMS reads as evidence of coverage, and false coverage is worse
+than none.
+
+One class of ERROR is not a case defect: a traced path that lives on another
+branch not yet merged. That is a real cross-branch dependency — state it and
+confirm the merge order, do not delete the trace to make the check pass.
+
+### Step 6: Sync to TCMS
 
 Two syncs, two sources — they are not interchangeable. Generate
 `<record>/construction/tcms-test-cases/tcms-sync-report.md` covering both.
@@ -207,13 +237,13 @@ failure mode this whole stage exists to prevent.
 Record in the sync report: cases created, cases updated, the TCMS plan they
 landed in, and anything that did not sync plus why.
 
-### Step 6: Completion Handoff
+### Step 7: Completion Handoff
 
 Hand completion to `stage-protocol.md` via
 `bun .claude/tools/aidlc-orchestrate.ts report --stage tcms-test-cases --result <outcome>`.
 The engine owns all lifecycle transitions and advancement.
 
-### Step 7: Completion
+### Step 8: Completion
 
 Report at the gate:
 

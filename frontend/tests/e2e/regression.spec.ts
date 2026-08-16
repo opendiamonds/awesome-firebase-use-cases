@@ -20,6 +20,7 @@ async function login(page: Page, username: string, password: string) {
 test.describe('身分驗證', () => {
   /**
    * @purpose 未登入者開啟站台時看得到可用的登入介面。這是其他所有流程的入口，
+   * @ui / | 登入頁：帳號／密碼輸入框、「登入系統」按鈕
    *          它壞掉等於整站不可用。
    * @given 瀏覽器未持有有效 token
    * @step 開啟站台根路徑 `/` | 顯示登入頁
@@ -36,6 +37,8 @@ test.describe('身分驗證', () => {
 
   /**
    * @purpose 錯誤憑證必須被拒絕，且使用者留在登入頁看得到原因。
+   * @api POST /api/auth/login -> 200 | 帳密驗證，成功時回 access_token
+   * @ui / | 登入頁：帳號／密碼輸入框、「登入系統」按鈕
    * @given seed 帳號 admin 存在
    * @step 以 admin 與一組錯誤密碼送出登入 | 後端回 401「帳號或密碼錯誤」
    * @step 檢視頁面 | 出現「帳號或密碼錯誤」
@@ -54,6 +57,10 @@ test.describe('身分驗證', () => {
 
   /**
    * @purpose 正確憑證能登入，且落在具備該角色功能的工作區。
+   * @api POST /api/auth/login -> 200 | 帳密驗證，成功時回 access_token
+   * @api GET /api/auth/me -> 200 | 取得目前登入者與其權限
+   * @ui / | 登入頁：帳號／密碼輸入框、「登入系統」按鈕
+   * @ui /workspace | 工作區：側邊導覽、「架構」按鈕、「登出系統」控制項
    * @given seed 帳號 admin / admin123，角色 Platform_Admin
    * @step 以 admin / admin123 送出登入 | 登入成功
    * @step 檢視當前路徑 | 導向 `/workspace`
@@ -69,6 +76,9 @@ test.describe('身分驗證', () => {
 
   /**
    * @purpose 登出確實結束 session 並回到登入頁，不是只換了畫面。
+   * @api POST /api/auth/login -> 200 | 帳密驗證，成功時回 access_token
+   * @ui / | 登入頁：帳號／密碼輸入框、「登入系統」按鈕
+   * @ui /workspace | 工作區：側邊導覽、「架構」按鈕、「登出系統」控制項
    * @given 已以 admin 登入並停留在 `/workspace`
    * @step 點擊標題為「登出系統」的控制項 | 觸發登出
    * @step 檢視頁面 | 回到登入頁，出現「登入系統」按鈕
@@ -86,6 +96,9 @@ test.describe('身分驗證', () => {
 test.describe('角色權限存取控制 (RBAC)', () => {
   /**
    * @purpose 具備管理權限的角色看得到系統管理入口。這是 RBAC 的 allow 方向。
+   * @api POST /api/auth/login -> 200 | 帳密驗證，成功時回 access_token
+   * @api GET /api/auth/me -> 200 | 取得目前登入者與其權限
+   * @ui /workspace | 工作區：側邊導覽、「架構」按鈕、「登出系統」控制項
    * @given seed 帳號 admin，角色 Platform_Admin（具 J3a:view）
    * @step 以 admin 登入 | 進入 `/workspace`
    * @step 檢視側邊導覽 | 出現「系統管理」區塊
@@ -104,6 +117,14 @@ test.describe('角色權限存取控制 (RBAC)', () => {
 
   /**
    * @purpose RBAC 的 deny 方向：不具管理權限的角色看不到系統管理入口。
+   * @api POST /api/auth/register -> 200 | 公開註冊，新帳號為 pending
+   * @api POST /api/auth/login -> 200 | 帳密驗證，成功時回 access_token
+   * @api GET /api/auth/authorization-requests -> 200 | 待審申請清單
+   * @api POST /api/auth/authorization-requests/{request_id}/approve -> 200 | 核准註冊申請
+   * @api GET /api/auth/me -> 200 | 取得目前登入者與其權限
+   * @ui / | 登入頁：帳號／密碼輸入框、「登入系統」按鈕
+   * @ui /workspace | 工作區：側邊導覽、「架構」按鈕、「登出系統」控制項
+   * @ui /admin/authorization-requests | 授權申請審核頁：申請列表與「核准」按鈕
    * @given seed 只有 admin；新註冊帳號預設角色為 Developer，且需管理員核准
    * @step 以公開註冊建立一個唯一帳號（密碼 devpass123） | 註冊成功
    * @step 檢視當前路徑 | 導向 `/waiting-approval` 等待審核頁
@@ -180,6 +201,9 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 使用者管理表格顯示「最後活動時間」欄，且欄內是真正的時間值。
+   * @api POST /api/auth/login -> 200 | 帳密驗證，成功時回 access_token
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 以 admin 登入（登入本身會寫入一次最後活動時間）
    * @step 進入使用者角色指派頁 | 顯示「使用者角色指派」標題
    * @step 檢視表頭 | 出現「最後活動時間」欄
@@ -205,6 +229,8 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 分頁控制存在，並揭露總筆數與目前頁次。
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 以 admin 登入並進入使用者角色指派頁
    * @step 檢視清單下方 | 出現名為「使用者清單分頁」的導覽區
    * @step 檢視該區文字 | 顯示「N 筆」總數
@@ -225,6 +251,10 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 換頁真的換到不同資料，且在非第 1 頁做處置後不會被彈回第 1 頁。
+   * @api POST /api/auth/register -> 200 | 公開註冊，新帳號為 pending
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @api PUT /api/auth/{user_id}/active -> 200 | 啟用／停用帳號
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 每頁 20 筆；seed 只有 admin，故先以公開註冊端點建立 21 個帳號
    * @step 進入使用者角色指派頁並記錄第 1 頁的列內容 | 取得基準
    * @step 點擊分頁的「2」 | 目前頁次標示變為 `[2]`
@@ -267,6 +297,9 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 調整角色後，該列的最後活動時間不得消失。
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @api PUT /api/auth/{user_id}/role -> 200 | 調整使用者角色
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 以 admin 登入並進入使用者角色指派頁
    * @step 將 admin 的角色切換為 Project_Admin | 出現「✔ 已更新 <帳號>」提示
    * @step 檢視該列的最後活動時間欄 | 仍顯示 `YYYY-MM-DD HH:MM` 格式的值
@@ -299,6 +332,9 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 分頁控制可用鍵盤操作，且在資料載入期間不會從畫面上消失。
+   * @api POST /api/auth/register -> 200 | 公開註冊，新帳號為 pending
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 先以公開註冊端點建立 21 個帳號，使清單有第 2 頁
    * @step 進入使用者角色指派頁，將焦點移到頁碼「2」 | 該按鈕取得焦點
    * @step 攔截清單 API 並延遲 1200ms 回應 | 模擬慢速載入
@@ -340,6 +376,11 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 在非第 1 頁刪除帳號後，頁次不變且總筆數同步遞減。
+   * @api POST /api/auth/register -> 200 | 公開註冊，新帳號為 pending
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @api PUT /api/auth/{user_id}/active -> 200 | 啟用／停用帳號
+   * @api DELETE /api/auth/{user_id} -> 200 | 刪除已停用的帳號
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 先以公開註冊端點建立 21 個帳號，使清單有第 2 頁
    * @step 進入使用者角色指派頁並切換到第 2 頁 | 目前頁次標示為 `[2]`
    * @step 記錄分頁區顯示的總筆數 | 取得基準值 N
@@ -385,6 +426,8 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 頁次超出範圍時顯示明確空態，且使用者有路可回。
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 以 admin 登入；seed 只有 admin，故第 5 頁必為空
    * @step 進入使用者角色指派頁，攔截清單 API 將頁次改為 5 並重新載入 | 請求第 5 頁
    * @step 檢視清單區 | 顯示「這一頁沒有資料。」
@@ -415,6 +458,8 @@ test.describe('使用者管理頁 — 最後活動時間與分頁', () => {
 
   /**
    * @purpose 小螢幕改用卡片佈局，且分頁能力不因此縮水。
+   * @api GET /api/auth/list -> 200 | 使用者清單，支援 page 參數分頁
+   * @ui /admin/users | 使用者角色指派頁：使用者表格、「最後活動時間」欄、名為「使用者清單分頁」的分頁導覽區
    * @given 視窗尺寸設為 390×844（手機直向）
    * @step 進入使用者角色指派頁 | 顯示「使用者角色指派」標題
    * @step 檢視表格 | 表格被隱藏

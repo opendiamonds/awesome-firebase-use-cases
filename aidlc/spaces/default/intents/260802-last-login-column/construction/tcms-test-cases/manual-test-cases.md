@@ -37,7 +37,14 @@ FastAPI → claude-agent-sdk → claude CLI 子行程 → 供應商 → 模型
 `LLM_PROVIDER=cli` 時由 CLI 用自己的登入認證（macOS Keychain／`~/.claude`），
 後端會主動**刪除**會蓋掉該登入的環境變數。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -52,7 +59,7 @@ FastAPI → claude-agent-sdk → claude CLI 子行程 → 供應商 → 模型
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. `claude` CLI 已登入，且以下指令有回應：
    ```bash
@@ -128,7 +135,14 @@ LLM_PROVIDER=cli + .env 殘留 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-s
 這一族變數容易被漏掉，因為它既不認證也不路由——不在「哪些變數會蓋掉 CLI
 登入」的心智模型裡。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -143,7 +157,7 @@ LLM_PROVIDER=cli + .env 殘留 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-s
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. `claude` CLI 已登入。
 6. `backend/.env` **刻意**設定成一個從 OpenRouter 切回來、殘值未清的狀態：
@@ -202,7 +216,14 @@ LLM_PROVIDER=cli + .env 殘留 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-s
 不是「你還沒設定」，而是 OpenRouter 回的 `401 Missing Authentication header`。
 範本現已一律出空值、範例寫在註解裡。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — 錯誤訊息呈現於對話串，非獨立頁面
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -217,7 +238,7 @@ LLM_PROVIDER=cli + .env 殘留 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-s
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. `backend/.env` 設定為：
    ```
@@ -260,7 +281,14 @@ LLM_PROVIDER=cli + .env 殘留 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-s
 
 驗證一個**選填變數的拼字錯誤不會讓整個後端起不來**，而是退回預設並留下可查的警告。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -275,7 +303,7 @@ LLM_PROVIDER=cli + .env 殘留 ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-s
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. `backend/.env` 設定為：
    ```
@@ -332,7 +360,15 @@ n8n webhook 回傳的是**整份圖示目錄**（約 1.1 MB、315 項，目前�
 
 錯的圖示比灰底更難發現——灰底至少看得出來沒拿到。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+- 外部相依: n8n webhook（`N8N_WEBHOOK_URL`）——回傳整份圖示目錄的 JSON 陣列，由後端 `diagram_builder` 比對服務名稱後以 base64 內嵌進 mxGraph XML
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -347,7 +383,7 @@ n8n webhook 回傳的是**整份圖示目錄**（約 1.1 MB、315 項，目前�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用（`LLM_PROVIDER=cli` 或有效的 `openrouter` 金鑰）。
 6. `backend/.env` 設定有效的 webhook：
@@ -405,7 +441,15 @@ n8n webhook 回傳的是**整份圖示目錄**（約 1.1 MB、315 項，目前�
 
 驗證 n8n 是**選填依賴**：沒有它，架構圖照樣產得出來，只是圖示變成灰底佔位圖。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+- 外部相依: n8n webhook（本案例刻意不設定）
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -420,7 +464,7 @@ n8n webhook 回傳的是**整份圖示目錄**（約 1.1 MB、315 項，目前�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用。
 6. `backend/.env` 的 `N8N_WEBHOOK_URL` **留空**：
@@ -476,7 +520,15 @@ if response.status_code != 200:
 說得出為什麼。另一個實例是佔位字串：範本的 `your_n8n_webhook_url_here` 是
 **非空**值，程式因此真的拿它去發請求，每個節點都失敗一次。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+- 外部相依: n8n webhook（本案例刻意指向無效／非 200 位址）
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -491,13 +543,13 @@ if response.status_code != 200:
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用。
 
 ### 測試步驟
 
-### 情境一：URL 無效（模擬照抄舊範本佔位值）
+#### 情境一：URL 無效（模擬照抄舊範本佔位值）
 
 | # | 操作 | 預期結果 |
 |---|---|---|
@@ -505,7 +557,7 @@ if response.status_code != 200:
 | 2 | 於 A1 產出一張含多個節點的架構圖 | 產圖成功，圖示全為灰底 |
 | 3 | 檢查後端 log | **每個節點**都有一行 WARNING：`向 n8n 取得 <服務> 圖示（供應商：AWS）失敗: Request URL is missing an 'http://' or 'https://' protocol.` |
 
-### 情境二：webhook 回非 200
+#### 情境二：webhook 回非 200
 
 | # | 操作 | 預期結果 |
 |---|---|---|
@@ -513,7 +565,7 @@ if response.status_code != 200:
 | 5 | 於 A1 產出架構圖 | 產圖成功，圖示全為灰底 |
 | 6 | 檢查後端 log | 出現 WARNING 且**包含實際的 HTTP 狀態碼**，例如：`n8n 取得 Lambda 圖示（供應商：AWS）回應 HTTP 404，改用灰底佔位圖` |
 
-### 復原
+#### 復原
 
 | # | 操作 | 預期結果 |
 |---|---|---|
@@ -555,7 +607,15 @@ n8n 圖示目錄目前**只收 AWS**（315 項，`provider` 全為 AWS）。GCP�
 
 兩者都會給出一個看似正常、實則完全錯誤的圖示。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+- 外部相依: n8n webhook（目錄目前只收 AWS，315 項）
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -570,7 +630,7 @@ n8n 圖示目錄目前**只收 AWS**（315 項，`provider` 全為 AWS）。GCP�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用。
 6. `N8N_WEBHOOK_URL` 設為有效值 `https://n8n.danniel.cc/n8n/webhook/cloudicon` 並已重啟後端。
@@ -617,7 +677,14 @@ A1 的主線流程：一段自然語言需求 → 一張可讀的架構圖。
 此流程在 `ui-regression` 自動化套件中**刻意跳過**（會呼叫 LLM、產生費用、
 外部不穩），是手動測案的主要覆蓋對象。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -632,7 +699,7 @@ A1 的主線流程：一段自然語言需求 → 一張可讀的架構圖。
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用（`LLM_PROVIDER=cli` 或有效的 `openrouter` 金鑰）。
 6. `N8N_WEBHOOK_URL` 已設為有效值（圖示才會出現；未設不影響本案例的結構判定）。
@@ -678,7 +745,14 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 驗證 A1 面對**資訊不足**的需求時，會先問清楚關鍵前提（例如雲端平台），
 而不是自行假設並產出一張沒有依據的圖。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -693,7 +767,7 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用。
 
@@ -701,12 +775,12 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 | # | 操作 | 預期結果 |
 |---|---|---|
-| 1 | 登入並進入 `/workspace` | 成功 |
-| 2 | 送出一段**刻意不指定雲端平台**的需求，例如「我要一套需求管理與測試生成的系統，可以上傳文件、呼叫 AI 模型、儲存結果」 | 回應為**澄清提問**，而非直接產圖 |
-| 3 | 檢視提問內容 | 至少問到雲端平台（AWS／GCP／Azure）；提問以選項形式呈現，可讀且具體 |
-| 4 | 回覆其中一個平台，例如「A. AWS」 | 依所選平台繼續（可能再問下一個關鍵前提，或直接產圖） |
-| 5 | 完成必要問答後 | 產出的架構圖使用**所選平台**的服務，而非其他雲 |
-| 6 | 檢查後端 log | 無例外 |
+| 1 | 以 `admin` / `admin123` 登入並進入 `/workspace` | 進入工作區，架構對話輸入框可見 |
+| 2 | 送出一段**刻意不指定雲端平台**的需求，例如「我要一套需求管理與測試生成的系統，可以上傳文件、呼叫 AI 模型、儲存結果」 | 回應是文字提問，畫布上**不得**出現任何架構圖 |
+| 3 | 檢視提問內容 | 提問中出現「AWS」「GCP」「Azure」至少 3 個平台選項，且每個選項有一句說明 |
+| 4 | 回覆其中一個平台，例如「A. AWS」 | 對話繼續（再問下一個前提，或直接產圖），**不得**回覆無法理解 |
+| 5 | 完成必要問答後檢視圖上的服務名稱 | 全部屬於步驟 4 所選平台（選 AWS 則出現 Lambda／S3／RDS 這類名稱），**不得**出現其他雲的服務名（如 BigQuery、Azure Functions） |
+| 6 | 檢查後端 log | 無 traceback，無 HTTP 500 |
 
 ### 通過條件
 
@@ -734,7 +808,17 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 驗證 A1 產出的圖能落地保存，且**重新開啟後與當初產出的內容一致**（含圖示）。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- API: `POST /api/collab/diagrams` → 200 — 儲存架構圖
+- API: `GET /api/collab/diagrams` → 200 — 架構圖清單
+- API: `GET /api/collab/diagrams/{diagram_id}` → 200 — 讀回單張架構圖
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -749,7 +833,7 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用。
 6. `N8N_WEBHOOK_URL` 已設為有效值（用以驗證圖示隨圖一起保存）。
@@ -800,7 +884,14 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 這同時是**安全**與**成本**控制：不相關或惡意輸入不該消耗 LLM 額度。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/generate` → 200 — A1 對話產圖；回應含助理訊息與（產圖時）mxGraph XML
+- UI: `/workspace` — A1 工作區：架構對話輸入框、送出鈕、圖面畫布
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -815,7 +906,7 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. LLM 供應商可用（用以確認「有能力呼叫但刻意不呼叫」）。
 
@@ -823,7 +914,7 @@ LLM 產出**本質上不是逐字可重現**的，因此本案例判定的是**�
 
 | # | 操作 | 預期結果 |
 |---|---|---|
-| 1 | 登入並進入 `/workspace` | 成功 |
+| 1 | 以 `admin` / `admin123` 登入並進入 `/workspace` | 進入工作區，架構對話輸入框可見 |
 | 2 | 送出一段意圖取得平台自身資訊的輸入，例如詢問本系統的資料庫連線設定或金鑰 | 回應為固定訊息「此需求毫無相關，請重新輸入」 |
 | 3 | 檢查後端 log | **未**出現 LLM 呼叫（無 claude CLI 子行程、無模型回應紀錄） |
 | 4 | 送出一段與雲端架構完全無關的輸入（例如請它寫一首詩） | 回應為同一則固定訊息或明確拒絕，不產出架構圖 |
@@ -862,7 +953,16 @@ A3 的 Well-Architected 離線規則打分只需要 PostgreSQL，但「改善建
 Offline Lens agent 填答在 LLM 不可用時會降級為規則啟發式——這個降級原本是
 **靜默**的，使用者看不出 A3 的答案不是 LLM 產生的，後來才補上 WARNING。
 
-### 共用前置
+### 受測介面
+
+- API: `POST /api/architecture/reviews` → 200 — 建立評核
+- API: `GET /api/architecture/reviews/{review_id}` → 200 — 讀回評核與建議
+- API: `POST /api/architecture/reviews/{review_id}/retry-suggestions` → 200 — 重試建議產生
+- UI: `/assessment` — A3 評核頁：規則層分數與改善建議區塊
+
+### 前置條件
+
+#### 共用
 
 1. PostgreSQL 已啟動且 `cloud360` 資料庫已套用 `schema_rbac.sql`：
    ```bash
@@ -877,13 +977,13 @@ Offline Lens agent 填答在 LLM 不可用時會降級為規則啟發式——�
 
 > 改動 `backend/.env` 後**必須重啟後端**：`--reload` 只監看 `.py`，不監看 `.env`。
 
-### 本案例額外前置
+#### 本案例額外
 
 5. 已有一張可供評核的架構圖（可由 Plan B 的產圖案例先行建立）。
 
 ### 測試步驟
 
-### 情境一：LLM 可用
+#### 情境一：LLM 可用
 
 | # | 操作 | 預期結果 |
 |---|---|---|
@@ -893,7 +993,7 @@ Offline Lens agent 填答在 LLM 不可用時會降級為規則啟發式——�
 | 4 | 取得改善建議 | 產出 LLM 生成的建議內容 |
 | 5 | 檢查後端 log | 無降級 WARNING |
 
-### 情境二：LLM 不可用
+#### 情境二：LLM 不可用
 
 | # | 操作 | 預期結果 |
 |---|---|---|
