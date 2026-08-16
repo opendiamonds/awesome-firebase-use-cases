@@ -213,7 +213,10 @@ def upsert_issue(story: Story, intent: str, source: str, *, dry_run: bool) -> tu
 
 
 def state_path(record: Path) -> Path:
-    return record / ".aidlc-sync-state.json"
+    # 檔名刻意不以 `.aidlc-` 開頭：AI-DLC 出貨的 .gitignore 有
+    # `aidlc/spaces/*/intents/*/.aidlc-*`（排除 recovery、hooks-health 等
+    # 機器本地暫存），而這個檔**必須**進版控——跨 runner 的雜湊比對靠它。
+    return record / "aidlc-sync-state.json"
 
 
 def load_state(record: Path, intent: str) -> dict:
