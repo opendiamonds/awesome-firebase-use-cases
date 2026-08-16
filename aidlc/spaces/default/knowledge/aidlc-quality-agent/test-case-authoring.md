@@ -53,6 +53,13 @@
 
 ## 2. 手動案例的格式（機器可解析）
 
+> **格式契約的正式來源是 repo 根目錄的 [`TESTING.md`](../../../../../TESTING.md)**，
+> 不是本檔。那份文件不限工具，Cursor／Antigravity 的使用者也讀得到；必要欄位清單
+> 由它的 `required-sections` 標記定義，`scripts/tcms_validate.py` 直接讀取該標記，
+> 所以文件與程式不會分歧。
+>
+> 本節重述模板是為了讓 agent 不必跳檔，**兩者若有出入以 `TESTING.md` 為準**。
+
 `manual-test-cases.md` 由 `scripts/tcms_sync.py` 解析後寫入 TCMS，**結構是契約**：
 
 ````markdown

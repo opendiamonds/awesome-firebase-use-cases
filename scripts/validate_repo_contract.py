@@ -34,6 +34,11 @@ REQUIRED_FILES = (
     # feature outside CI, and the only place the implicit runtime dependencies
     # are written down.
     "LOCAL-DEV.md",
+    # Test-case format contract. Tool-agnostic on purpose -- contributors on
+    # Cursor or Antigravity never load the AI-DLC knowledge tree, so the
+    # contract cannot live only there. tcms_validate.py reads its
+    # `required-sections` marker, so this file IS the field list, not a copy.
+    "TESTING.md",
     # Environment-configuration separation (local dev vs deploy stack).
     "scripts/validate_env_contract.py",
     "deploy/render-env.sh",

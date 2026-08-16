@@ -188,7 +188,10 @@ class SpecCase:
         if self.passes:
             out += ["### 通過條件", "", " ".join(self.passes), ""]
         if self.note:
-            out += ["### 備註", "", " ".join(self.note), ""]
+            # 渲染成「背景」而非「備註」：@note 承載的正是「這個斷言為何長這樣、
+            # 它在防哪個具體的錯誤實作」，與手動案例的「背景」是同一個角色。兩邊
+            # 用同一個段落名，回歸案例的背景才驗得到。
+            out += ["### 背景", "", " ".join(self.note), ""]
         out += [
             "### 追溯",
             "",
