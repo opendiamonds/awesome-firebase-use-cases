@@ -63,7 +63,7 @@ Cloud-360 是 AI-native multi-cloud architecture & operations platform，支援 
 - **必要文件**：列在 `REQUIRED_FILES`（包含 SRS、ADRs、user stories、architecture、AIDLC v2 entry 與 memory 層、CLAUDE.md 等）
 - **必要文字**：列在 `REQUIRED_TEXT`（每個 contract 文件須包含特定關鍵字）
 - **文件語言**：所有 record 內的 `*.md` 一律繁體中文（見 ADR-0009），不得夾帶英文版段落
-- **禁止路徑**：path parts 含 `prod`、`production`、`secrets` 不得新增
+- **禁止路徑**：版控中不得**存在** path parts 含 `prod`、`production`、`secrets` 的檔案（`git ls-files` 全域掃描、path-part 精確比對，不限本次新增）
 - **禁止內容**：不得 commit 私鑰、AWS / Azure / GCP credential 字串
 
 **違反 contract = CI 紅燈**。在 commit 前一律先跑 `python3 scripts/validate_repo_contract.py`。

@@ -1,6 +1,6 @@
 # Business Overview — Cloud-360
 
-> 逆向工程產出。基準 commit `8c90f40372ac810cc8f6ef41c46fc7a723031a1e`（branch `ut`，2026-08-08）。
+> 逆向工程產出。基準 commit `c3de2c8`（branch `danniel/fix/production-path-check-noop`，2026-08-17）。
 > 本檔描述系統「在做什麼、服務誰、產生什麼價值」，不描述實作。實作見
 > `architecture.md`、`code-structure.md`、`api-documentation.md`。
 
@@ -17,8 +17,9 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 「AI-native」在本系統有兩層具體意義，兩層都能在程式碼中找到落點：
 
 1. **產品面**：核心價值鏈（產圖、評核、改善建議）由 LLM agent 驅動，不是表單填寫工具。
-2. **開發面**：repo 自身以 agentic workflow 維護（10 組 gh-aw workflow 涵蓋 contract 驗證、
-   PR review、UI 回歸測試、部署自癒、spec 與 code 一致性），開發流程本身也是 AI-native。
+2. **開發面**：repo 自身以 agentic workflow 維護（**11 組** gh-aw workflow，涵蓋 contract
+   驗證、PR review、UI 回歸測試、部署自癒、spec 與 code 一致性、本機開發文件漂移），
+   開發流程本身也是 AI-native。
 
 「multi-cloud」目前的落地程度是**評核與圖形層支援三雲，佈建層尚未實作**：`backend/lenses/`
 下有 AWS／GCP／Azure 三份 lens 定義，評核可切換 provider；但基礎設施產出（Terraform／IaC）
@@ -26,7 +27,7 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 
 ## 服務對象與角色
 
-系統有 **11 個正式角色**（canonical roles，定義於 `backend/services/rbac.py`）。角色不是
+系統有 **11 個正式角色**（canonical roles，定義於 `backend/services/rbac.py:23`）。角色不是
 單純的權限桶，而是對應到不同的雲端工作職能：
 
 | 角色 handle | 中文顯示名 | 職能定位 |
@@ -84,10 +85,13 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 | J 系統管理 | `J3a` | 使用者設定 | **已實作** |
 | J 系統管理 | `J3b` | 細項設定（權限矩陣維護） | **已實作** |
 
-**實作狀態的判定依據**：對 28 個 story id 在 `backend/services/`（排除 seed 資料）與
-`frontend/src/` 全庫計數引用。`A1`／`A2`／`A3`／`A4`／`J3a`／`J3b` 有多處引用（權限 guard、
-前端路由、導覽），其餘 `B1`–`H3` 與 `J1` **各只出現 1 次**，且該次都在
-`STORY_FEATURE_LABELS` 顯示名對照表內，沒有任何端點或頁面掛在它們上面。
+**實作狀態的判定依據（本次重新實測）**：對 28 個 story id 在 `backend/services/`
+（排除 `rbac_seed_data.py`）與 `frontend/src/`（排除產生的 `api.d.ts`）全庫計數引用。結果：
+
+- `A3`（23 處，7 檔）、`J3a`（24 處，8 檔）、`J3b`（10 處，4 檔）、`A1`（8 處，5 檔）、
+  `A2`／`A4`（各 4 處）—— 有 guard、路由、導覽等多處引用。
+- `B1`–`H3` 與 `J1` 共 22 個 story **各只出現 1 次**，且該次都在 `user_router.py` 的
+  `STORY_FEATURE_LABELS` 顯示名對照表內，沒有任何端點或頁面掛在它們上面。
 
 這代表一個對下游 stage 重要的事實：**權限矩陣的廣度（28 story）遠大於實作的廣度（6 story）**。
 矩陣先行描述了完整產品願景，實作目前落在 A 群與 J 群。新增功能時 story id 已預留，
@@ -118,6 +122,10 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 使用者在工作區以自然語言描述需求，AI Design Agent 逐步回覆並產出 draw.io 架構圖 XML，
 過程即時串流到畫布。圖可存檔、可分享給其他使用者、可多人即時共編，並附帶一段對話紀錄（A4）。
 
+**平台自我竄改預檢**：進入 agent 之前有一道 `prompt_guard` 前置檢查（`prompt_guard.py`，
+63 LOC，純函式）。命中時**不呼叫 LLM**，直接回固定的拒絕訊息。這道檢查的存在對應
+`project.md ## Mandated` 的既有規則。
+
 ### 主線三：架構評核與改善（A3）
 
 對一張架構圖（既有圖或上傳的 XML）執行 Well-Architected 評核：
@@ -132,7 +140,7 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 另有一條**雙 agent 協作**路徑：Design Agent 與 Review Agent 互相對話，最多 2 輪，
 目標是產出「lens 總分 ≥ 80 且無 HIGH_RISK」的架構圖。
 
-### 主線四：權限治理（J3a／J3b）
+### 主線四：權限治理與帳號稽核（J3a／J3b）
 
 管理員可在 Admin 區維護三件事：使用者清單與角色指派、授權申請審核、以及
 **11 角色 × 28 story 的權限矩陣本身**。矩陣是執行期的權限真實來源 —— 改矩陣即刻改變
@@ -143,6 +151,20 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 - **檢視（view）**：實際判定為「勾了 view **或** edit **或** review 任一即可檢視」。
 - **編輯（edit）**：可做除審核外的一切；勾選時自動開啟 view。
 - **審核（review）**：可檢視加審核，不可編輯。
+
+**帳號活動稽核（本輪已落地）**：使用者清單現在額外提供每個帳號的**最後活動時間**與
+**逾期標示**，並支援分頁瀏覽。業務語意（來源 `backend/services/activity.py` 與
+`models.py` 的欄位註解）：
+
+| 概念 | 語意 | 政策值 |
+|---|---|---|
+| 最後活動時間 | 任何以有效憑證發出的請求都更新它（**不是只有登入**） | 同一帳號至多每 **5 分鐘**寫一次（`ACTIVITY_WRITE_THROTTLE`） |
+| 從未活動 | 欄位為空。上線前的既有帳號皆為此態 | 刻意不設 `server_default` —— 有預設值會讓「從未活動」與「剛建立」無法區分 |
+| 逾期 | 距今超過門檻即標示 | **90 天**（`OVERDUE_THRESHOLD`） |
+| 逾期標示的例外 | 「從未活動」的帳號**不套用**逾期標示 | — |
+
+節流機制是刻意的取捨：以「最後活動時間的精度」換「每個請求不都變成一次資料庫寫入」。
+下游若需要更高精度的稽核（例如逐次登入紀錄），那是**新的能力**，不是現有欄位的調參。
 
 ## 業務邊界與非目標
 
@@ -157,6 +179,22 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 （`wa_rule_engine.py` 與 `wa_lens_engine.py` 都是純函式，不連外、不讀 DB），
 因此不需要任何雲端憑證即可運作。這是刻意的設計，與「production 憑證在範圍外」一致。
 
+## 開發流程層的業務資產
+
+這些不是產品功能，但是本專案業務價值的一部分（「開發面的 AI-native」），
+且已有可執行的實作：
+
+| 資產 | 落點 | 說明 |
+|---|---|---|
+| Repo contract 驗證 | `scripts/validate_repo_contract.py`（405 LOC） | 必要文件、必要文字、文件語言、禁止路徑與內容；CI 第一關 |
+| 三環境設定契約 | `scripts/validate_env_contract.py`（315 LOC） | dev／CI 測試／部署三者不得互相滲透，亦不得互相漏接；同屬 CI 第一關 |
+| 測案管理同步 | `scripts/tcms_sync.py`（515 LOC） | 手動案例（建立＋更新）與自動化案例（只更新）分開同步進自架 Kiwi TCMS |
+| 測案機械驗證 | `scripts/tcms_validate.py`（360 LOC） | 必填欄位、空洞預期結果、追溯目標存在、API/UI 比對 `openapi.json` 與 `App.tsx` |
+| 測案撰寫標準 | `TESTING.md`（242 LOC） | 測試案例格式的唯一真實來源 |
+
+**待合併**：ADR-0012 的 GitHub Issues／Projects／Wiki 同步（階段 1／2／2.5）實作在
+PR #508，尚未進 `ut`。詳見 `reverse-engineering-timestamp.md` 的「跨分支狀態」。
+
 ## 詞彙表
 
 | 詞 | 意義 |
@@ -165,9 +203,13 @@ AI agent 產生改善建議；圖與評核結果都掛在一個以角色為基�
 | **canonical role** | 11 個正式角色 handle。非正式別名會在執行期被正規化 |
 | **permission matrix** | 11 角色 × 28 story = 308 列的 view／edit／review 旗標表，執行期權限真實來源 |
 | **authorization status** | 帳號的授權狀態，`pending`／`approved`／`rejected`。非 `approved` 時所有業務權限為否 |
+| **最後活動時間** | 帳號最近一次以有效憑證發出請求的時刻；節流 5 分鐘。空值代表「從未活動」 |
+| **逾期** | 最後活動距今超過 90 天。「從未活動」不套用此標示 |
 | **lens** | Well-Architected 評核準則集合，相容 AWS Custom Lens 格式，per-cloud 各一份 |
 | **finding** | 評核產出的單一風險發現，可帶 `HIGH_RISK` 等風險等級 |
 | **pillar score** | 依 Well-Architected 支柱切分的分數 |
 | **A1／A3 pipeline** | 兩條 LLM agent 串流管線，前者產圖、後者評核與建議 |
 | **Design Agent／Review Agent** | 兩個 LLM agent 角色；協作模式下互相對話最多 2 輪 |
 | **BR-04** | 核准權限限制規則：`Project_Admin` 不可核准平台級角色 |
+| **prompt guard** | 進 agent 前的平台自我竄改預檢；命中即不呼叫 LLM |
+| **LLM provider** | LLM 存取模式，`openrouter`（部署預設）或 `cli`（本機已登入的 claude CLI） |
