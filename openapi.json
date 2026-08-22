@@ -255,6 +255,17 @@
             "title": "Is Active",
             "type": "boolean"
           },
+          "last_opened_diagram_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Opened Diagram Id"
+          },
           "pending_request": {
             "anyOf": [
               {
