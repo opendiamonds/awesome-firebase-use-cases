@@ -1,7 +1,7 @@
 import os
 import logging
 import bcrypt
-from dotenv import load_dotenv
+from env_bootstrap import load_backend_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, User
@@ -13,7 +13,10 @@ app_env = os.environ.get("APP_ENV", "local")
 if app_env == "local":
     # 這裡確保只在 local 開發時強制讀取 .env
     # 部署到正式環境 (如 production) 時，通常由平台 (AWS/Vercel) 直接注入環境變數
-    load_dotenv()
+    # 路徑必須是明確的 backend/.env：這行比 main.py 的載入更早執行（main 在
+    # 匯入本模組時就會觸發），所以它決定了整個 process 第一次看到的 .env 是哪
+    # 一份。留著無參數的 load_dotenv() 會讓 main 那邊的修正完全失效。
+    load_backend_dotenv()
 
 # Database configuration
 DATABASE_URL = os.environ.get(
