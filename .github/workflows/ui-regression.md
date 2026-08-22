@@ -15,8 +15,10 @@ engine: copilot
 # NOTE (#513): this bounds only the *agent execution step* (the Copilot CLI
 # call) — gh-aw compiles it onto that step, not onto the agent job. The
 # pre-agent-steps below are NOT covered; they inherit GitHub's 360-minute
-# default. That gap let a stalled browser download burn an hour and get
-# cancelled without leaving a log.
+# default — and that default has been reached in anger: on PR #510 a stalled
+# browser download ran 5h59m24s before GitHub killed the job at the 6-hour
+# limit, leaving no downloadable log. It was re-run and stalled again, ~7 hours
+# of runner time on one PR for zero tests executed.
 #
 # The obvious fix — `timeout-minutes:` on each pre-agent step — DOES NOT WORK:
 # gh-aw v0.81.6 silently strips that key when compiling pre-agent-steps
