@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import jwt
 from hypothesis import given, settings, strategies as st
@@ -14,6 +14,7 @@ from tests.helpers import close_session, make_session, make_user
 from services import auth
 from services.auth import (
     ALGORITHM,
+    INSECURE_DEV_SECRET,
     SECRET_KEY,
     create_access_token,
     get_password_hash,
@@ -55,6 +56,25 @@ class TestAccessToken(unittest.TestCase):
         bad = token[:-4] + ("AAAA" if not token.endswith("AAAA") else "BBBB")
         with self.assertRaises(jwt.PyJWTError):
             jwt.decode(bad, SECRET_KEY, algorithms=[ALGORITHM])
+
+
+class TestSecretConfiguration(unittest.TestCase):
+    def test_local_env_allows_dev_secret(self):
+        with patch.dict(auth.os.environ, {"APP_ENV": "local"}, clear=True):
+            self.assertEqual(auth._resolve_secret_key(), INSECURE_DEV_SECRET)
+
+    def test_non_local_env_requires_jwt_secret(self):
+        with patch.dict(auth.os.environ, {"APP_ENV": "production"}, clear=True):
+            with self.assertRaises(RuntimeError):
+                auth._resolve_secret_key()
+
+    def test_non_local_env_uses_configured_secret(self):
+        with patch.dict(
+            auth.os.environ,
+            {"APP_ENV": "production", "JWT_SECRET": "configured-secret"},
+            clear=True,
+        ):
+            self.assertEqual(auth._resolve_secret_key(), "configured-secret")
 
 
 class TestGetCurrentUser(unittest.TestCase):

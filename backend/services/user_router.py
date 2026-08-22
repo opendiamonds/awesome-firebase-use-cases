@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 import logging
 import re
@@ -110,6 +110,8 @@ class LoginResponse(BaseModel):
 
 
 class UserSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     role: Optional[str] = None
@@ -121,9 +123,6 @@ class UserSchema(BaseModel):
     # 構造當下就是 ValidationError。
     last_activity_at: Optional[datetime]
     is_overdue: bool
-
-    class Config:
-        orm_mode = True
 
 
 # 每頁筆數（AD-10）：預設 20、上限 100。上限讓單次回應有界（NFR-8）。
@@ -193,6 +192,8 @@ class ResetDefaultsResponse(BaseModel):
 
 
 class AuthorizationRequestSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     username: str
@@ -202,9 +203,6 @@ class AuthorizationRequestSchema(BaseModel):
     updated_at: Optional[datetime] = None
     decided_by: Optional[str] = None
     decided_at: Optional[datetime] = None
-
-    class Config:
-        orm_mode = True
 
 
 def _audit_append(title: str, request_raw: str, outcome: str, approver: str) -> None:
