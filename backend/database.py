@@ -41,6 +41,13 @@ def _allow_insecure_default_users() -> bool:
     return _truthy_env("ALLOW_INSECURE_DEFAULT_USERS")
 
 
+def _allow_insecure_default_personas() -> bool:
+    """Seed the multi-persona demo catalog only where it is intentionally useful."""
+    if _current_app_env() == "local":
+        return True
+    return _truthy_env("ALLOW_INSECURE_DEFAULT_PERSONAS")
+
+
 def _bootstrap_admin_password() -> str | None:
     password = os.environ.get("CLOUD360_BOOTSTRAP_ADMIN_PASSWORD", "").strip()
     if password:
@@ -74,7 +81,7 @@ def init_db():
     try:
         # 檢查是否已存在使用者
         user_count = db.query(User).count()
-        if user_count == 0 and _allow_insecure_default_users():
+        if user_count == 0 and _allow_insecure_default_personas():
             logger.info("資料庫為空，開始從 personas.md 初始化 11 位預設使用者...")
 
             default_personas = [
@@ -106,7 +113,7 @@ def init_db():
             logger.info("預設使用者初始化完成！")
         elif user_count == 0:
             logger.warning(
-                "資料庫為空，但 APP_ENV=%s 未允許固定密碼 demo seed；略過預設使用者建立。",
+                "資料庫為空，但 APP_ENV=%s 未允許 demo persona seed；略過 persona 建立。",
                 _current_app_env(),
             )
         else:

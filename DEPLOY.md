@@ -291,7 +291,7 @@ psql "$DATABASE_URL" -c "SELECT role, story_id, can_view, can_edit, updated_by F
 2. **`users`**：只建表，不建立固定密碼管理員。
 
 後端若在**空庫**啟動，`init_db()` 也會：建表、必要時 seed `role_permissions`。
-Local/test 環境仍會 seed demo 帳號；staging/production 不會建立固定密碼使用者。全新部署若需要 bootstrap admin，請在第一次啟動前設定 `CLOUD360_BOOTSTRAP_ADMIN_PASSWORD` 為強隨機臨時密碼，登入後立刻輪替或清除該 secret。
+Local 環境仍會 seed demo persona 帳號；test/ci 只會建立 `admin/admin123` 供自動化測試使用；staging/production 不會建立固定密碼使用者。全新部署若需要 bootstrap admin，請在第一次啟動前設定 `CLOUD360_BOOTSTRAP_ADMIN_PASSWORD` 為強隨機臨時密碼，登入後立刻輪替或清除該 secret。
 **新環境仍建議先跑 `schema_rbac.sql`**，行為與文件一致、不依賴啟動順序。
 
 #### 2.4 重要：若沒跑 seed，角色細項會是「全空」
