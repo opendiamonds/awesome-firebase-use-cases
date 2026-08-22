@@ -73,10 +73,12 @@ pre-agent-steps:
       docker compose -f deploy/docker-compose.test.yml logs --tail=100
       exit 1
 
-  # `npx playwright install` pulls ~117 MiB from cdn.playwright.dev on every
-  # run (chrome-headless-shell 114.2 MiB + ffmpeg 2.3 MiB) — measured in run
-  # 32539598617. setup-node's `cache: npm` does not cover ~/.cache/ms-playwright,
-  # so that download is the job's only large, uncached third-party dependency.
+  # `npx playwright install` pulls ~294 MiB from cdn.playwright.dev on every
+  # run — Chrome for Testing 177 MiB + chrome-headless-shell 114.2 MiB + ffmpeg
+  # 2.3 MiB (full download list from run 32540341190; an earlier reading of only
+  # the log tail undercounted this as ~117 MiB by missing the first artifact).
+  # setup-node's `cache: npm` does not cover ~/.cache/ms-playwright, so that
+  # download is the job's only large, uncached third-party dependency.
   # The key is the lockfile hash: a Playwright version bump misses the cache and
   # re-downloads, which is the correct behaviour.
   - name: Cache Playwright browsers
