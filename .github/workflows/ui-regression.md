@@ -12,6 +12,22 @@ permissions:
 
 engine: copilot
 
+# NOTE (#513): this bounds only the *agent execution step* (the Copilot CLI
+# call) — gh-aw compiles it onto that step, not onto the agent job. The
+# pre-agent-steps below are NOT covered; they inherit GitHub's 360-minute
+# default. That gap let a stalled browser download burn an hour and get
+# cancelled without leaving a log.
+#
+# The obvious fix — `timeout-minutes:` on each pre-agent step — DOES NOT WORK:
+# gh-aw v0.81.6 silently strips that key when compiling pre-agent-steps
+# (`env`, `id`, `if`, `uses`, `with`, `working-directory` and
+# `continue-on-error` all survive; `timeout-minutes` does not) and reports
+# 0 errors / 0 warnings. Verify with `gh aw compile ui-regression` then
+# `grep timeout-minutes` on the .lock.yml before trusting it.
+#
+# So every long-running pre-agent step wraps its own commands in `timeout(1)`
+# instead — that lives inside `run:` where the compiler cannot drop it.
+# Keep it that way when adding steps.
 timeout-minutes: 30
 
 network: defaults
@@ -32,8 +48,17 @@ pre-agent-steps:
     env:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    # Two observed samples: 56s (warm layer cache) and 3m18s (cold, on a fresh
+    # branch) — 3.5x spread, the widest of any step here, because it pulls base
+    # images from an external registry. 20m is ~6x the slow sample; 15m would
+    # have been only 4.5x, and a spurious red on a legitimately slow build is
+    # the same pathology this whole change is fixing (a gate people learn to
+    # ignore). Erring high still fails 18x faster than the 360m default.
     run: |
-      docker compose -f deploy/docker-compose.test.yml up -d --build
+      timeout 20m docker compose -f deploy/docker-compose.test.yml up -d --build || {
+        echo "docker compose up exceeded 20m (or failed); see exit code above" >&2
+        exit 1
+      }
 
   - name: Wait for the stack to answer on 8090
     run: |
@@ -48,11 +73,32 @@ pre-agent-steps:
       docker compose -f deploy/docker-compose.test.yml logs --tail=100
       exit 1
 
+  # `npx playwright install` pulls ~294 MiB from cdn.playwright.dev on every
+  # run — Chrome for Testing 177 MiB + chrome-headless-shell 114.2 MiB + ffmpeg
+  # 2.3 MiB (full download list from run 32540341190; an earlier reading of only
+  # the log tail undercounted this as ~117 MiB by missing the first artifact).
+  # setup-node's `cache: npm` does not cover ~/.cache/ms-playwright, so that
+  # download is the job's only large, uncached third-party dependency.
+  # The key is the lockfile hash: a Playwright version bump misses the cache and
+  # re-downloads, which is the correct behaviour.
+  - name: Cache Playwright browsers
+    uses: actions/cache@v4
+    with:
+      path: ~/.cache/ms-playwright
+      key: ${{ runner.os }}-ms-playwright-${{ hashFiles('frontend/package-lock.json') }}
+
   - name: Install Playwright and browsers
     working-directory: frontend
+    # Baselines: npm ci 5s (registry, cushioned by setup-node's npm cache),
+    # browser download 23s. Bounded separately so the log says which one stalled
+    # — the question we could not answer for the run that started #513, because
+    # a cancelled job leaves no downloadable log at all.
     run: |
-      npm ci
-      npx playwright install --with-deps chromium
+      timeout 3m npm ci || { echo "npm ci exceeded 3m (or failed)" >&2; exit 1; }
+      timeout 8m npx playwright install --with-deps chromium || {
+        echo "playwright browser install exceeded 8m (or failed)" >&2
+        exit 1
+      }
 
   - name: Run the regression suite
     working-directory: frontend
@@ -63,13 +109,18 @@ pre-agent-steps:
     env:
       BASE_URL: http://localhost:8090
       PW_RUN_ID: ${{ github.run_id }}
-    run: npx playwright test
+    # Baseline 39s for 14 tests. 15m lets the suite grow several-fold while
+    # still catching a hung browser.
+    run: timeout 15m npx playwright test
 
   # Record this run in Kiwi TCMS for the trend dashboard. Best-effort: a Kiwi
   # outage must never block a PR, so continue-on-error, and it runs whether the
   # suite passed or failed (the dashboard needs the failures too). GITHUB_* are
   # read from the runner env rather than ${{ }} to stay clear of gh-aw's
   # expression allow-list.
+  # Baseline 36s. continue-on-error covers a Kiwi *error*, not a Kiwi *hang* —
+  # without the timeouts below, an unresponsive Kiwi would park the job for 360
+  # minutes. The three network-bound commands are bounded individually.
   - name: Report results to Kiwi TCMS
     if: always()
     continue-on-error: true
@@ -98,16 +149,16 @@ pre-agent-steps:
       sed -E 's/(timestamp="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})\.[0-9]+Z?"/\1"/g' junit.xml > junit.kiwi.xml
       export TCMS_PRODUCT_VERSION="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
       export TCMS_BUILD="${GITHUB_RUN_ID}-$(echo "${GITHUB_SHA}" | cut -c1-7)"
-      pip install --quiet kiwitcms-junit.xml-plugin
+      timeout 3m pip install --quiet kiwitcms-junit.xml-plugin
       # --summary-template '${name}' drops the "regression.spec.ts." classname
       # prefix so the Kiwi case name is just the test title. Single-quoted so
       # bash does not expand it. The template must stay stable — it is the key
       # the plugin reuses cases by; changing it orphans the old cases.
-      tcms-junit.xml-plugin --summary-template '${name}' junit.kiwi.xml
+      timeout 5m tcms-junit.xml-plugin --summary-template '${name}' junit.kiwi.xml
       # This Kiwi instance is shared across projects. Tag every case "Cloud-360"
       # (Product is the structural separator; the tag aids cross-project views)
       # and mark it is_automated so manual cases stay distinguishable. Idempotent.
-      python3 -c "
+      timeout 3m python3 -c "
       from tcms_api import TCMS
       rpc = TCMS().exec
       prod = rpc.Product.filter({'name': 'Cloud-360'})
