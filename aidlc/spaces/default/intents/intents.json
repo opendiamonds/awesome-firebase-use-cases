@@ -25,5 +25,12 @@
     "dirName": "260806-drawio-templates",
     "scope": "bugfix",
     "status": "complete"
+  },
+  {
+    "uuid": "01a00b09-1ac0-7fd8-97b2-84d4cfb81912",
+    "slug": "production-path-check",
+    "dirName": "260816-production-path-check",
+    "scope": "bugfix",
+    "status": "complete"
   }
 ]
