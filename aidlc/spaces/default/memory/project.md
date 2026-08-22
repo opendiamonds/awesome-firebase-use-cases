@@ -69,7 +69,7 @@
 
 ## Forbidden
 
-- NEVER 新增 path parts 含 `prod`、`production`、`secrets` 的檔案 — `scripts/validate_repo_contract.py` 會擋（CI 紅燈）。
+- NEVER 讓版控中**存在** path parts 含 `prod`、`production`、`secrets` 的檔案 — `scripts/validate_repo_contract.py` 的 `validate_no_production_config_added()` 會擋（CI 紅燈）。檢查方式是對 `git ls-files` 做**全域掃描**（不是 diff 基準），所以不限於本次新增的檔案：任何已納入版控的違規路徑都會讓檢查紅燈，且在 CI 的乾淨 checkout 下與本機行為一致（issue #509）。比對為 **path-part 精確比對**且不分大小寫，因此 `aidlc-product-agent.md`、`secrets-policy.md` 這類含子字串但非完整 path part 的檔名不受影響。
 - NEVER commit 私鑰或 AWS / Azure / GCP 的 credential 字串。實際被擋的樣式列在 `scripts/validate_repo_contract.py` 的 `FORBIDDEN_CONTENT_PATTERNS`（涵蓋私鑰 PEM 標頭與三雲的 secret 環境變數）。**不要把那些樣式照字面複製到任何 contract 檔案裡** — 掃描器不分辨「示範」與「洩漏」，會直接紅燈。
 - NEVER 在未取得 human approval 的情況下執行 production write、IaC apply 或 IAM 變更。
 - NEVER 直接編輯 `.claude/` 下的 upstream 框架檔來表達專案規則 — 專案規則一律寫在 `aidlc/spaces/<space>/memory/{team,project}.md`，否則下次升級會被整批覆蓋。
@@ -174,3 +174,5 @@
 - 為新行為指定「沿用既有機制」之前，必須先寫下該既有機制的副作用是否與新需求的意圖相容 —— 缺口的共同形狀是：交界沒被寫下來，於是預設沿用，而既有機制的副作用正好破壞新需求（本次：刪除後重抓若沿用既有的 fetchUsers()，會每刪一列閃一次整頁載入，字面通過 AC 但打斷工作流） (learned 2026-08-11) <!-- cid:application-design:c15 -->
 - 引用「既有為 N 條」這類基準數時，那個 N **也要重數**，不能只重數本輪新增的部分 —— 本 intent 已在同型失誤上重複三次；另：箭頭鏈（A → B → C）是順序的語法，在禁止建議實作順序的 stage 用它說明「約束規模」等於在排序 (learned 2026-08-11) <!-- cid:units-generation:c9 -->
 - deploy-on-merge 之下，破壞性契約變更與其消費端之間存在一條隱含的「同批次」約束，**它比 DAG 邊更強** —— DAG 只說先後，這條說不得分批。它不出現在依賴圖上，只有把「每個 Bolt 邊界都是一次真實部署」實際代入才會浮現；凡涉及既有端點回應形狀變更的 Bolt 切分，都必須先問這一句 (learned 2026-08-11) <!-- cid:delivery-planning:c6 -->
+- 手動測案數判定為 0 時，`manual-test-cases.md` 仍須逐項列出外部可觀察行為與分桶理由 — 空檔或一句「無手動案例」會被下一個人讀成漏寫而非判斷，而分桶本身才是這個 stage 的產出 (learned 2026-08-19) <!-- cid:tcms-test-cases:c1 -->
+- 撰寫標準 §4.4 的規格註解隨語言換載體（TS 用 `/** */`、Python 用 docstring），但 `@api`／`@ui` 在受測對象既無端點也無 UI 時寧可缺、不得捏造 — 假端點會通過機械比對而無人察覺，並讓下一個改該 API 的人誤以為此案例與他有關 (learned 2026-08-19) <!-- cid:tcms-test-cases:c20 -->
