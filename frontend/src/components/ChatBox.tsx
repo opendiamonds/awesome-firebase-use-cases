@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { toPlainSuggestionText } from '../lib/plainText';
+import { parseChoiceOptions } from '../utils/parseChoiceOptions';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -22,6 +24,9 @@ interface ChatBoxProps {
   canReview?: boolean;
   /** 目前登入使用者顯示名（頭像文字） */
   userDisplayName?: string | null;
+  /** 收合對話面板，讓架構圖佔滿剩餘寬度 */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 function avatarInitials(name: string | null | undefined): string {
@@ -44,9 +49,12 @@ export const ChatBox = ({
   canEdit = true,
   canReview = false,
   userDisplayName = null,
+  collapsed = false,
+  onToggleCollapsed,
 }: ChatBoxProps) => {
   const userLabel = avatarInitials(userDisplayName);
   const [prompt, setPrompt] = useState('');
+  const [awaitingOther, setAwaitingOther] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +63,19 @@ export const ChatBox = ({
     if (!canEdit || !prompt.trim() || isGenerating) return;
     onGenerate(prompt);
     setPrompt('');
+    setAwaitingOther(false);
+  };
+
+  const handlePickOption = (sendText: string, isOther: boolean) => {
+    if (!canEdit || isGenerating) return;
+    if (isOther) {
+      setAwaitingOther(true);
+      setPrompt('');
+      window.setTimeout(() => textareaRef.current?.focus(), 0);
+      return;
+    }
+    setAwaitingOther(false);
+    void onGenerate(sendText);
   };
 
   useEffect(() => {
@@ -70,32 +91,96 @@ export const ChatBox = ({
     }
   }, [messages, isGenerating]);
 
-  return (
-    <div className="flex flex-col h-full bg-[#fcfdff] border-r border-gray-200/60 w-[420px] relative z-10 shadow-[8px_0_30px_rgba(0,0,0,0.015)]">
-      {/* Header */}
-      <div className="h-20 flex items-center justify-between px-8 border-b border-gray-100 bg-white/80 backdrop-blur-md shrink-0">
-        <div>
-          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 架構助理</h2>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium">多角色協同設計與自然語言建模</p>
+  if (collapsed) {
+    return (
+      <div className="flex flex-col h-full w-12 shrink-0 bg-[#fcfdff] border-r border-gray-200/60 relative z-10 shadow-[8px_0_30px_rgba(0,0,0,0.015)]">
+        <div className="flex flex-col items-center gap-3 py-4 h-full">
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="w-9 h-9 rounded-xl bg-white border border-gray-200 text-brand-600 hover:bg-brand-50 hover:border-brand-200 shadow-sm flex items-center justify-center transition-colors"
+            title="展開對話面板"
+            aria-label="展開對話面板"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M13 5l7 7-7 7M5 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+          <div className="flex-1 flex items-center justify-center min-h-0" aria-hidden>
+            <span
+              className="text-[11px] font-bold tracking-widest text-gray-400 select-none"
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              AI 對話
+            </span>
+          </div>
+          {isGenerating && (
+            <div
+              className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse mb-2"
+              title={progress || '產生中'}
+            />
+          )}
+          {messages.length > 1 && (
+            <span className="mb-2 text-[10px] font-bold text-gray-400 tabular-nums">
+              {messages.length}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-[#fcfdff] border-r border-gray-200/60 w-[420px] shrink-0 relative z-10 shadow-[8px_0_30px_rgba(0,0,0,0.015)]">
+      {/* Header */}
+      <div className="h-20 flex items-center justify-between px-6 border-b border-gray-100 bg-white/80 backdrop-blur-md shrink-0 gap-2">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">AI 架構助理</h2>
+          <p className="text-xs text-gray-500 mt-0.5 font-medium truncate">
+            多角色協同設計與自然語言建模
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
           {canEdit && (
             <>
               <button
                 onClick={onClearChat}
-                className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-3 py-2 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
+                className="text-xs font-bold text-brand-600 hover:text-white hover:bg-brand-600 px-2.5 py-1.5 rounded-full border border-brand-100 transition-all duration-300 shadow-sm hover:shadow-brand-500/20"
                 title="清空此架構圖的對話紀錄（不會刪除架構圖）"
               >
                 清空對話
               </button>
               <button
                 onClick={onFullReset}
-                className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-3 py-2 rounded-full border border-gray-200 transition-all duration-300"
+                className="text-xs font-bold text-gray-600 hover:text-white hover:bg-gray-700 px-2.5 py-1.5 rounded-full border border-gray-200 transition-all duration-300"
                 title="清空畫布與對話（全部重置）"
               >
                 全部重置
               </button>
             </>
+          )}
+          {onToggleCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="ml-0.5 w-8 h-8 rounded-lg text-gray-500 hover:text-brand-700 hover:bg-brand-50 border border-transparent hover:border-brand-100 flex items-center justify-center transition-colors"
+              title="收合對話面板，放大架構圖"
+              aria-label="收合對話面板"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
+              </svg>
+            </button>
           )}
         </div>
       </div>
@@ -109,6 +194,14 @@ export const ChatBox = ({
             !msg.content.trim() &&
             isGenerating &&
             isLast;
+          const choiceOptions =
+            msg.role === 'assistant' &&
+            isLast &&
+            !isGenerating &&
+            canEdit &&
+            msg.content.trim()
+              ? parseChoiceOptions(msg.content)
+              : [];
 
           return (
             <div key={idx} className={`flex gap-4 mb-8 group ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -167,7 +260,40 @@ export const ChatBox = ({
                     )}
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <>
+                    <p className="whitespace-pre-wrap">
+                      {msg.speaker === 'review'
+                        ? toPlainSuggestionText(msg.content)
+                        : msg.content}
+                    </p>
+                    {choiceOptions.length > 0 && (
+                      <div
+                        className="mt-4 flex flex-col gap-2"
+                        data-testid="chat-choice-options"
+                      >
+                        <p className="text-[11px] font-semibold text-gray-400">
+                          請點選一項（或選「其他」後在下方輸入）
+                        </p>
+                        {choiceOptions.map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            data-testid={`chat-choice-${opt.key}`}
+                            disabled={!canEdit || isGenerating}
+                            onClick={() => handlePickOption(opt.sendText, opt.isOther)}
+                            className={`text-left px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                              opt.isOther
+                                ? 'border-dashed border-gray-300 text-gray-600 hover:border-brand-400 hover:bg-brand-50/50'
+                                : 'border-brand-100 bg-brand-50/40 text-brand-800 hover:bg-brand-50 hover:border-brand-300'
+                            } disabled:opacity-50 disabled:pointer-events-none`}
+                          >
+                            <span className="text-brand-600 mr-2">{opt.key}.</span>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -226,9 +352,11 @@ export const ChatBox = ({
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit(e); } }}
               placeholder={
-                canEdit
-                  ? '輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)'
-                  : '唯讀模式：無法送出產圖請求'
+                !canEdit
+                  ? '唯讀模式：無法送出產圖請求'
+                  : awaitingOther
+                    ? '請說明其他想法…（Ctrl+Enter 或 Cmd+Enter 送出）'
+                    : '輸入您的架構需求... (Ctrl+Enter 或 Cmd+Enter 送出)'
               }
               className="w-full max-h-[120px] pl-3 pr-2 py-2 bg-transparent text-gray-900 text-[14px] resize-none focus:outline-none placeholder:text-gray-400 min-h-[44px]"
               rows={1}

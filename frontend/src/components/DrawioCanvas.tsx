@@ -18,6 +18,8 @@ interface DrawioCanvasProps {
   saveStatus?: DiagramSaveStatus;
   /** 僅檢視／審核：禁止操作畫布與儲存 */
   readOnly?: boolean;
+  /** 外層版面寬度變更時遞增，觸發 draw.io iframe 重新適配 */
+  layoutEpoch?: number;
   /** 標題列正中央插槽（例如歷史架構圖選單），避免浮層擋住標題 */
   headerCenter?: ReactNode;
   /** 標題列下方提示條（例如僅檢視橫幅） */
@@ -25,6 +27,8 @@ interface DrawioCanvasProps {
   onLoadComplete?: () => void;
   onAutosave?: (xml: string) => void;
   onSaveClick?: (xml: string) => void;
+  /** embed exit：髒資料確認後由父層展開 Sidebar、留在 Workspace */
+  onExit?: () => void;
   onShareClick?: () => void;
   /** 有審核權時顯示（功能 stub） */
   onReviewClick?: () => void;
@@ -63,11 +67,13 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
       diagramTitle = '未命名架構圖',
       saveStatus = 'unsaved',
       readOnly = false,
+      layoutEpoch = 0,
       headerCenter,
       headerBanner,
       onLoadComplete,
       onAutosave,
       onSaveClick,
+      onExit,
       onShareClick,
       onReviewClick,
     },
@@ -75,8 +81,40 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
   ) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
+    /** 畫布目前 XML；autosave 回寫父層時若 xml prop 與此相同則不可 action:load */
     const latestXmlRef = useRef<string>(xml);
+    const onAutosaveRef = useRef(onAutosave);
+    const onSaveClickRef = useRef(onSaveClick);
+    const onExitRef = useRef(onExit);
+    const onLoadCompleteRef = useRef(onLoadComplete);
     const badge = SAVE_BADGE[saveStatus];
+
+    useEffect(() => {
+      onAutosaveRef.current = onAutosave;
+    }, [onAutosave]);
+    useEffect(() => {
+      onSaveClickRef.current = onSaveClick;
+    }, [onSaveClick]);
+    useEffect(() => {
+      onExitRef.current = onExit;
+    }, [onExit]);
+    useEffect(() => {
+      onLoadCompleteRef.current = onLoadComplete;
+    }, [onLoadComplete]);
+
+    const postLoad = (nextXml: string) => {
+      if (!iframeRef.current?.contentWindow) return;
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({
+          action: 'load',
+          autosave: 1,
+          xml: nextXml,
+        }),
+        '*'
+      );
+      latestXmlRef.current = nextXml;
+      onLoadCompleteRef.current?.();
+    };
 
     const handleDownloadDrawio = () => {
       const current = latestXmlRef.current || xml;
@@ -87,11 +125,19 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
       }
     };
 
+    // 對話／側欄收合後，通知 embed 重新計算畫布尺寸
     useEffect(() => {
-      if (xml) {
-        latestXmlRef.current = xml;
+      if (!isReady || !iframeRef.current || layoutEpoch <= 0) return;
+      window.dispatchEvent(new Event('resize'));
+      try {
+        iframeRef.current.contentWindow?.postMessage(
+          JSON.stringify({ action: 'status', messageKey: 'resize', modified: false }),
+          '*'
+        );
+      } catch {
+        /* ignore */
       }
-    }, [xml]);
+    }, [layoutEpoch, isReady]);
 
     useImperativeHandle(
       ref,
@@ -102,45 +148,19 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
               JSON.stringify({ action: 'merge', xml: mergeData }),
               '*'
             );
+            // merge 後以合併結果為最新；父層接著 setXml 時勿再無謂 load
+            latestXmlRef.current = mergeData;
           }
         },
       }),
       [isReady]
     );
 
-    const onLoadCompleteRef = useRef(onLoadComplete);
+    // 僅在真實外部換圖時 load（避免 autosave echo 清空 Undo）
     useEffect(() => {
-      onLoadCompleteRef.current = onLoadComplete;
-    }, [onLoadComplete]);
-
-    useEffect(() => {
-      const handleMessage = (e: MessageEvent) => {
-        try {
-          const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-          if (data.event === 'init') {
-            setIsReady(true);
-          }
-        } catch {
-          // ignore
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-      return () => window.removeEventListener('message', handleMessage);
-    }, []);
-
-    useEffect(() => {
-      if (xml && isReady && iframeRef.current) {
-        const message = JSON.stringify({
-          action: 'load',
-          autosave: 1,
-          xml: xml,
-        });
-        iframeRef.current.contentWindow?.postMessage(message, '*');
-        if (onLoadCompleteRef.current) {
-          onLoadCompleteRef.current();
-        }
-      }
+      if (!isReady || !iframeRef.current || !xml) return;
+      if (xml === latestXmlRef.current) return;
+      postLoad(xml);
     }, [xml, isReady]);
 
     useEffect(() => {
@@ -154,22 +174,22 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
             typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 
           if (data.event === 'init') {
+            setIsReady(true);
             if (xml) {
-              const message = JSON.stringify({
-                action: 'load',
-                autosave: 1,
-                xml: xml,
-              });
-              iframeRef.current.contentWindow?.postMessage(message, '*');
-              if (onLoadCompleteRef.current) {
-                onLoadCompleteRef.current();
-              }
+              postLoad(xml);
             }
           } else if (data.event === 'autosave' && data.xml) {
             latestXmlRef.current = data.xml;
-            if (onAutosave) {
-              onAutosave(data.xml);
+            onAutosaveRef.current?.(data.xml);
+          } else if (data.event === 'save') {
+            const savedXml =
+              (typeof data.xml === 'string' && data.xml) || latestXmlRef.current;
+            if (savedXml) {
+              latestXmlRef.current = savedXml;
             }
+            onSaveClickRef.current?.(savedXml);
+          } else if (data.event === 'exit') {
+            onExitRef.current?.();
           }
         } catch {
           // 忽略非 JSON 的訊息
@@ -180,7 +200,7 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
       return () => {
         window.removeEventListener('message', handleMessage);
       };
-    }, [xml, onAutosave]);
+    }, [xml]);
 
     return (
       <div className="flex-1 flex flex-col h-full bg-[#f1f5f9] relative min-w-0">
@@ -307,7 +327,7 @@ export const DrawioCanvas = forwardRef<DrawioCanvasRef, DrawioCanvasProps>(
             <iframe
               ref={iframeRef}
               className={`w-full h-full border-0 absolute inset-0 z-10 ${readOnly ? 'pointer-events-none' : ''}`}
-              src="https://embed.diagrams.net/?embed=1&ui=min&spin=1&modified=unsaved&proto=json"
+              src="https://embed.diagrams.net/?embed=1&ui=min&spin=1&modified=unsaved&proto=json&libraries=1"
               title="draw.io diagram"
             />
             {readOnly && xml && (

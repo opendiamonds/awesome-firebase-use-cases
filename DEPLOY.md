@@ -100,6 +100,8 @@ docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec b
 | `LLM_MAX_OUTPUT_TOKENS` | `12000` | 餘額緊時可降；見第 0.3 節 |
 | `LLM_XML_CONTEXT_MAX_CHARS` | `32000` | 大圖面可調，但會影響 token 用量 |
 | `N8N_WEBHOOK_URL` | 選填 | 有用動態 icon 再填 |
+| `N8N_USER` | 選填 | 存取 n8n webhook 所需之 Basic Auth 帳號 |
+| `N8N_PASSWORD` | 選填 | 存取 n8n webhook 所需之 Basic Auth 密碼 |
 
 #### 1.2 前端 `frontend/.env`（build 時注入）
 
@@ -149,7 +151,7 @@ npm run build
 schema_rbac.sql
 ```
 
-補充說明：`aidlc-docs/construction/plans/schema-rbac-notes.md`  
+補充說明：`aidlc/spaces/default/intents/260802-default/construction/plans/schema-rbac-notes.md`  
 （`schema.sql` 僅核心 DDL 參考，**完整新環境請用 `schema_rbac.sql`**。）
 
 執行：
@@ -172,6 +174,7 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 | A | `user_diagrams` | 架構圖 XML |
 | A | `diagram_shares` | 圖分享（多對多） |
 | B | `users.last_opened_diagram_id` | 上次開啟的圖 |
+| B | `users.last_activity_at` | **最後活動時間**（UTC，可為 NULL＝從未活動）。見 2.2.3 |
 | B | `user_diagram_chats` | 使用者×圖 的聊天紀錄（A4） |
 | E | `architecture_reviews` | **A3** Well-Architected 評核結果（分數／發現／建議） |
 | E | `wa_lenses` | **A3** Offline Custom Lens 現行標準（具 A3 **審核** 者可編輯） |
@@ -218,17 +221,77 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM architecture_reviews;"
 psql "$DATABASE_URL" -c "SELECT id, lens_id, provider, is_active, updated_at FROM wa_lenses ORDER BY id DESC LIMIT 5;"
 ```
 
+#### 2.2.3 `users.last_activity_at`（最後活動時間）
+
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP WITH TIME ZONE;
+```
+
+| 項目 | 說明 |
+|---|---|
+| 語意 | 該帳號**最後一次以有效憑證發出請求**的時刻（UTC）。只留最後一次，不留歷史 |
+| 寫入頻率 | 同一帳號至多**每 5 分鐘**一次（滑動視窗，基準為上次成功寫入的時刻） |
+| `NULL` 的意思 | **從未活動**。上線前的既有帳號全部為此態，管理介面顯示可聚焦的破折號，**不套用逾期標示** |
+| 預設值 | **刻意沒有**。設了預設值就無法區分「從未活動」與「剛建立」 |
+| 逾期判定 | 距今**超過 90 天**（嚴格大於）。由**後端**計算並隨 API 回應帶出，前端不自行計算（客戶端時鐘不可信） |
+
+**升級既有環境**：兩條路徑都會補上此欄，擇一即可 ——
+
+1. 重跑 `schema_rbac.sql`（可重跑安全；**但會 `DELETE` 並重播 `role_permissions`，Admin UI 調過的權限會被覆寫**，見 2.5）；
+2. **建議**：只重啟後端服務 —— 啟動時的 `_ensure_last_activity_schema()` 會執行同一段 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`，不動任何其他資料。
+
+**驗證指令**：
+
+```bash
+psql "$DATABASE_URL" -c "\d users" | grep last_activity_at
+# 應出現：last_activity_at | timestamp with time zone |
+psql "$DATABASE_URL" -c "SELECT username, last_activity_at FROM users ORDER BY id LIMIT 5;"
+# 升級後尚未有人活動時，last_activity_at 全為空 —— 這是預期行為
+```
+
+#### 2.2.4 使用者清單端點改為分頁（API 契約變更）
+
+`GET /api/auth/list` 的回應由**裸陣列**改為**分頁物件**：
+
+```json
+{ "items": [ ... ], "total": 87, "page": 1, "page_size": 20 }
+```
+
+| 項目 | 值 |
+|---|---|
+| 查詢參數 | `page`（≥1，預設 1）、`page_size`（1〜100，預設 20） |
+| 非法參數 | 回 **422**，不回傳任何帳號資料 |
+| 頁次超出範圍 | 回 **200**、`items` 為空、`page` 回顯請求值（不夾到最後一頁） |
+
+**部署注意**：這是**破壞性契約變更**。前後端必須**同一次部署**上線 —— 只更新後端會讓使用者管理頁在前端 `.map()` 一個物件時直接壞掉。本專案的 deploy-on-merge 會同時部署兩個映像，正常流程下不會出現這個中間態；**但若手動只重建後端映像，請務必一併重建前端**。
+
+#### 2.2.5 `Security_Reviewer` 取得 `J3a` 檢視權限（seed 變更）
+
+`role_permissions` 的預設矩陣中，`('Security_Reviewer', 'J3a')` 由 `false` 改為 **`can_view = true`**（`can_edit`／`can_review` 維持 `false`）。
+
+**既有環境如何生效**：`ensure_role_permissions_seeded()` **只在表為空時**寫入，既有環境不會經過它。後端啟動時另有一支 `_apply_security_reviewer_j3a_view()` 做**目標式更新**：只在該列存在**且**仍為系統種子所寫（`updated_by = 'system_seed'`）時才翻轉，不插入、不覆蓋人工調整。
+
+**驗證指令**：
+
+```bash
+psql "$DATABASE_URL" -c "SELECT role, story_id, can_view, can_edit, updated_by FROM role_permissions WHERE role='Security_Reviewer' AND story_id='J3a';"
+# 應為：Security_Reviewer | J3a | t | f | system_patch.j3a_view
+#   （updated_by 由啟動補丁寫成 system_patch.j3a_view —— 這正是「這一列是補丁改的」
+#    的標記，讓第二次以後的啟動落在「已跳過」而非被誤判為管理員異動。
+#    若看到 system_seed 或空值且 can_view 為 f，表示補丁**沒有執行**。）
+```
+
+啟動日誌會記錄三態之一：`已套用`／`已跳過`／`未命中目標列`。**部署後請核對這行日誌** —— 此變更沒有自動化驗證涵蓋既有環境的套用。
+
 #### 2.3 預設資料會塞什麼
 
 執行 `schema_rbac.sql` 後：
 
 1. **`role_permissions`**：寫入設計預設矩陣（約 **308** 列，11 角色 × 各 Story）。  
-2. **`users`**：若不存在則建立  
-   - 帳號：`admin`  
-   - 密碼：`admin123`（**上線後請立刻改密碼**）  
-   - 角色：`Platform_Admin`（可進「使用者角色」「角色細項權限」）
+2. **`users`**：只建表，不建立固定密碼管理員。
 
-後端若在**空庫**啟動，`init_db()` 也會：建表、必要時 seed `role_permissions`、確保有 `admin`。  
+後端若在**空庫**啟動，`init_db()` 也會：建表、必要時 seed `role_permissions`。
+Local 環境仍會 seed demo persona 帳號；test/ci 只會建立 `admin/admin123` 供自動化測試使用；staging/production 不會建立固定密碼使用者。全新部署若需要 bootstrap admin，請在第一次啟動前設定 `CLOUD360_BOOTSTRAP_ADMIN_PASSWORD` 為強隨機臨時密碼，登入後立刻輪替或清除該 secret。
 **新環境仍建議先跑 `schema_rbac.sql`**，行為與文件一致、不依賴啟動順序。
 
 #### 2.4 重要：若沒跑 seed，角色細項會是「全空」
@@ -236,7 +299,7 @@ psql "$DATABASE_URL" -c "SELECT id, lens_id, provider, is_active, updated_at FRO
 | 情況 | 結果 |
 |---|---|
 | 只建空表、**沒有**插入 `role_permissions` | 矩陣**全空**（所有角色對所有功能都無檢視／編輯／審核）→ Sidebar 幾乎看不到功能、API 易 403 |
-| 有跑 `schema_rbac.sql`（或後端空表自動 seed） | 有設計預設權限，可用 `admin` 登入再在 Admin UI 調整 |
+| 有跑 `schema_rbac.sql`（或後端空表自動 seed） | 有設計預設權限；需搭配既有管理員或 `CLOUD360_BOOTSTRAP_ADMIN_PASSWORD` 建立的 bootstrap admin 調整 |
 
 因此：**新環境請務必執行 `schema_rbac.sql`（或確認啟動後 `role_permissions` 列數約 308）**，不要只建表不塞預設。
 
@@ -322,9 +385,9 @@ docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec b
 1. 準備 PostgreSQL，設定 `DATABASE_URL`  
 2. 執行 `psql "$DATABASE_URL" -f schema_rbac.sql`  
 3. 準備 LLM：OpenRouter 金鑰 ＋ **Claude Code CLI**（Docker build 或本機安裝）  
-4. 設定後端 `.env`／`deploy/.env`（含 `CORS_ORIGINS`、`JWT_SECRET`、LLM／token 變數）並啟動 API  
+4. 設定後端 `.env`／`deploy/.env`（含 `CORS_ORIGINS`、`JWT_SECRET`、LLM／token 變數；全新 staging 可選 `CLOUD360_BOOTSTRAP_ADMIN_PASSWORD`）並啟動 API
 5. 設定前端 `VITE_API_BASE_URL` 後 build／部署  
-6. 用 `admin` / `admin123` 登入 → **立刻改密碼** → 調整角色權限  
+6. 用既有管理員或 bootstrap admin 登入 → **立刻輪替臨時密碼／清除 bootstrap secret** → 調整角色權限
 7. 依第 3.4 節做 A1／A3／優化煙測  
 
 ---
@@ -334,13 +397,13 @@ docker compose -f deploy/docker-compose.deploy.yml --env-file deploy/.env exec b
 | 文件 | 說明 |
 |---|---|
 | `schema_rbac.sql` | **建表 + 預設資料（含角色矩陣）** |
-| `aidlc-docs/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
-| `aidlc-docs/construction/plans/role-permission-design.md` | 角色／細項語意 |
+| `aidlc/spaces/default/intents/260802-default/construction/plans/schema-rbac-notes.md` | SQL 區塊說明 |
+| `aidlc/spaces/default/intents/260802-default/construction/plans/role-permission-design.md` | 角色／細項語意 |
 | `backend/.env.example`、`frontend/.env.example`、`deploy/.env.example` | 環境變數範本 |
 | `backend/Dockerfile` | 內建 Node 22 ＋ Claude Code CLI |
 | `deploy/docker-compose.deploy.yml` | staging／自架 compose |
 | `.github/workflows/deploy.yml` | `ut` → 192.168.10.10 自動部署 |
-| `aidlc-docs/construction/a1/code/a1-a3-multi-agent-summary.md` | A1↔A3 協作實作摘要 |
+| `aidlc/spaces/default/intents/260802-default/construction/a1/code-generation/a1-a3-multi-agent-summary.md` | A1↔A3 協作實作摘要 |
 
 ---
 
@@ -376,10 +439,10 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 ```
 
 Creates: `users`, `user_diagrams`, `diagram_shares`, `user_diagram_chats`, **`architecture_reviews` (A3)**, **`wa_lenses` (editable offline Lens)**, `role_permissions`, plus `last_opened_diagram_id`.  
-Seeds ~**308** `role_permissions` rows and default user **`admin` / `admin123`** (`Platform_Admin`) if missing.
+Seeds ~**308** `role_permissions` rows. It does **not** create a fixed-password admin user.
 
 **A3** `architecture_reviews` stores review scores/findings/suggestions. **`wa_lenses`** stores the active Custom Lens JSON editable by users with **A3.review** (default: Security_Reviewer VER; reviews resolve DB-first, then file fallback). Existing DBs: re-run `schema_rbac.sql` (`IF NOT EXISTS`) or rely on backend `_ensure_a3_schema()` on startup.
 
 **If you create empty tables without seeding `role_permissions`, the matrix is entirely empty** — no view/edit/review for any role, Sidebar stays empty, APIs return 403. Always run `schema_rbac.sql` (or confirm ~308 rows after backend empty-DB seed).
 
-Re-running **wipes and re-seeds** `role_permissions` (backup first if customized). Does not overwrite an existing admin password. Change `admin123` immediately after first login.
+Re-running **wipes and re-seeds** `role_permissions` (backup first if customized). Bootstrap admin creation is handled by backend startup via `CLOUD360_BOOTSTRAP_ADMIN_PASSWORD`, not by this SQL script.

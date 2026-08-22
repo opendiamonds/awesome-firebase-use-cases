@@ -43,7 +43,7 @@ safe-outputs:
 
 # Code Drift Alert
 
-Cloud-360 is spec-driven: the specs in `aidlc-docs/` are the contract and the code conforms to them. This workflow guards the direction the [[spec-sync]] workflow does not — code moving ahead of its spec. When a pull request changes code that a spec describes, but does not update that spec, you ask the author to make a deliberate choice. You **never** edit the spec yourself — auto-rewriting a spec to match code is exactly the anti-pattern this project rejects (it launders drift into the contract).
+Cloud-360 is spec-driven: the specs in the active AI-DLC intent record (`aidlc/spaces/<space>/intents/<record>/`, shorthand `<record>/`) are the contract and the code conforms to them. This workflow guards the direction the [[spec-sync]] workflow does not — code moving ahead of its spec. When a pull request changes code that a spec describes, but does not update that spec, you ask the author to make a deliberate choice. You **never** edit the spec yourself — auto-rewriting a spec to match code is exactly the anti-pattern this project rejects (it launders drift into the contract).
 
 ## The mapping
 
@@ -51,9 +51,9 @@ These code files are governed by these specs:
 
 | Code changed | Governing spec |
 |---|---|
-| `backend/services/*_router.py`, `backend/main.py` (routes, request/response shapes) | `aidlc-docs/inception/application-design/frontend-backend-specification.md` |
-| `backend/models.py`, `schema_rbac.sql`, `schema.sql` (tables, columns, relationships) | `aidlc-docs/construction/database-schema.md` |
-| `backend/services/rbac.py`, authorization checks in routers (permission rules) | `aidlc-docs/inception/application-design/frontend-backend-specification.md` (RBAC section) |
+| `backend/services/*_router.py`, `backend/main.py` (routes, request/response shapes) | `<record>/inception/application-design/frontend-backend-specification.md` |
+| `backend/models.py`, `schema_rbac.sql`, `schema.sql` (tables, columns, relationships) | `<record>/construction/database-schema.md` |
+| `backend/services/rbac.py`, authorization checks in routers (permission rules) | `<record>/inception/application-design/frontend-backend-specification.md` (RBAC section) |
 
 ## Step 1 — See what this PR changed
 

@@ -1,7 +1,7 @@
 """
 wa_collab_orchestrator.py — A1 Design ↔ A3 Review 雙 agent 協作（最多 2 輪）
 
-目標：架構圖不含 HIGH_RISK（lens）；過程 SSE 推送 transcript 與 xml_preview。
+目標：架構圖無 HIGH_RISK 且 lens 分數 ≥ TARGET_SCORE；過程 SSE 推送 transcript 與 xml_preview。
 """
 
 from __future__ import annotations
@@ -120,11 +120,12 @@ async def _review_speak(
     }
     parts: list[str] = []
     hr = int(score_payload.get("high_risk_count") or len(high))
+    score_now = int(round(float(score_payload.get("overall_score") or 0)))
     yield {
         "type": "progress",
         "content": (
-            f"Review Agent 發言中（高風險 {hr} 項；"
-            f"分數 {int(round(score_payload['overall_score']))}）…"
+            f"進入評核建議階段，請稍待…"
+            f"（高風險 {hr} 項；分數 {score_now}／目標 {TARGET_SCORE}）"
         ),
         "round": round_no,
     }
@@ -141,9 +142,9 @@ async def _review_speak(
         logger.warning("review speak fallback: %s", e)
         text = fallback_suggestions_from_findings(score_payload.get("findings"))
         text = (
-            f"目前有 {hr} 項 HIGH_RISK，架構圖不得保留高風險。"
-            f"lens 總分 {int(round(score_payload['overall_score']))}。"
-            f"請 Design Agent 優先消除高風險後再改圖：\n\n{text}"
+            f"目前有 {hr} 項 HIGH_RISK，lens 總分 {score_now}。"
+            f"達標需：無高風險且分數 ≥ {TARGET_SCORE}。"
+            f"請 Design Agent 優先消高風險並提升分數後再改圖：\n\n{text}"
         )
         parts.append(text)
         yield {
@@ -318,8 +319,8 @@ async def run_wa_collab(
     yield {
         "type": "progress",
         "content": (
-            f"啟動 Design ↔ Review 協作（目標：消除 HIGH_RISK；"
-            f"參考分數 ≥ {TARGET_SCORE}，最多 {MAX_ROUNDS} 輪）"
+            f"啟動 Design ↔ Review 協作（目標：消除 HIGH_RISK 且分數 ≥ {TARGET_SCORE}，"
+            f"最多 {MAX_ROUNDS} 輪）"
         ),
     }
 
@@ -347,6 +348,21 @@ async def run_wa_collab(
         }
         return
 
+    yield {
+        "type": "message",
+        "speaker": "system",
+        "content": (
+            "架構圖已繪製完成。接下來會進入評核階段，請稍待；"
+            "評核進行期間請先不要異動架構圖，待評核與建議完成後再調整。"
+        ),
+        "round": 1,
+    }
+    yield {
+        "type": "progress",
+        "content": "架構圖已完成，進入評核階段，請稍待（請勿異動架構圖）…",
+        "round": 1,
+    }
+
     # provider
     resolved_provider = (provider or "").lower().strip()
     if resolved_provider not in ("aws", "gcp", "azure"):
@@ -358,7 +374,10 @@ async def run_wa_collab(
 
     yield {
         "type": "progress",
-        "content": f"第 1 輪：以 {resolved_provider} Active Lens 評核中…",
+        "content": (
+            f"進入評核階段，請稍待…"
+            f"（第 1 輪：以 {resolved_provider} Active Lens 評分中；請勿異動架構圖）"
+        ),
         "round": 1,
     }
     try:
@@ -382,7 +401,7 @@ async def run_wa_collab(
                 xml=best_xml,
                 provider=resolved_provider,
                 score_payload=score1,
-                status_note="wa_collab passed: no HIGH_RISK on round 1",
+                status_note="wa_collab passed: no HIGH_RISK and score>=target on round 1",
             )
             if persist_review
             else None
@@ -394,9 +413,9 @@ async def run_wa_collab(
             round_no=1,
             provider=resolved_provider,
             review_id=rid,
-            message="已無高風險，請確認後儲存以覆蓋原架構圖。"
+            message=f"已達標（無高風險且分數 ≥ {TARGET_SCORE}），請確認後儲存以覆蓋原架構圖。"
             if not persist_review
-            else "已無高風險，架構圖可直接使用。",
+            else f"已達標（無高風險且分數 ≥ {TARGET_SCORE}），架構圖可直接使用。",
             persist_review=persist_review,
             baseline_findings=baseline_findings,
             baseline_overall_score=baseline_overall_score,
@@ -414,7 +433,7 @@ async def run_wa_collab(
     # —— Round 2：Design 依 Review 改圖 ——
     yield {
         "type": "progress",
-        "content": "第 2 輪：Design Agent 依 Review 意見消除高風險並改圖…",
+        "content": "第 2 輪：Design Agent 依 Review 意見改圖（消高風險／提升分數）…",
         "round": 2,
     }
     high_json = json.dumps(
@@ -426,12 +445,12 @@ async def run_wa_collab(
         ensure_ascii=False,
     )
     hr = int(score1.get("high_risk_count") or 0)
+    score_now = int(round(score1["overall_score"]))
     revise_msg = (
-        f"Well-Architected Review Agent 指出目前仍有 {hr} 項 HIGH_RISK。"
-        f"架構圖不得包含高風險元件／缺口；請優先消除所有 HIGH_RISK，"
-        f"並呼叫 draw_architecture_diagram 改圖。"
-        f"（參考：目前 lens 總分 {int(round(score1['overall_score']))}，"
-        f"目標亦可朝 ≥ {TARGET_SCORE} 改善。）\n\n"
+        f"Well-Architected Review Agent 評核：高風險 {hr} 項，lens 總分 {score_now}。"
+        f"達標條件：HIGH_RISK = 0 且分數 ≥ {TARGET_SCORE}。"
+        f"請優先消除所有 HIGH_RISK，並改善分數至 ≥ {TARGET_SCORE}，"
+        f"然後呼叫 draw_architecture_diagram 改圖。\n\n"
         f"【必須優先處理的高風險】\n{high_json}\n\n"
         f"【Review Agent 發言】\n{review_text}\n\n"
         f"【全部 findings】\n{findings_json}"
@@ -456,7 +475,10 @@ async def run_wa_collab(
         best_xml = xml_r2
         yield {
             "type": "progress",
-            "content": f"第 2 輪：以 {resolved_provider} Active Lens 再評核…",
+            "content": (
+                f"改圖完成，再次進入評核階段，請稍待…"
+                f"（第 2 輪：以 {resolved_provider} Active Lens 評分中）"
+            ),
             "round": 2,
         }
         try:
@@ -478,10 +500,14 @@ async def run_wa_collab(
 
     status = "passed" if best_score.get("passed") else "failed"
     hr_final = int(best_score.get("high_risk_count") or 0)
+    score_final = int(round(float(best_score.get("overall_score") or 0)))
     note = (
-        "wa_collab passed: no HIGH_RISK on round 2"
+        f"wa_collab passed: no HIGH_RISK and score>={TARGET_SCORE} on round 2"
         if status == "passed"
-        else f"wa_collab failed after {MAX_ROUNDS} rounds; high_risk={hr_final}; needs human"
+        else (
+            f"wa_collab failed after {MAX_ROUNDS} rounds; "
+            f"high_risk={hr_final}; score={score_final}; needs human"
+        )
     )
     rid = (
         _persist_review(
@@ -504,15 +530,18 @@ async def run_wa_collab(
         provider=resolved_provider,
         review_id=rid,
         message=(
-            "已無高風險，請確認後儲存以覆蓋原架構圖。"
+            f"已達標（無高風險且分數 ≥ {TARGET_SCORE}），請確認後儲存以覆蓋原架構圖。"
             if not persist_review and status == "passed"
             else (
-                f"兩輪後仍有 {hr_final} 項高風險，請確認後儲存或取消。"
+                f"兩輪後尚未達標（高風險 {hr_final} 項、分數 {score_final}），請確認後儲存或取消。"
                 if not persist_review
                 else (
-                    "已無高風險，架構圖可直接使用。"
+                    f"已達標（無高風險且分數 ≥ {TARGET_SCORE}），架構圖可直接使用。"
                     if status == "passed"
-                    else f"兩輪後仍有 {hr_final} 項高風險，請人工調整後再優化；目前最佳圖已寫入。"
+                    else (
+                        f"兩輪後尚未達標（高風險 {hr_final} 項、分數 {score_final}），"
+                        "請人工調整後再優化；目前最佳圖已寫入。"
+                    )
                 )
             )
         ),

@@ -86,16 +86,63 @@ def _cell_text(value: str | None) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+_XML_ILLEGAL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+# Named HTML entities that ElementTree rejects (only lt/gt/amp/apos/quot are predefined in XML).
+_HTML_NAMED_ENTITY = re.compile(r"&([a-zA-Z][a-zA-Z0-9]+);")
+_BARE_AMP = re.compile(r"&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);)")
+# `<` that is not a tag / PI / comment / CDATA start (common in agent labels: "A < B").
+_BARE_LT = re.compile(r"<(?![/?!]?[A-Za-z_]|!(?:--|\[CDATA\[))")
+
+
+def sanitize_mxgraph_xml(xml: str) -> str:
+    """Make draw.io / agent XML parseable by ElementTree without changing structure.
+
+    Draw.io labels and LLM-produced diagrams often contain bare ``&`` / ``<`` or
+    HTML-only entities such as ``&nbsp;``, which raise ParseError (invalid token /
+    undefined entity).
+    """
+    from html.entities import name2codepoint
+
+    text = (xml or "").lstrip("\ufeff")
+    text = _XML_ILLEGAL_CHARS.sub("", text)
+
+    def _named_to_numeric(match: re.Match[str]) -> str:
+        name = match.group(1)
+        if name in {"lt", "gt", "amp", "apos", "quot"}:
+            return match.group(0)
+        code = name2codepoint.get(name)
+        if code is not None:
+            return f"&#{code};"
+        # Unknown entity → escape the ampersand so the rest stays literal text.
+        return f"&amp;{name};"
+
+    text = _HTML_NAMED_ENTITY.sub(_named_to_numeric, text)
+    text = _BARE_AMP.sub("&amp;", text)
+    text = _BARE_LT.sub("&lt;", text)
+    return text
+
+
 def parse_diagram_summary(xml: str) -> dict[str, Any]:
     """Lean mxCell extract for rules + ReviewAgent input (no full XML)."""
     nodes: list[dict[str, str]] = []
     edges: list[dict[str, str]] = []
     if len(xml) > 2 * 1024 * 1024:
         logger.warning("WA rule engine: XML size %d bytes > 2MB; continuing", len(xml))
+    raw = xml or ""
     try:
-        root = ET.fromstring(xml)
-    except ET.ParseError as e:
-        raise ValueError(f"invalid_mxgraph_xml: {e}") from e
+        root = ET.fromstring(raw)
+    except ET.ParseError as first_err:
+        cleaned = sanitize_mxgraph_xml(raw)
+        if cleaned == raw:
+            raise ValueError(f"invalid_mxgraph_xml: {first_err}") from first_err
+        try:
+            root = ET.fromstring(cleaned)
+            logger.info(
+                "WA rule engine: sanitized mxGraph XML after parse error: %s",
+                first_err,
+            )
+        except ET.ParseError as e:
+            raise ValueError(f"invalid_mxgraph_xml: {e}") from e
 
     for cell in root.iter("mxCell"):
         cid = cell.attrib.get("id") or ""
@@ -374,7 +421,10 @@ def _run_rules(summary: dict[str, Any]) -> list[Finding]:
 
 
 def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
-    """GCP Architecture Framework–aligned heuristics (mapped to WA five pillars)."""
+    """Google Cloud Well-Architected Framework–aligned heuristics (five WA pillar ids).
+
+    Ref: https://docs.cloud.google.com/architecture/framework
+    """
     findings: list[Finding] = []
     labels = _labels(summary)
 
@@ -408,10 +458,10 @@ def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
             "GCP-REL-SINGLE-ZONE",
             "reliability",
             "high",
-            "疑似單一 zone／區域佈署",
-            "圖面未清楚標示多個 zone 或區域；高可用風險偏高。",
+            "[GCAF] 疑似單一 zone／區域佈署",
+            "Google Cloud Well-Architected Reliability 強調以冗餘建立高可用；圖面未清楚標示多個 zone。",
             zone_ids,
-            "關鍵工作負載跨至少兩個 zone，資料層考慮多區域。",
+            "關鍵工作負載跨至少兩個 zone（regional MIG／multi-zone），資料層考慮多區域。",
         )
 
     db_ids = _find_nodes(
@@ -425,23 +475,72 @@ def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
             "GCP-REL-DB-NO-HA",
             "reliability",
             "critical",
-            "資料庫缺少 HA／複本標註",
+            "[GCAF] 資料庫缺少 HA／複本標註",
             "偵測到資料庫元件，但未見 replica／regional／HA 標註。",
             db_ids,
             "為 Cloud SQL 啟用高可用，或使用 Spanner／多區域資料服務並在圖上標示。",
         )
 
+    # GCAF Reliability: horizontal scalability
     if compute and not _find_nodes(
-        summary, "cloud armor", "armor", "load balancing", "https load", "glb"
+        summary,
+        "mig",
+        "managed instance group",
+        "autoscal",
+        "auto scale",
+        "hpa",
+        "cloud run",
+        "horizontal",
+    ):
+        add(
+            "GCP-REL-NO-SCALE",
+            "reliability",
+            "warn",
+            "[GCAF] 缺少水平擴展標註",
+            "有運算層但未見 MIG／autoscaling／水平擴展標註（GCAF：Take advantage of horizontal scalability）。",
+            compute,
+            "使用 regional MIG、GKE autoscaling 或 Cloud Run 自動伸縮。",
+        )
+
+    # GCAF Reliability: recovery / multi-regional
+    if (db_ids or compute) and not _find_nodes(
+        summary,
+        "multi-region",
+        "multiregion",
+        "cross-region",
+        "backup",
+        "dr ",
+        "disaster",
+        "failover",
+    ):
+        add(
+            "GCP-REL-NO-DR",
+            "reliability",
+            "high",
+            "[GCAF] 缺少多區域／復原標註",
+            "圖上未見 multi-region／backup／failover 等復原路徑標註。",
+            db_ids or compute,
+            "標示跨區域複本或備份還原路徑，並定義 RPO/RTO。",
+        )
+
+    if compute and not _find_nodes(
+        summary,
+        "cloud armor",
+        "armor",
+        "load balancing",
+        "https load",
+        "glb",
+        "iap",
+        "identity-aware",
     ):
         add(
             "GCP-SEC-NO-EDGE",
             "security",
             "high",
-            "缺少邊緣防護／負載平衡標註",
-            "有運算層但未見 Cloud Armor 或全球負載平衡。",
+            "[GCAF] 缺少邊緣防護／負載平衡標註",
+            "GCAF Security 強調 security by design／zero trust；有運算層但未見 Cloud Armor、全球 LB 或 IAP。",
             compute,
-            "在對外入口加入 Cloud Load Balancing 與 Cloud Armor。",
+            "在對外入口加入 Cloud Load Balancing 與 Cloud Armor；管理面考慮 IAP。",
         )
 
     if not _find_nodes(
@@ -453,10 +552,10 @@ def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
             "GCP-SEC-NO-KMS",
             "security",
             "high",
-            "缺少 KMS／Secret Manager 標註",
+            "[GCAF] 缺少 KMS／Secret Manager 標註",
             "有資料儲存但未見加密金鑰或密鑰管理元件。",
             [],
-            "使用 Cloud KMS 與 Secret Manager 管理金鑰與密文。",
+            "使用 Cloud KMS（CMEK）與 Secret Manager 管理金鑰與密文。",
         )
 
     if db_ids and not _find_nodes(
@@ -466,10 +565,10 @@ def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
             "GCP-PERF-NO-CACHE",
             "performance_efficiency",
             "warn",
-            "讀路徑缺少快取標註",
-            "有資料層但未見 Memorystore／Cloud CDN。",
+            "[GCAF] 讀路徑缺少快取標註",
+            "GCAF Performance optimization：有資料層但未見 Memorystore／Cloud CDN。",
             [],
-            "對讀多路徑加入快取或 CDN。",
+            "對讀多路徑加入快取或 CDN，並依負載規劃資源配置。",
         )
 
     if not _find_nodes(
@@ -485,10 +584,10 @@ def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
             "GCP-OE-NO-MONITOR",
             "operational_excellence",
             "warn",
-            "缺少可觀測性標註",
-            "圖上未見 Cloud Monitoring／Logging／Trace。",
+            "[GCAF] 缺少 CloudOps 可觀測性標註",
+            "GCAF Operational excellence 強調 CloudOps；圖上未見 Cloud Monitoring／Logging／Trace。",
             [],
-            "加入 Monitoring、Logging 與告警政策。",
+            "加入 Monitoring、Logging、SLO 與告警政策。",
         )
 
     if not _find_nodes(
@@ -498,21 +597,21 @@ def _run_rules_gcp(summary: dict[str, Any]) -> list[Finding]:
             "GCP-OE-NO-PIPELINE",
             "operational_excellence",
             "info",
-            "缺少 CI/CD 標註",
-            "圖上未標示 Cloud Build／Deploy 等管線。",
+            "[GCAF] 缺少變更自動化（CI/CD）標註",
+            "GCAF Ops：Automate and manage change；圖上未標示 Cloud Build／Deploy 等管線。",
             [],
-            "若含變更路徑，請標註 CI/CD。",
+            "若含變更路徑，請標註 CI/CD（Cloud Build／Cloud Deploy）。",
         )
 
     if _find_nodes(summary, "compute engine", "gce") and not _find_nodes(
-        summary, "committed use", "cud", "spot", "preemptible", "autoscal"
+        summary, "committed use", "cud", "spot", "preemptible", "autoscal", "lifecycle"
     ):
         add(
             "GCP-COST-NO-COMMIT",
             "cost_optimization",
             "info",
-            "運算成本優化標註不足",
-            "有 GCE 但未見承諾使用折扣／Spot／自動伸縮標註。",
+            "[GCAF] 運算／資源成本優化標註不足",
+            "GCAF Cost：Optimize resource usage；有 GCE 但未見 CUD／Spot／自動伸縮標註。",
             [],
             "評估 CUD、Spot VM 或自動伸縮以降低成本。",
         )
@@ -640,6 +739,68 @@ def _run_rules_azure(summary: dict[str, Any]) -> list[Finding]:
             "有資料層但未見 Redis／CDN 類快取。",
             [],
             "對讀多路徑加入 Azure Cache for Redis 或 CDN。",
+        )
+
+    # WARA themes (diagram-adapted; not live collector): DR / backup / health
+    # Ref: https://github.com/Azure/Well-Architected-Reliability-Assessment
+    if (db_ids or compute) and not _find_nodes(
+        summary,
+        "geo-replica",
+        "geo replication",
+        "paired region",
+        "secondary region",
+        "site recovery",
+        "asr",
+        "multi-region",
+        "multiregion",
+        "failover group",
+    ):
+        add(
+            "AZ-REL-NO-DR",
+            "reliability",
+            "high",
+            "[WARA] 缺少跨區域／災難復原標註",
+            "WARA Reliability 強調恢復與跨區域備援；圖上未見 geo-replica／Site Recovery／paired region 等標註。",
+            db_ids or compute,
+            "標示次要區域、geo-replication 或 Azure Site Recovery，並定義 RPO/RTO。",
+        )
+
+    if (db_ids or _find_nodes(summary, "storage", "blob")) and not _find_nodes(
+        summary,
+        "backup",
+        "recovery vault",
+        "recovery services",
+        "pitr",
+        "point-in-time",
+    ):
+        add(
+            "AZ-REL-NO-BACKUP",
+            "reliability",
+            "high",
+            "[WARA] 缺少備份／復原標註",
+            "有資料層但未見 Backup／Recovery Services Vault／PITR 標註。",
+            db_ids,
+            "為關鍵資料啟用備份與還原測試，並在圖上標示。",
+        )
+
+    if compute and not _find_nodes(
+        summary,
+        "health probe",
+        "health check",
+        "health endpoint",
+        "readiness",
+        "liveness",
+        "auto-heal",
+        "auto heal",
+    ):
+        add(
+            "AZ-REL-NO-HEALTH",
+            "reliability",
+            "warn",
+            "[WARA] 缺少健康探針／自癒標註",
+            "有運算層但未見 health probe／auto-heal 等運維復原機制標註。",
+            compute,
+            "在負載平衡／App Service／AKS 標示健康探針，並規劃故障自動隔離。",
         )
 
     if not _find_nodes(

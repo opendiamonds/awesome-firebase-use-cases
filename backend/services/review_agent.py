@@ -9,12 +9,17 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-from services.design_agent import configure_openrouter_env
+from services.llm_provider import (
+    auth_error_message,
+    configure_provider_env,
+    get_review_model_name,
+    llm_auth_ready,
+)
+from services.llm_limits import agent_sdk_env
 
 logger = logging.getLogger("cloud360.review_agent")
 
@@ -41,26 +46,26 @@ def fallback_suggestions_from_findings(findings: list[dict[str, Any]] | None) ->
     items = findings or []
     if not items:
         return (
-            "## 備援建議\n\n"
+            "備援建議\n\n"
             "本次無法呼叫 Review Agent，且沒有規則發現可供擴寫。"
             "請確認已設定 OPENROUTER_API_KEY 後重試建議。"
         )
     lines = [
-        "## 備援建議（依規則發現自動產生）",
+        "備援建議（依規則發現自動產生）",
         "",
-        "> Review Agent 暫時不可用；以下依 findings 整理，請人工複核。",
+        "Review Agent 暫時不可用；以下依 findings 整理，請人工複核。",
         "",
     ]
     ordered = sorted(
         items,
         key=lambda f: SEVERITY_ORDER.get(str(f.get("severity") or ""), 9),
     )
-    for f in ordered:
+    for i, f in enumerate(ordered, start=1):
         code = f.get("code") or "—"
         title = f.get("title") or code
         sev = f.get("severity") or "info"
         hint = (f.get("recommendation_hint") or f.get("message") or "").strip()
-        lines.append(f"### [{sev}] {code} — {title}")
+        lines.append(f"{i}. [{sev}] {code} — {title}")
         lines.append(hint or "（無建議細節）")
         lines.append("")
     return "\n".join(lines).strip()
@@ -114,27 +119,21 @@ async def run_review_agent(
         TextBlock,
     )
 
-    configure_openrouter_env()
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
-    if not openrouter_key and not auth_token:
-        raise RuntimeError("尚未設定 OPENROUTER_API_KEY（或 ANTHROPIC_AUTH_TOKEN）")
+    configure_provider_env()
+    if not llm_auth_ready():
+        raise RuntimeError(auth_error_message())
 
     payload = _compact_payload(diagram_summary, rule_result)
     user_prompt = (
         "依下列評核摘要，直接寫出繁中改善建議（精簡、可執行）。"
-        "若有 high_risk_findings／high_risk_count>0，必須優先說明如何消除每一項 HIGH_RISK，"
-        "使架構圖不再含高風險；其餘 findings 次之。"
+        "若有 high_risk_findings／high_risk_count>0，必須優先說明如何消除每一項 HIGH_RISK；"
+        "若 overall_score < 80，亦須提出可提升分數至 ≥ 80 的改圖建議。"
+        "使架構圖不再含高風險且分數達標；其餘 findings 次之。"
         "勿呼叫任何工具：\n"
         f"```json\n{json.dumps(payload, ensure_ascii=False)}\n```"
     )
-    # Prefer faster model for review suggestions; override with REVIEW_LLM_MODEL
-    model_name = (
-        os.environ.get("REVIEW_LLM_MODEL", "").strip()
-        or os.environ.get("LLM_MODEL", "").strip()
-        or os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "").strip()
-        or "anthropic/claude-3.5-haiku"
-    )
+    # Prefers a faster model; override with REVIEW_LLM_MODEL.
+    model_name = get_review_model_name()
     options = ClaudeAgentOptions(
         system_prompt=load_review_system_prompt(),
         model=model_name,

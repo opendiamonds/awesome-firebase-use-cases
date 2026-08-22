@@ -30,10 +30,15 @@ services:
   backend:
     build:
       context: ../backend
+      network: host
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
+      CLOUD360_BOOTSTRAP_ADMIN_PASSWORD: ${CLOUD360_BOOTSTRAP_ADMIN_PASSWORD:-}
+      # No fallback on purpose: this makes scripts/validate_env_contract.py
+      # require render-env.sh and deploy/.env.example to keep writing it.
+      LLM_PROVIDER: ${LLM_PROVIDER}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL}
       ANTHROPIC_DEFAULT_SONNET_MODEL: ${ANTHROPIC_DEFAULT_SONNET_MODEL}
@@ -41,9 +46,11 @@ services:
       LLM_MAX_OUTPUT_TOKENS: ${LLM_MAX_OUTPUT_TOKENS:-12000}
       LLM_XML_CONTEXT_MAX_CHARS: ${LLM_XML_CONTEXT_MAX_CHARS:-32000}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      N8N_USER: ${N8N_USER}
+      N8N_PASSWORD: ${N8N_PASSWORD}
       APP_ENV: ${APP_ENV}
       # Same-origin through nginx, so CORS is belt-and-braces rather than load-bearing.
-      CORS_ORIGINS: ${PUBLIC_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS:-${PUBLIC_URL}}
     depends_on:
       db:
         condition: service_healthy
@@ -51,6 +58,7 @@ services:
   frontend:
     build:
       context: ../frontend
+      network: host
       args:
         # Vite inlines this at build time; changing PUBLIC_URL requires a rebuild.
         VITE_API_BASE_URL: ${PUBLIC_URL}

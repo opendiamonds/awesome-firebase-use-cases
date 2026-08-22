@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Validate the Cloud-360 repository contract."""
+"""Validate the Cloud-360 repository contract.
+
+AI-DLC v2 (ADR-0011) keeps workflow artifacts in a per-intent record directory
+under ``aidlc/spaces/<space>/intents/<record>/`` instead of the flat
+``aidlc-docs/`` root v1 used. The record directory name is minted by the engine
+(``<YYMMDD>-<label>``), so the baseline artifacts cannot be pinned by literal
+path any more. They are declared record-relative in ``REQUIRED_RECORD_FILES`` /
+``REQUIRED_RECORD_TEXT`` and resolved at runtime against whichever record holds
+the full baseline set.
+"""
 
 from __future__ import annotations
 
@@ -10,36 +19,69 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Every AI-DLC intent record lives here; a record is identified by its state file.
+RECORD_GLOB = "aidlc/spaces/*/intents/*"
+RECORD_STATE_FILE = "aidlc-state.md"
+
+# Repo-root-relative files that must exist regardless of the AI-DLC layout.
 REQUIRED_FILES = (
     "README.md",
     ".gitignore",
     ".github/workflows/ci.yml",
-    "aidlc-docs/inception/requirements/cloud-360-srs.md",
-    "aidlc-docs/inception/application-design/system-architecture.md",
-    "aidlc-docs/inception/user-stories/stories.md",
-    "aidlc-docs/inception/user-stories/personas.md",
-    "aidlc-docs/inception/decisions/0001-repo-scope.md",
-    "aidlc-docs/inception/decisions/0002-agent-routing-layer.md",
-    "aidlc-docs/inception/decisions/0003-web-based-experience.md",
-    "aidlc-docs/inception/decisions/0004-mcp-skill-management.md",
-    "aidlc-docs/inception/decisions/0005-bilingual-documentation.md",
-    "aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md",
     "scripts/validate_repo_contract.py",
     "CLAUDE.md",
-    ".aidlc/aidlc-rules/VERSION",
-    ".aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md",
-    ".aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/bilingual-docs/bilingual-docs.md",
-    ".aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md",
-    ".aidlc/aidlc-rules/aws-aidlc-rule-details/extensions/testing/property-based/property-based-testing.md",
-    "aidlc-docs/README.md",
-    "aidlc-docs/aidlc-state.md",
-    "aidlc-docs/audit.md",
-    ".aidlc-overrides/README.md",
-    ".aidlc-overrides/branch-naming.md",
-    ".aidlc-overrides/decisions-log.md",
-    "aidlc-docs/decisions-log.md",
-    "aidlc-docs/inception/decisions/0009-traditional-chinese-docs.md",
-    ".aidlc-overrides/traditional-chinese-docs.md",
+    # Local development: the only path by which a developer can run every
+    # feature outside CI, and the only place the implicit runtime dependencies
+    # are written down.
+    "LOCAL-DEV.md",
+    # Test-case format contract. Tool-agnostic on purpose -- contributors on
+    # Cursor or Antigravity never load the AI-DLC knowledge tree, so the
+    # contract cannot live only there. tcms_validate.py reads its
+    # `required-sections` marker, so this file IS the field list, not a copy.
+    "TESTING.md",
+    # Environment-configuration separation (local dev vs deploy stack).
+    "scripts/validate_env_contract.py",
+    "deploy/render-env.sh",
+    # AI-DLC v2 entry points and rule surface (ADR-0011).
+    ".claude/CLAUDE.md",
+    ".claude/skills/aidlc/SKILL.md",
+    ".claude/tools/aidlc-version.ts",
+    "aidlc/spaces/default/memory/org.md",
+    "aidlc/spaces/default/memory/team.md",
+    "aidlc/spaces/default/memory/project.md",
+    # The tcms plugin's stage (see .claude/README-cloud360.md § 調整 3). It is
+    # hand-written but sits under .claude/, so an AI-DLC upgrade's bulk copy of
+    # upstream dist/claude/ can remove it. Losing it is silent -- the stage
+    # simply stops running and project.md's blocking rule points at a stage that
+    # no longer exists. Listing it here turns that into a red CI gate.
+    ".claude/aidlc-common/stages/construction/tcms-test-cases.md",
+    # The verification gate. Hand-written and under .claude/, so it carries the
+    # same upgrade risk as the stage file above.
+    ".claude/skills/tcms-verify/SKILL.md",
+    # The authoring standard the stage is judged against. Outside .claude/, so
+    # an upgrade cannot touch it -- listed because the stage is useless without it.
+    "aidlc/spaces/default/knowledge/aidlc-quality-agent/test-case-authoring.md",
+    "scripts/tcms_sync.py",
+    "scripts/tcms_validate.py",
+)
+
+# Baseline artifacts, declared relative to the intent record that carries them.
+REQUIRED_RECORD_FILES = (
+    RECORD_STATE_FILE,
+    "README.md",
+    "decisions-log.md",
+    "inception/requirements-analysis/cloud-360-srs.md",
+    "inception/application-design/system-architecture.md",
+    "inception/user-stories/stories.md",
+    "inception/user-stories/personas.md",
+    "inception/decisions/0001-repo-scope.md",
+    "inception/decisions/0002-agent-routing-layer.md",
+    "inception/decisions/0003-web-based-experience.md",
+    "inception/decisions/0004-mcp-skill-management.md",
+    "inception/decisions/0005-bilingual-documentation.md",
+    "inception/decisions/0006-adopt-aidlc-framework.md",
+    "inception/decisions/0009-traditional-chinese-docs.md",
+    "inception/decisions/0011-adopt-aidlc-v2.md",
 )
 
 REQUIRED_TEXT = {
@@ -54,88 +96,17 @@ REQUIRED_TEXT = {
         "human approval gate",
         "MCP & Skill Management",
     ),
-    "aidlc-docs/inception/requirements/cloud-360-srs.md": (
-        "AI Multi-Cloud Operations",
-        "Cloud Security Posture & Policy Advisory",
-        "Mobile Web",
-        "MCP servers",
-        "Terraform / OpenTofu",
-        "MCP & Skill Management",
-    ),
-    "aidlc-docs/inception/application-design/system-architecture.md": (
-        "Agent Routing Layer",
-        "Cloud Operation Integration Layer",
-        "draw.io",
-        "Security Policy Advisor Agent",
-        "MCP / Skill Registry",
-    ),
-    "aidlc-docs/inception/user-stories/stories.md": (
-        "Architecture Design",
-        "Cost Estimation & FinOps",
-        "Cloud Security Posture",
-        "Mobile",
-    ),
-    "aidlc-docs/inception/user-stories/personas.md": (
-        "Cloud Architect",
-        "SRE",
-        "Platform Engineer",
-        "Security Reviewer",
-    ),
-    "aidlc-docs/inception/decisions/0001-repo-scope.md": (
-        "Spec-Driven Development",
-        "feature/cloud_architecture",
-        "read-only",
-    ),
-    "aidlc-docs/inception/decisions/0002-agent-routing-layer.md": (
-        "Routing Agent",
-        "Security Policy Advisor Agent",
-        "human approval",
-    ),
-    "aidlc-docs/inception/decisions/0003-web-based-experience.md": (
-        "Web-first",
-        "Mobile Web",
-        "Native iOS app",
-        "Native Android app",
-    ),
-    "aidlc-docs/inception/decisions/0004-mcp-skill-management.md": (
-        "MCP and Skill Management",
-        "Permission and Risk Classification",
-        "Agent Routing Integration",
-        "Health Checks",
-    ),
-    "aidlc-docs/inception/decisions/0005-bilingual-documentation.md": (
-        "Bilingual Documentation",
-    ),
-    "aidlc-docs/inception/decisions/0006-adopt-aidlc-framework.md": (
-        "Adopt AIDLC",
-        "AIDLC v0.1.8",
-        "Hybrid",
-        "extensions/security/baseline/",
-        "extensions/testing/property-based/",
-        "extensions/bilingual-docs/",
-    ),
     "CLAUDE.md": (
         "AIDLC",
-        ".aidlc/aidlc-rules/aws-aidlc-rule-details/",
-        ".aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md",
-        "Pre-enabled Extensions",
+        ".claude/skills/aidlc/SKILL.md",
+        "aidlc/spaces/<active-space>/memory/",
+        "Standing Constraints",
         "validate_repo_contract.py",
     ),
-    "aidlc-docs/aidlc-state.md": (
-        "Project Type",
-        "Brownfield",
-        "Extension Configuration",
-        "extensions/security/baseline/",
-        "extensions/testing/property-based/",
-    ),
-    "aidlc-docs/README.md": (
-        "AIDLC",
-    ),
-    ".aidlc-overrides/README.md": (
-        "Cloud-360 AIDLC Overrides",
-    ),
-    ".aidlc-overrides/branch-naming.md": (
-        "Branch Naming Convention",
+    # AI-DLC v2 memory layers — the project rule surface (ADR-0011). org.md
+    # stays upstream/English; team.md and project.md carry the Cloud-360 rules
+    # and are Traditional Chinese.
+    "aidlc/spaces/default/memory/team.md": (
         "<uploader>/<type>/<slug>",
         "feat",
         "fix",
@@ -144,15 +115,97 @@ REQUIRED_TEXT = {
         "refactor",
         "test",
         "danniel",
+        "功能",
+        "修正",
+        "<record>/decisions-log.md",
     ),
-    ".aidlc-overrides/decisions-log.md": (
-        "Project Decisions Log Rule",
-        "aidlc-docs/decisions-log.md",
-        "explicit user request",
-        "Trigger",
-        "Decision",
+    "aidlc/spaces/default/memory/project.md": (
+        "property-based",
+        "schema_rbac.sql",
+        "DEPLOY.md",
+        "validate_repo_contract.py",
+        "Scope Overrides",
     ),
-    "aidlc-docs/decisions-log.md": (
+}
+
+REQUIRED_RECORD_TEXT = {
+    "inception/requirements-analysis/cloud-360-srs.md": (
+        "AI Multi-Cloud Operations",
+        "Cloud Security Posture & Policy Advisory",
+        "Mobile Web",
+        "MCP servers",
+        "Terraform / OpenTofu",
+        "MCP & Skill Management",
+    ),
+    "inception/application-design/system-architecture.md": (
+        "Agent Routing Layer",
+        "Cloud Operation Integration Layer",
+        "draw.io",
+        "Security Policy Advisor Agent",
+        "MCP / Skill Registry",
+    ),
+    "inception/user-stories/stories.md": (
+        "Architecture Design",
+        "Cost Estimation & FinOps",
+        "Cloud Security Posture",
+        "Mobile",
+    ),
+    "inception/user-stories/personas.md": (
+        "Cloud Architect",
+        "SRE",
+        "Platform Engineer",
+        "Security Reviewer",
+    ),
+    "inception/decisions/0001-repo-scope.md": (
+        "Spec-Driven Development",
+        "feature/cloud_architecture",
+        "read-only",
+    ),
+    "inception/decisions/0002-agent-routing-layer.md": (
+        "Routing Agent",
+        "Security Policy Advisor Agent",
+        "human approval",
+    ),
+    "inception/decisions/0003-web-based-experience.md": (
+        "Web-first",
+        "Mobile Web",
+        "Native iOS app",
+        "Native Android app",
+    ),
+    "inception/decisions/0004-mcp-skill-management.md": (
+        "MCP and Skill Management",
+        "Permission and Risk Classification",
+        "Agent Routing Integration",
+        "Health Checks",
+    ),
+    "inception/decisions/0005-bilingual-documentation.md": (
+        "Bilingual Documentation",
+    ),
+    # ADR-0006 is a historical record: it still describes the v1 extension
+    # mechanism verbatim, which is correct for a decision made under v1. The
+    # contract only pins terms that are stable regardless of framework version.
+    "inception/decisions/0006-adopt-aidlc-framework.md": (
+        "Adopt AIDLC",
+        "AIDLC v0.1.8",
+        "Hybrid",
+    ),
+    "inception/decisions/0011-adopt-aidlc-v2.md": (
+        "AI-DLC v2",
+        "aidlc/spaces",
+        "Alternatives",
+    ),
+    RECORD_STATE_FILE: (
+        "Project Type",
+        "Brownfield",
+        "State Version",
+        "Standing Constraints",
+        "Security baseline",
+        "Property-based testing",
+    ),
+    "README.md": (
+        "AI-DLC",
+    ),
+    "decisions-log.md": (
         "Project Decisions Log",
     ),
 }
@@ -176,31 +229,112 @@ def fail(message: str) -> int:
     return 1
 
 
-def git_diff_name_only(*args: str) -> list[str]:
+def git_ls_files() -> list[str]:
+    """Every file tracked by git, as repo-root-relative paths.
+
+    ``-z`` returns NUL-separated, unquoted paths. Without it git applies
+    ``core.quotePath`` and escapes non-ASCII names, which would corrupt the
+    path parts this contract compares against.
+    """
     result = subprocess.run(
-        ["git", "diff", "--name-only", *args],
+        ["git", "ls-files", "-z"],
         cwd=ROOT,
         check=True,
         text=True,
         capture_output=True,
     )
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return [path for path in result.stdout.split("\0") if path]
+
+
+def all_record_roots() -> list[Path]:
+    """Every AI-DLC intent record in the workspace, in stable order."""
+    return sorted(
+        path
+        for path in ROOT.glob(RECORD_GLOB)
+        if (path / RECORD_STATE_FILE).is_file()
+    )
+
+
+def resolve_baseline_record() -> tuple[Path | None, list[str]]:
+    """Locate the record carrying the Cloud-360 baseline artifacts.
+
+    Records born for later intents legitimately lack the baseline set, so the
+    contract is satisfied when ANY record holds all of it. On failure we report
+    the closest candidate's gaps rather than every record's.
+    """
+    records = all_record_roots()
+    if not records:
+        return None, [f"no AI-DLC intent record found under {RECORD_GLOB}"]
+
+    closest: Path | None = None
+    closest_missing: list[str] | None = None
+    for record in records:
+        missing = [rel for rel in REQUIRED_RECORD_FILES if not (record / rel).is_file()]
+        if not missing:
+            return record, []
+        if closest_missing is None or len(missing) < len(closest_missing):
+            closest, closest_missing = record, missing
+
+    assert closest is not None and closest_missing is not None
+    prefix = closest.relative_to(ROOT).as_posix()
+    return None, [f"{prefix}/{rel}" for rel in closest_missing]
+
+
+# Resolved once; every check reads the same record.
+BASELINE_RECORD, BASELINE_MISSING = resolve_baseline_record()
 
 
 def validate_required_files() -> int:
     missing = [path for path in REQUIRED_FILES if not (ROOT / path).is_file()]
     if missing:
         return fail("Missing required contract files: " + ", ".join(missing))
+    if BASELINE_RECORD is None:
+        return fail(
+            "No AI-DLC intent record holds the Cloud-360 baseline artifacts; "
+            "closest candidate is missing: " + ", ".join(BASELINE_MISSING)
+        )
+    # The pre-v2 flat audit.md is a per-clone shard set after migration; require
+    # at least one shard so the decision history stays in the contract.
+    shards = sorted((BASELINE_RECORD / "audit").glob("*.md"))
+    if not shards:
+        prefix = BASELINE_RECORD.relative_to(ROOT).as_posix()
+        return fail(f"No audit shard found under {prefix}/audit/*.md")
     return 0
+
+
+def contract_files() -> list[tuple[str, Path]]:
+    """Every file the contract governs, as (display path, absolute path)."""
+    files = [(rel, ROOT / rel) for rel in REQUIRED_FILES]
+    if BASELINE_RECORD is not None:
+        prefix = BASELINE_RECORD.relative_to(ROOT).as_posix()
+        files += [
+            (f"{prefix}/{rel}", BASELINE_RECORD / rel) for rel in REQUIRED_RECORD_FILES
+        ]
+        files += [
+            (path.relative_to(ROOT).as_posix(), path)
+            for path in sorted((BASELINE_RECORD / "audit").glob("*.md"))
+        ]
+    return files
 
 
 def validate_required_text() -> int:
     violations: list[str] = []
-    for rel_path, required_terms in REQUIRED_TEXT.items():
-        text = (ROOT / rel_path).read_text(encoding="utf-8")
+
+    checks: list[tuple[str, Path, tuple[str, ...]]] = [
+        (rel, ROOT / rel, terms) for rel, terms in REQUIRED_TEXT.items()
+    ]
+    if BASELINE_RECORD is not None:
+        prefix = BASELINE_RECORD.relative_to(ROOT).as_posix()
+        checks += [
+            (f"{prefix}/{rel}", BASELINE_RECORD / rel, terms)
+            for rel, terms in REQUIRED_RECORD_TEXT.items()
+        ]
+
+    for display, path, required_terms in checks:
+        text = path.read_text(encoding="utf-8")
         for term in required_terms:
             if term not in text:
-                violations.append(f"{rel_path} missing {term!r}")
+                violations.append(f"{display} missing {term!r}")
     if violations:
         return fail("Required contract text missing: " + "; ".join(violations))
     return 0
@@ -208,11 +342,11 @@ def validate_required_text() -> int:
 
 def validate_docs_traditional_chinese() -> int:
     """AIDLC docs are Traditional-Chinese-only (see ADR-0009). Reject any leftover
-    English-version heading so retrofitted docs stay single-language."""
+    English-version heading so retrofitted docs stay single-language. Scans every
+    intent record, not just the baseline one — the rule covers all AI-DLC output."""
     violations: list[str] = []
-    root_dir = ROOT / "aidlc-docs"
-    if root_dir.is_dir():
-        for path in sorted(root_dir.rglob("*.md")):
+    for record in all_record_roots():
+        for path in sorted(record.rglob("*.md")):
             rel_path = path.relative_to(ROOT).as_posix()
             text = path.read_text(encoding="utf-8", errors="ignore")
             if re.search(r"(?m)^##\s+English Version", text):
@@ -226,10 +360,23 @@ def validate_docs_traditional_chinese() -> int:
 
 
 def validate_no_production_config_added() -> int:
-    changed_files = set(git_diff_name_only("--cached")) | set(git_diff_name_only())
+    """Reject any tracked file whose path carries a forbidden part.
+
+    This scans EVERY tracked file (``git ls-files``), deliberately NOT a diff.
+    Do not "optimise" it back to a diff base: CI checks out a clean tree, so
+    ``git diff`` and ``git diff --cached`` are both empty there, the loop never
+    runs, and the check passes unconditionally on every PR. It only ever fired
+    on a dirty local working tree, which made the rule's claim ("CI blocks it")
+    stronger than the mechanism (see issue #509). A whole-repo scan needs no
+    base ref, so it behaves identically in CI, on a shallow clone, and locally.
+
+    Matching stays part-exact via ``Path(path).parts`` rather than substring:
+    ``aidlc-product-agent.md`` contains "prod" without being a "prod" path
+    part, and 10 such files legitimately exist in this repo.
+    """
     violations: list[str] = []
 
-    for path in changed_files:
+    for path in git_ls_files():
         parts = {part.lower() for part in Path(path).parts}
         if parts & FORBIDDEN_NEW_PATH_PARTS:
             violations.append(path)
@@ -244,14 +391,13 @@ def validate_no_production_config_added() -> int:
 
 def validate_no_obvious_secrets() -> int:
     violations: list[str] = []
-    for rel_path in REQUIRED_FILES:
-        path = ROOT / rel_path
+    for display, path in contract_files():
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         for pattern in FORBIDDEN_CONTENT_PATTERNS:
             if pattern in text:
-                violations.append(f"{rel_path}: {pattern}")
+                violations.append(f"{display}: {pattern}")
     if violations:
         return fail("Forbidden secret-like content found: " + ", ".join(violations))
     return 0

@@ -129,6 +129,22 @@ class TestWaRuleEngine(unittest.TestCase):
         det = detect_provider(parse_diagram_summary(xml))
         self.assertEqual(det["provider"], "gcp")
 
+    def test_parse_tolerates_bare_amp_and_nbsp(self):
+        from services.wa_rule_engine import parse_diagram_summary
+
+        xml = _mx(
+            [
+                '<mxCell id="10" value="Front Door & WAF" style="shape=mxgraph.azure.front;" vertex="1" parent="1"/>',
+                '<mxCell id="11" value="A&nbsp;B" style="shape=mxgraph.aws4.ec2;" vertex="1" parent="1"/>',
+                '<mxCell id="12" value="CPU < 80%" style="shape=mxgraph.gcp.gce;" vertex="1" parent="1"/>',
+            ]
+        )
+        summary = parse_diagram_summary(xml)
+        labels = " ".join(n["label"] for n in summary["nodes"])
+        self.assertIn("front door", labels)
+        self.assertIn("waf", labels)
+        self.assertGreaterEqual(summary["node_count"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

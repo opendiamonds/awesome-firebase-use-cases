@@ -39,7 +39,7 @@ Once a week, check whether the things Cloud-360 is pinned to have moved, and tel
 
 ## What to watch
 
-**The AIDLC framework.** `.aidlc/aidlc-rules/VERSION` records the version this repo vendored from [`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows). Compare it against the latest release. An upgrade here is not a routine bump — per `CLAUDE.md` §7 it requires re-copying `.aidlc/aidlc-rules/aws-aidlc-rule-details/`, leaving `.aidlc-overrides/` untouched, and recording the upgrade in a new ADR.
+**The AIDLC framework.** The `AIDLC_VERSION` constant in `.claude/tools/aidlc-version.ts` records the AI-DLC v2 version this repo vendored from [`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows) (the `v2` branch, `dist/claude/`). Compare it against the latest release. An upgrade here is not a routine bump — per `CLAUDE.md` §7 it requires re-copying `dist/claude/` over `.claude/`, restoring the local `settings.json` delta documented in `.claude/README-cloud360.md`, leaving the `aidlc/` workspace untouched, re-running `/aidlc --doctor` plus `scripts/validate_repo_contract.py`, and recording the upgrade in a new ADR.
 
 **gh-aw.** The agentic workflows under `.github/workflows/*.md` compile with `gh aw`. Check [`github/gh-aw`](https://github.com/github/gh-aw) releases for breaking changes to frontmatter, safe-outputs, or the engine contract.
 
