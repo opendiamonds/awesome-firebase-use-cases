@@ -389,7 +389,8 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             detail="您的帳號已被停用，請聯絡平台管理員",
         )
 
-    record_activity(db, user)
+    if record_activity(db, user):
+        db.refresh(user)
     access_token = create_access_token(data={"sub": user.username})
     return {
         "access_token": access_token,
@@ -501,6 +502,8 @@ def list_users(
     頁次**合法但超出範圍**時不是錯誤：offset 超過總數，查詢自然回空清單，
     `page` 照樣回顯請求值（FR-6.4，不夾到最後一頁）。
     """
+    if record_activity(db, admin_user):
+        db.refresh(admin_user)
     now = datetime.now(timezone.utc)
     # total 為獨立的計數查詢，**不得**由 len(items) 導出——後者只在多頁時才錯，
     # 而目前的資料量下多頁情境不會自然出現（BR-P2）。
