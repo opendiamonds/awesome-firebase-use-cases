@@ -21,7 +21,8 @@ engine: copilot
 # of runner time on one PR for zero tests executed.
 #
 # The obvious fix — `timeout-minutes:` on each pre-agent step — DOES NOT WORK:
-# gh-aw v0.81.6 silently strips that key when compiling pre-agent-steps
+# gh-aw silently strips that key when compiling pre-agent-steps — verified on
+# v0.81.6 and again on v0.86.2, so do not assume a compiler bump fixed it
 # (`env`, `id`, `if`, `uses`, `with`, `working-directory` and
 # `continue-on-error` all survive; `timeout-minutes` does not) and reports
 # 0 errors / 0 warnings. Verify with `gh aw compile ui-regression` then
