@@ -8,9 +8,10 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 from hypothesis import given, settings, strategies as st
+from starlette.testclient import TestClient
 
-from tests.helpers import close_session, make_session, make_user
-
+from database import get_db
+from main import app
 from services import auth
 from services.auth import (
     ALGORITHM,
@@ -20,6 +21,7 @@ from services.auth import (
     get_password_hash,
     verify_password,
 )
+from tests.helpers import close_session, make_session, make_user
 
 
 class TestPasswordHashing(unittest.TestCase):
@@ -75,6 +77,35 @@ class TestSecretConfiguration(unittest.TestCase):
             clear=True,
         ):
             self.assertEqual(auth._resolve_secret_key(), "configured-secret")
+
+
+class TestLoginActivity(unittest.TestCase):
+    def setUp(self):
+        self.db = make_session()
+        self.user = make_user(
+            self.db,
+            username="admin",
+            role="Platform_Admin",
+            password_hash=get_password_hash("admin123"),
+        )
+        app.dependency_overrides[get_db] = lambda: self.db
+        self.client = TestClient(app)
+
+    def tearDown(self):
+        app.dependency_overrides.clear()
+        close_session(self.db)
+
+    def test_successful_login_records_last_activity(self):
+        self.assertIsNone(self.user.last_activity_at)
+
+        res = self.client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "admin123"},
+        )
+
+        self.assertEqual(res.status_code, 200)
+        self.db.refresh(self.user)
+        self.assertIsNotNone(self.user.last_activity_at)
 
 
 class TestGetCurrentUser(unittest.TestCase):

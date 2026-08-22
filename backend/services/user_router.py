@@ -22,7 +22,7 @@ from services.auth import (
     create_access_token,
     get_current_user,
 )
-from services.activity import as_aware_utc, is_overdue
+from services.activity import as_aware_utc, is_overdue, record_activity
 from services.rbac import (
     CANONICAL_ROLES,
     STORY_IDS,
@@ -389,6 +389,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             detail="您的帳號已被停用，請聯絡平台管理員",
         )
 
+    record_activity(db, user)
     access_token = create_access_token(data={"sub": user.username})
     return {
         "access_token": access_token,
