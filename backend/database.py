@@ -42,6 +42,7 @@ def init_db():
     _ensure_a4_schema()
     _ensure_j5_schema()
     _ensure_a3_schema()
+    _ensure_cost_schema()
     _ensure_last_activity_schema()
 
     db = SessionLocal()
@@ -114,6 +115,12 @@ def init_db():
                 "role_permissions 已有 %d 列，略過 seed",
                 db.query(RolePermission).count(),
             )
+
+        from services.rbac import ensure_missing_role_permissions
+
+        missing = ensure_missing_role_permissions(db)
+        if missing:
+            logger.info("ensure_missing_role_permissions: inserted %d rows", missing)
 
         # PU-4：既有環境的目標式權限套用。**必須在 seed 之後**——種子函式只在空表
         # 寫入，既有環境不會經過它，改了預設值也不會生效（requirements C-3 另禁止
@@ -269,6 +276,75 @@ def _ensure_a3_schema():
             except Exception as e:
                 logger.warning("A3 schema 補丁略過/失敗: %s — %s", sql[:60], e)
     logger.info("A3 schema 檢查完成")
+
+
+def _ensure_cost_schema():
+    """C1：diagram_cost／diagram_cost_line／pricing_cache／cost_audit_event。"""
+    from sqlalchemy import text
+
+    statements = [
+        """
+        CREATE TABLE IF NOT EXISTS diagram_cost (
+            diagram_id INTEGER PRIMARY KEY REFERENCES user_diagrams(id) ON DELETE CASCADE,
+            pricing_region VARCHAR(64),
+            monthly_budget NUMERIC(12, 2),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS diagram_cost_line (
+            diagram_id INTEGER NOT NULL REFERENCES user_diagrams(id) ON DELETE CASCADE,
+            mxcell_id VARCHAR(128) NOT NULL,
+            hours INTEGER NOT NULL DEFAULT 24,
+            sku_override VARCHAR(128),
+            hourly_override NUMERIC(12, 2),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            PRIMARY KEY (diagram_id, mxcell_id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS pricing_cache (
+            cloud VARCHAR(16) NOT NULL,
+            sku VARCHAR(128) NOT NULL,
+            region VARCHAR(64) NOT NULL,
+            hourly NUMERIC(12, 6) NOT NULL,
+            fetched_at TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY (cloud, sku, region)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS cost_audit_event (
+            id SERIAL PRIMARY KEY,
+            diagram_id INTEGER NOT NULL REFERENCES user_diagrams(id) ON DELETE CASCADE,
+            field VARCHAR(32) NOT NULL,
+            mxcell_id VARCHAR(128),
+            old_value TEXT,
+            new_value TEXT NOT NULL,
+            actor_username VARCHAR(128) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+        """,
+        """
+        CREATE INDEX IF NOT EXISTS ix_cost_audit_event_diagram_created
+        ON cost_audit_event (diagram_id, created_at DESC)
+        """,
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception as e:
+                logger.warning("Cost schema 補丁略過/失敗: %s — %s", sql[:60], e)
+        try:
+            conn.execute(
+                text(
+                    "ALTER TABLE pricing_cache ALTER COLUMN hourly TYPE NUMERIC(12, 6)"
+                )
+            )
+        except Exception as e:
+            logger.warning("Cost schema pricing_cache precision 補丁略過/失敗: %s", e)
+    logger.info("Cost schema 檢查完成")
+
 
 def _ensure_last_activity_schema():
     """為既有資料庫補上 users.last_activity_at（PU-1／C-3）。

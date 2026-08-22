@@ -25,5 +25,12 @@
     "dirName": "260806-drawio-templates",
     "scope": "bugfix",
     "status": "complete"
+  },
+  {
+    "uuid": "01a01805-ccba-748e-b9b8-b74c99c838c4",
+    "slug": "cost-finops",
+    "dirName": "260819-cost-finops",
+    "scope": "mvp",
+    "status": "in-flight"
   }
 ]

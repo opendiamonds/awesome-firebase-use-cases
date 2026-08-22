@@ -10,6 +10,7 @@ from services.review_router import router as review_router
 from services.lens_router import router as lens_router
 from services.llm_provider import configure_provider_env
 from database import init_db
+from cost.cost_router import router as cost_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -49,6 +50,7 @@ app.include_router(review_router, prefix="/api/architecture")
 app.include_router(lens_router, prefix="/api/architecture")
 app.include_router(user_router, prefix="/api/auth")
 app.include_router(collab_router, prefix="/api/collab")
+app.include_router(cost_router, prefix="/api/cost")
 
 @app.get("/")
 def read_root():

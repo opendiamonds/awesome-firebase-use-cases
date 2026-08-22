@@ -179,7 +179,28 @@ psql "$DATABASE_URL" -f schema_rbac.sql
 | E | `architecture_reviews` | **A3** Well-Architected 評核結果（分數／發現／建議） |
 | E | `wa_lenses` | **A3** Offline Custom Lens 現行標準（具 A3 **審核** 者可編輯） |
 | C | `role_permissions` | 角色 × Story 的檢視／編輯／審核 |
+| F | **C1** `diagram_cost`／`diagram_cost_line`／`pricing_cache`／`cost_audit_event` | **成本估算**（FinOps C1） |
 | D | 預設使用者 `admin` | 見下方 |
+
+#### 2.2.4 C1 成本表（DDL 摘要）
+
+| 表 | 說明 |
+|---|---|
+| `diagram_cost` | 每圖一列：估價區域、月預算（B2） |
+| `diagram_cost_line` | 每圖×mxCell：時數、SKU／小時價覆寫 |
+| `pricing_cache` | 公開價目快取（UK: cloud+sku+region；`hourly` 為 `NUMERIC(12,6)` 等效小時單價） |
+| `cost_audit_event` | 覆寫與預算稽核 |
+
+**既有環境升級**：重跑 `schema_rbac.sql`（含四表 `CREATE IF NOT EXISTS` 與 C1h～C1o 種子），或依賴後端啟動時 `database._ensure_cost_schema()` + `ensure_missing_role_permissions()`（**勿**對 brownfield 重跑整份 SQL 的 `DELETE FROM role_permissions`）。
+
+**RBAC 增量**：`C1h`／`C1r`／`C1b`／`C1o` 共 44 列；`role_permissions` 新環境總列數 **352**。
+
+驗證：
+
+```bash
+psql "$DATABASE_URL" -c "\d diagram_cost"
+psql "$DATABASE_URL" -c "SELECT count(*) FROM role_permissions WHERE story_id LIKE 'C1%';"
+```
 
 #### 2.2.1 A3 `architecture_reviews`（DDL 摘要）
 

@@ -39,6 +39,9 @@ jobs:
       - name: Validate environment configuration contract
         run: python scripts/validate_env_contract.py
 
+      - name: Validate cost calculator import boundary
+        run: python scripts/validate_cost_calculator_boundary.py
+
   frontend:
     name: Frontend (lint + typecheck + build)
     runs-on: ubuntu-latest

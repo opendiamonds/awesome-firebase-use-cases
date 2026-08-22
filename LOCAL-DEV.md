@@ -157,6 +157,14 @@ LLM_MODEL=
 # N8N_WEBHOOK_URL=https://.../webhook/get-icon
 # N8N_USER=
 # N8N_PASSWORD=
+# COST_PRICING_STUB=1   # 成本頁本機驗收：不連 AWS Price List，回固定 stub 單價
+# 若要真實 AWS 定價：不要設 STUB。查價順序為 **Postgres pricing_cache → boto3 Pricing Query API → 公開 Bulk API**。
+# 需 IAM `pricing:GetProducts`；無憑證時自動走 Bulk（首次 EC2 約 1–2 分鐘）。
+# 若要真實 GCP 定價：同樣不要設 STUB，並設定 `GCP_BILLING_API_KEY`（Cloud Billing Catalog API）。
+# GCP 圖請選 `us-central1` 等 GCP 區域（勿選 AWS 的 us-east-1）。
+# 若要真實 Azure 定價：不要設 STUB；走公開 Retail Prices API（prices.azure.com，免金鑰）。
+# Azure 圖請選 `eastus`／`westus2`／`westeurope`（勿選 AWS／GCP 區域碼）。
+# 可先跑 `python3 scripts/warm_aws_pricing_cache.py` 預熱 DB 快取（含 AWS／GCP／Azure）。
 EOF
 ```
 

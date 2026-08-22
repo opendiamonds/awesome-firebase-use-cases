@@ -4,7 +4,17 @@ models.py — Cloud-360 ORM 模型
 含使用者、架構圖、分享關聯、A4 聊天持久化，以及 J5 授權申請。
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, Text, DateTime, ForeignKey, Table
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    Text,
+    DateTime,
+    ForeignKey,
+    Table,
+    Numeric,
+)
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -173,3 +183,71 @@ class RolePermission(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     updated_by = Column(String(128), nullable=True)
+
+
+class DiagramCost(Base):
+    """C1：每圖估價設定（區域、預算）。"""
+
+    __tablename__ = "diagram_cost"
+
+    diagram_id = Column(
+        Integer,
+        ForeignKey("user_diagrams.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    pricing_region = Column(String(64), nullable=True)
+    monthly_budget = Column(Numeric(12, 2), nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class DiagramCostLine(Base):
+    """C1：每圖可估價節點的持久化狀態。"""
+
+    __tablename__ = "diagram_cost_line"
+
+    diagram_id = Column(
+        Integer,
+        ForeignKey("user_diagrams.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    mxcell_id = Column(String(128), primary_key=True)
+    hours = Column(Integer, nullable=False, default=24)
+    sku_override = Column(String(128), nullable=True)
+    hourly_override = Column(Numeric(12, 2), nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class PricingCache(Base):
+    """C1：公開價目快取。"""
+
+    __tablename__ = "pricing_cache"
+
+    cloud = Column(String(16), primary_key=True)
+    sku = Column(String(128), primary_key=True)
+    region = Column(String(64), primary_key=True)
+    hourly = Column(Numeric(12, 6), nullable=False)
+    fetched_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class CostAuditEvent(Base):
+    """C1：覆寫與預算變更稽核。"""
+
+    __tablename__ = "cost_audit_event"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diagram_id = Column(
+        Integer,
+        ForeignKey("user_diagrams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    field = Column(String(32), nullable=False)
+    mxcell_id = Column(String(128), nullable=True)
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=False)
+    actor_username = Column(String(128), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

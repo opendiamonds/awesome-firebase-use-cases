@@ -674,6 +674,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cost/diagrams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Diagrams */
+        get: operations["list_diagrams_api_cost_diagrams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cost/diagrams/{diagram_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Snapshot */
+        get: operations["get_snapshot_api_cost_diagrams__diagram_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cost/diagrams/{diagram_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Audit */
+        get: operations["get_audit_api_cost_diagrams__diagram_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cost/diagrams/{diagram_id}/lines/{mxcell_id}/hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Hours */
+        put: operations["put_hours_api_cost_diagrams__diagram_id__lines__mxcell_id__hours_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cost/diagrams/{diagram_id}/lines/{mxcell_id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Override */
+        put: operations["put_override_api_cost_diagrams__diagram_id__lines__mxcell_id__override_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cost/diagrams/{diagram_id}/lines/{mxcell_id}/sku": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Sku */
+        put: operations["put_sku_api_cost_diagrams__diagram_id__lines__mxcell_id__sku_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cost/diagrams/{diagram_id}/region": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Region */
+        put: operations["put_region_api_cost_diagrams__diagram_id__region_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -743,6 +862,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HoursBody */
+        HoursBody: {
+            /** Hours */
+            hours: number;
+        };
         /** LastOpenedRequest */
         LastOpenedRequest: {
             /** Diagram Id */
@@ -804,6 +928,11 @@ export interface components {
             /** Role */
             role: string;
         };
+        /** OverrideBody */
+        OverrideBody: {
+            /** Hourly Override */
+            hourly_override: number | string;
+        };
         /** PatchAuthorizationRequest */
         PatchAuthorizationRequest: {
             /** Requested Role */
@@ -827,6 +956,11 @@ export interface components {
              * @default aws
              */
             provider: string;
+        };
+        /** RegionBody */
+        RegionBody: {
+            /** Region */
+            region: string;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -898,6 +1032,11 @@ export interface components {
         ShareDiagramRequest: {
             /** User Ids */
             user_ids: number[];
+        };
+        /** SkuBody */
+        SkuBody: {
+            /** Sku */
+            sku: string;
         };
         /** StartReviewBody */
         StartReviewBody: {
@@ -2359,6 +2498,231 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LastOpenedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_diagrams_api_cost_diagrams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_snapshot_api_cost_diagrams__diagram_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diagram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audit_api_cost_diagrams__diagram_id__audit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diagram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_hours_api_cost_diagrams__diagram_id__lines__mxcell_id__hours_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diagram_id: number;
+                mxcell_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoursBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_override_api_cost_diagrams__diagram_id__lines__mxcell_id__override_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diagram_id: number;
+                mxcell_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_sku_api_cost_diagrams__diagram_id__lines__mxcell_id__sku_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diagram_id: number;
+                mxcell_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkuBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_region_api_cost_diagrams__diagram_id__region_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                diagram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegionBody"];
             };
         };
         responses: {

@@ -76,6 +76,11 @@
 
 <!-- practices-discovery 2026-08-09：本節本次無新發現（affirm 紀錄，非規則）。 -->
 
+- **NEVER** 呼叫需要雲端供應商帳號憑證的計價 API（Cost Explorer、Billing、Cost Management 等）作為 C1 價目來源；`pricing_client` 只准公開免帳號價目端點 (affirmed 2026-08-19)
+- **NEVER** 把 WA `COST-*` 啟發式 findings 當成已實作的 TCO／成本計算能力 (affirmed 2026-08-19)
+- **NEVER** 把 Assessment 的雲端供應商下拉當成 pricing Manual Override (affirmed 2026-08-19)
+- **NEVER** 把 RBAC 種子或權限頁的 C1 欄當成已有 cost router／Cost 頁 (affirmed 2026-08-19)
+- **NEVER** 在既有 n8n／PNG 呼叫點用 httpx 直接打雲端 Pricing API；新計價呼叫必須走獨立 `pricing_client` (affirmed 2026-08-19)
 ## Mandated
 
 - ALWAYS 在 commit 前執行 `python3 scripts/validate_repo_contract.py`。違反 repo contract = CI 紅燈。contract 涵蓋 repo 層必要文件（`REQUIRED_FILES`／`REQUIRED_TEXT`）、record 層 baseline artifacts（`REQUIRED_RECORD_FILES`／`REQUIRED_RECORD_TEXT`，執行時動態解析 record 目錄）、文件語言（record 內不得有 `## English Version`）、禁止路徑與禁止內容。
@@ -110,6 +115,8 @@
   - **不得**為自動化層已斷言的行為另寫手動案例——`operation/test-case-management-plan.md` 定下「每種測案有單一真實來源」：自動化的主檔是 repo 的 spec code（TCMS 只存中繼資料與歷史結果），手動的主檔才是 TCMS。雙份維護必有一份悄悄過期。
   - 本規則的由來：本 repo 的自動化層有三塊**結構性**盲區（所有 LLM 路徑、n8n 圖示取得、本機環境殘值），實測證實六道 CI 閘門全綠時仍會放行這三類缺陷。 (affirmed 2026-08-16)
 
+- **ALWAYS** 第一個 C1 HTTP 端點落地時，即使 `role_permissions` seed 未改，也須有 allow/deny 雙向 TestClient：有 C1 權限 → 2xx，無 C1 權限 → 403（不得只測 happy path） (affirmed 2026-08-19)
+- **ALWAYS** cost 功能域採三層：`cost_router` → `cost_service` → 純函式 `cost_calculator`，另獨立 `pricing_client`；禁止把 cost 邏輯寫進 `user_router.py` 或 `wa_rule_engine.py`；`cost_calculator` 內禁止 httpx、DB session、`HTTPException` (affirmed 2026-08-19)
 ## Corrections
 
 <!-- Project-specific corrections from human feedback. -->
@@ -174,3 +181,35 @@
 - 為新行為指定「沿用既有機制」之前，必須先寫下該既有機制的副作用是否與新需求的意圖相容 —— 缺口的共同形狀是：交界沒被寫下來，於是預設沿用，而既有機制的副作用正好破壞新需求（本次：刪除後重抓若沿用既有的 fetchUsers()，會每刪一列閃一次整頁載入，字面通過 AC 但打斷工作流） (learned 2026-08-11) <!-- cid:application-design:c15 -->
 - 引用「既有為 N 條」這類基準數時，那個 N **也要重數**，不能只重數本輪新增的部分 —— 本 intent 已在同型失誤上重複三次；另：箭頭鏈（A → B → C）是順序的語法，在禁止建議實作順序的 stage 用它說明「約束規模」等於在排序 (learned 2026-08-11) <!-- cid:units-generation:c9 -->
 - deploy-on-merge 之下，破壞性契約變更與其消費端之間存在一條隱含的「同批次」約束，**它比 DAG 邊更強** —— DAG 只說先後，這條說不得分批。它不出現在依賴圖上，只有把「每個 Bolt 邊界都是一次真實部署」實際代入才會浮現；凡涉及既有端點回應形狀變更的 Bolt 切分，都必須先問這一句 (learned 2026-08-11) <!-- cid:delivery-planning:c6 -->
+- 上游已定失敗路徑（如 API 缺價走 Manual Override）時，同類缺口（圖上無 SKU 對應）不另開題，預設走該路徑，並在日記註明視為同一失敗家族 (learned 2026-08-19) <!-- cid:feasibility:c3 -->
+- feasibility 不重問 intent-capture 已核可的產品邊界（官方 API、本輪切片、覆寫規則、預算與警告、入口、不做的核准流、憑證禁令）；只問解鎖可行性的整合與權限張力 (learned 2026-08-19) <!-- cid:feasibility:c7 -->
+- Standard 深度的 feasibility 優先問官方 API 存取策略、雲別覆蓋、既有驗收與本輪切片的張力、預算掛載粒度、誰能改數字、通知原語上限；可併入既有題之後果（如價目 freshness）不另開題 (learned 2026-08-19) <!-- cid:feasibility:c8 -->
+- 「都要能報價／都能用」這類成語與存取策略（公開免帳號 vs 必須帶金鑰）衝突時，必須加開追問把成語定錨為「畫面可用」還是「官方 API 覆蓋」，不得讓兩題並存不明 (learned 2026-08-19) <!-- cid:feasibility:c9 -->
+- ALWAYS 當 intent 含使用者可見的成本／估價畫面、Sidebar 入口、產圖後 CTA 或進產品橫幅時，判定 rough-mockups 的 user-facing UI condition 適用並執行，把判定理由記入 diary (learned 2026-08-19) <!-- cid:rough-mockups:c7 -->
+- ALWAYS 在 rough-mockups 不重問上游已定案的產品能力（是否做圓餅、inbox、Sidebar 是否按故事大類分層）；已決項列在問題檔前言與 diary (learned 2026-08-19) <!-- cid:rough-mockups:c8 -->
+- ALWAYS 當產品邊界已鎖時，rough-mockups 優先只問這六類：資訊層級、CTA 落點、超支畫面標示、覆寫操作、無障礙／裝置、第二段預算區塊位置 (learned 2026-08-19) <!-- cid:rough-mockups:c6 -->
+- ALWAYS 權限種子或權限頁欄名可先於產品面存在（如 C1 view/edit）；codekb 與設計必須標明「矩陣領先實作」，不得把種子當成已有 router／頁／表 (learned 2026-08-19) <!-- cid:reverse-engineering:c9 -->
+- Requirements Analysis 對上游已鎖定的產品決策（範圍增量、公開價目、未定價列、權限語意、橫幅、三層模組、測試底線）不重問；本站只補 codekb 證明仍缺的可測不變量 (learned 2026-08-19) <!-- cid:requirements-analysis:c20 -->
+- 超支橫幅要求「每次進入產品都看到」且本輪無 inbox 時，估價／時數／覆寫／預算必須伺服器持久化；不得把跨登入橫幅建立在瀏覽器暫存上 (learned 2026-08-19) <!-- cid:requirements-analysis:c21 -->
+- 可行性階段已鎖定的稽核（誰、何時、舊值、新值）在 Requirements Analysis 寫成可測 FR，不重問「要不要稽核」 (learned 2026-08-19) <!-- cid:requirements-analysis:c22 -->
+- 估價區域與每日時數同屬架構假設：由架構師設定／修改，非該角色 API 403；變更權清單須與時數、預算、單價覆寫一併列入設計 OQ (learned 2026-08-19) <!-- cid:requirements-analysis:c23 -->
+- 「跟圖走」的估價列以目前架構圖 XML 每次重擷取、以 mxCell id 對齊；該 id 的時數與 FinOps SKU／單價覆寫保留，已刪節點的列與覆寫移除 (learned 2026-08-19) <!-- cid:requirements-analysis:c24 -->
+- 圓餅、CTA、C2／C3、inbox、核准流、價目憑證等 ideation 已定案題在 Requirements Analysis 省略；價目快取／重試手段留設計，不在本站預選 (learned 2026-08-19) <!-- cid:requirements-analysis:c25 -->
+- 當既有擷取沒有 SKU／區域／時數預設時，Requirements Analysis 必須問出 calculator 不變量：SKU 對應、區域與幣別、預設時數、圓餅切法、多圖橫幅、時數換月費公式 (learned 2026-08-19) <!-- cid:requirements-analysis:c26 -->
+- User Stories 必做：C1 是使用者可見功能、三個已確認 persona、兩段 Must 增量。不 skip (learned 2026-08-19) <!-- cid:user-stories:c30 -->
+- 可參考 baseline C 柱時沿用 C1 編號與 Alex／David／Hannah；C2／C3 不進本輪 backlog。C1 內文以該 intent 的 requirements.md 覆寫，不照抄 baseline 的時數預設、流量模型或 inbox (learned 2026-08-19) <!-- cid:user-stories:c31 -->
+- C1 入口故事過大時拆成入口擷取／官方價圓餅／產圖 CTA 三則 Must，其餘時數／覆寫／預算／超支順延編號；AC 前綴跟故事號走以免撞號 (learned 2026-08-19) <!-- cid:user-stories:c32 -->
+- 每日時數合法值為整數 0–24（含）；空白／非數字／非整數／區間外不送出並有文字錯誤；Hypothesis 的 h domain 同步鎖定 (learned 2026-08-19) <!-- cid:user-stories:c33 -->
+- User Stories reviewer 的 Minor 在 READY 後可折入：Sidebar 標籤以畫面實文為準、涵蓋欄補齊已測 FR、無公開端點雲的官方價呼叫次數寫進 DoD；稽核 HTTP 路徑可留 application-design (learned 2026-08-19) <!-- cid:user-stories:c34 -->
+- Refined Mockups 在已有線框時不重問層級／CTA／超支標示／就地編輯／AA；只問線框未釘死的實作（圓餅依賴、時數控件、橫幅釘點、SKU 密度、視覺契約） (learned 2026-08-19) <!-- cid:refined-mockups:c20 -->
+- C1 成本頁沿用既有 Tailwind 與 Layout；圓餅自畫 SVG 不新增圖表套件；建議路由與 test-id 可寫進 mockups，精確 path 留 application-design (learned 2026-08-19) <!-- cid:refined-mockups:c21 -->
+- Refined Mockups reviewer 指出的畫面缺口（全未定價結構、多圖橫幅可見字串、區域控件是 select 還是 input）應在 READY 後補進 mockups／interaction-spec，不要只留在 Review 表 (learned 2026-08-19) <!-- cid:refined-mockups:c22 -->
+- 已超支後要以與 A1／A3 相同路徑的 AI agent 提供修改建議；此為後續 intent，不得在已核可的 C1 橫幅範圍內夾帶 LLM 建議 (learned 2026-08-19) <!-- cid:refined-mockups:c23 -->
+- Application Design 在已鎖定三層 cost 形狀時不重問風格；本站只凍結權限掛載、持久化表、價目快取、SKU 對照與稽核 HTTP (learned 2026-08-19) <!-- cid:application-design:c20 -->
+- 新增 story id 時不得依賴 ensure_role_permissions_seeded(force=False)：該函式在表非空時整段 no-op，必須另做只插入缺失 (role, story_id) 的 ensure (learned 2026-08-19) <!-- cid:application-design:c21 -->
+- 公開價目 Port 必須能區分「本輪無端點」（不發 HTTP、列未定價）與「有端點但失敗」（官方價取得失敗）；第一段不註冊超支橫幅路由 (learned 2026-08-19) <!-- cid:application-design:c22 -->
+- Units Generation 在新 bounded context（新表、library、HTTP、頁、第二段 UI）時必做 DAG；本站只定拓樸與可平行根（depends_on: []），不推薦施工順序 (learned 2026-08-19) <!-- cid:units-generation:c20 -->
+- 同時含第二段 HTTP 與 Layout DOM 的 unit 可省略 kind（完整設計矩陣）；API／UI 契約以 OpenAPI dump 與 generated api.d.ts 為準。初選手寫型別若與 CI drift 閘衝突，必須追問覆寫，不得讓兩種契約並存 (learned 2026-08-19) <!-- cid:units-generation:c21 -->
+- units-generation 的 yaml 邊只列本 intent 待建 unit；已存在的 brownfield 模組寫在散文前提、不進 compiler。AC 數對上游標題列重數 (learned 2026-08-19) <!-- cid:units-generation:c22 -->
+- 2.7 約束表須就地註明非 Bolt 順序；上游 AC 跳號在 story-map 註明且不回改已核可 stories；跨 unit DOM 擴充機制留給 functional-design (learned 2026-08-19) <!-- cid:units-generation:c23 -->
+- Delivery Planning 不重問 practices-discovery 已核可的 walking-skeleton 立場。第一段可單獨上線的故事應把 OpenAPI 契約與 UI 消費端捆進同一 Bolt（deploy-on-merge 同批）；單拆 schema 或 library 若湊不出可展示的信心假說則不合閘 (learned 2026-08-20) <!-- cid:delivery-planning:c20 -->

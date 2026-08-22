@@ -167,6 +167,21 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HoursBody": {
+        "properties": {
+          "hours": {
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Hours",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hours"
+        ],
+        "title": "HoursBody",
+        "type": "object"
+      },
       "LastOpenedRequest": {
         "properties": {
           "diagram_id": {
@@ -319,6 +334,28 @@
         "title": "Message",
         "type": "object"
       },
+      "OverrideBody": {
+        "properties": {
+          "hourly_override": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Hourly Override"
+          }
+        },
+        "required": [
+          "hourly_override"
+        ],
+        "title": "OverrideBody",
+        "type": "object"
+      },
       "PatchAuthorizationRequest": {
         "properties": {
           "requested_role": {
@@ -377,6 +414,21 @@
           "lens"
         ],
         "title": "PutLensBody",
+        "type": "object"
+      },
+      "RegionBody": {
+        "properties": {
+          "region": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Region",
+            "type": "string"
+          }
+        },
+        "required": [
+          "region"
+        ],
+        "title": "RegionBody",
         "type": "object"
       },
       "RegisterRequest": {
@@ -559,6 +611,20 @@
           "user_ids"
         ],
         "title": "ShareDiagramRequest",
+        "type": "object"
+      },
+      "SkuBody": {
+        "properties": {
+          "sku": {
+            "minLength": 1,
+            "title": "Sku",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku"
+        ],
+        "title": "SkuBody",
         "type": "object"
       },
       "StartReviewBody": {
@@ -2703,6 +2769,346 @@
           }
         ],
         "summary": "Set Last Opened"
+      }
+    },
+    "/api/cost/diagrams": {
+      "get": {
+        "operationId": "list_diagrams_api_cost_diagrams_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Diagrams"
+      }
+    },
+    "/api/cost/diagrams/{diagram_id}": {
+      "get": {
+        "operationId": "get_snapshot_api_cost_diagrams__diagram_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "diagram_id",
+            "required": true,
+            "schema": {
+              "title": "Diagram Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Snapshot"
+      }
+    },
+    "/api/cost/diagrams/{diagram_id}/audit": {
+      "get": {
+        "operationId": "get_audit_api_cost_diagrams__diagram_id__audit_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "diagram_id",
+            "required": true,
+            "schema": {
+              "title": "Diagram Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Audit"
+      }
+    },
+    "/api/cost/diagrams/{diagram_id}/lines/{mxcell_id}/hours": {
+      "put": {
+        "operationId": "put_hours_api_cost_diagrams__diagram_id__lines__mxcell_id__hours_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "diagram_id",
+            "required": true,
+            "schema": {
+              "title": "Diagram Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mxcell_id",
+            "required": true,
+            "schema": {
+              "title": "Mxcell Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoursBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Hours"
+      }
+    },
+    "/api/cost/diagrams/{diagram_id}/lines/{mxcell_id}/override": {
+      "put": {
+        "operationId": "put_override_api_cost_diagrams__diagram_id__lines__mxcell_id__override_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "diagram_id",
+            "required": true,
+            "schema": {
+              "title": "Diagram Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mxcell_id",
+            "required": true,
+            "schema": {
+              "title": "Mxcell Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Override"
+      }
+    },
+    "/api/cost/diagrams/{diagram_id}/lines/{mxcell_id}/sku": {
+      "put": {
+        "operationId": "put_sku_api_cost_diagrams__diagram_id__lines__mxcell_id__sku_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "diagram_id",
+            "required": true,
+            "schema": {
+              "title": "Diagram Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "mxcell_id",
+            "required": true,
+            "schema": {
+              "title": "Mxcell Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkuBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Sku"
+      }
+    },
+    "/api/cost/diagrams/{diagram_id}/region": {
+      "put": {
+        "operationId": "put_region_api_cost_diagrams__diagram_id__region_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "diagram_id",
+            "required": true,
+            "schema": {
+              "title": "Diagram Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Region"
       }
     }
   }

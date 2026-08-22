@@ -163,6 +163,55 @@ ALTER TABLE architecture_reviews ADD COLUMN IF NOT EXISTS xml_snapshot TEXT;
 ALTER TABLE wa_lenses ADD COLUMN IF NOT EXISTS provider VARCHAR(16) NOT NULL DEFAULT 'aws';
 
 -- ###########################################################################
+-- C1 Cost / FinOps tables
+-- ###########################################################################
+
+CREATE TABLE IF NOT EXISTS diagram_cost (
+  diagram_id INTEGER PRIMARY KEY REFERENCES user_diagrams (id) ON DELETE CASCADE,
+  pricing_region VARCHAR(64),
+  monthly_budget NUMERIC(12, 2),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS diagram_cost_line (
+  diagram_id INTEGER NOT NULL REFERENCES user_diagrams (id) ON DELETE CASCADE,
+  mxcell_id VARCHAR(128) NOT NULL,
+  hours INTEGER NOT NULL DEFAULT 24,
+  sku_override VARCHAR(128),
+  hourly_override NUMERIC(12, 2),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (diagram_id, mxcell_id)
+);
+
+CREATE TABLE IF NOT EXISTS pricing_cache (
+  cloud VARCHAR(16) NOT NULL,
+  sku VARCHAR(128) NOT NULL,
+  region VARCHAR(64) NOT NULL,
+  hourly NUMERIC(12, 6) NOT NULL,
+  fetched_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (cloud, sku, region)
+);
+
+CREATE TABLE IF NOT EXISTS cost_audit_event (
+  id SERIAL PRIMARY KEY,
+  diagram_id INTEGER NOT NULL REFERENCES user_diagrams (id) ON DELETE CASCADE,
+  field VARCHAR(32) NOT NULL,
+  mxcell_id VARCHAR(128),
+  old_value TEXT,
+  new_value TEXT NOT NULL,
+  actor_username VARCHAR(128) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ix_cost_audit_event_diagram_created
+  ON cost_audit_event (diagram_id, created_at DESC);
+
+COMMENT ON TABLE diagram_cost IS 'C1: per-diagram pricing region and monthly budget';
+COMMENT ON TABLE diagram_cost_line IS 'C1: persisted hours and overrides per mxCell';
+COMMENT ON TABLE pricing_cache IS 'C1: public list price cache (24h TTL in service)';
+COMMENT ON TABLE cost_audit_event IS 'C1: audit trail for overrides and budget';
+
+-- ###########################################################################
 -- C) RBAC: role × story permissions (view / edit / review)
 -- ###########################################################################
 
@@ -274,6 +323,50 @@ INSERT INTO role_permissions (role, story_id, can_view, can_edit, can_review) VA
   ('Security_Reviewer', 'C1', false, false, false),
   ('Platform_Admin', 'C1', true, false, false),
   ('Platform_Owner', 'C1', true, false, false),
+  ('Project_Architect', 'C1h', false, true, false),
+  ('Developer', 'C1h', false, false, false),
+  ('Project_Editor', 'C1h', false, false, false),
+  ('Project_Admin', 'C1h', false, false, false),
+  ('FinOps_Analyst', 'C1h', false, false, false),
+  ('SRE', 'C1h', false, false, false),
+  ('Ops_Lead', 'C1h', false, false, false),
+  ('Platform_Engineer', 'C1h', false, false, false),
+  ('Security_Reviewer', 'C1h', false, false, false),
+  ('Platform_Admin', 'C1h', false, false, false),
+  ('Platform_Owner', 'C1h', false, false, false),
+  ('Project_Architect', 'C1r', false, true, false),
+  ('Developer', 'C1r', false, false, false),
+  ('Project_Editor', 'C1r', false, false, false),
+  ('Project_Admin', 'C1r', false, false, false),
+  ('FinOps_Analyst', 'C1r', false, false, false),
+  ('SRE', 'C1r', false, false, false),
+  ('Ops_Lead', 'C1r', false, false, false),
+  ('Platform_Engineer', 'C1r', false, false, false),
+  ('Security_Reviewer', 'C1r', false, false, false),
+  ('Platform_Admin', 'C1r', false, false, false),
+  ('Platform_Owner', 'C1r', false, false, false),
+  ('Project_Architect', 'C1b', false, false, false),
+  ('Developer', 'C1b', false, false, false),
+  ('Project_Editor', 'C1b', false, true, false),
+  ('Project_Admin', 'C1b', false, false, false),
+  ('FinOps_Analyst', 'C1b', false, true, false),
+  ('SRE', 'C1b', false, false, false),
+  ('Ops_Lead', 'C1b', false, false, false),
+  ('Platform_Engineer', 'C1b', false, false, false),
+  ('Security_Reviewer', 'C1b', false, false, false),
+  ('Platform_Admin', 'C1b', false, false, false),
+  ('Platform_Owner', 'C1b', false, false, false),
+  ('Project_Architect', 'C1o', false, false, false),
+  ('Developer', 'C1o', false, false, false),
+  ('Project_Editor', 'C1o', false, false, false),
+  ('Project_Admin', 'C1o', false, false, false),
+  ('FinOps_Analyst', 'C1o', false, true, false),
+  ('SRE', 'C1o', false, false, false),
+  ('Ops_Lead', 'C1o', false, false, false),
+  ('Platform_Engineer', 'C1o', false, false, false),
+  ('Security_Reviewer', 'C1o', false, false, false),
+  ('Platform_Admin', 'C1o', false, false, false),
+  ('Platform_Owner', 'C1o', false, false, false),
   ('Project_Architect', 'C2', true, false, false),
   ('Developer', 'C2', false, false, false),
   ('Project_Editor', 'C2', true, false, false),
@@ -521,7 +614,7 @@ COMMIT;
 
 -- 驗證範例：
 -- \dt
--- SELECT count(*) FROM role_permissions;           -- 308
+-- SELECT count(*) FROM role_permissions;           -- 352
 -- SELECT username, role FROM users WHERE username = 'admin';
 -- SELECT count(*) FROM user_diagrams;
 -- SELECT count(*) FROM diagram_shares;
