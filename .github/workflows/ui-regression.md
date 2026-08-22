@@ -86,6 +86,18 @@ pre-agent-steps:
     with:
       path: ~/.cache/ms-playwright
       key: ${{ runner.os }}-ms-playwright-${{ hashFiles('frontend/package-lock.json') }}
+      # The exact key is the whole lockfile, so ANY dependency bump invalidates
+      # it — but the browser binaries only track the Playwright version, not the
+      # other ~207 packages. That is not theoretical: `ut` and PR #523 produced
+      # two different hashes within the same hour because b8d69a6 touched the
+      # lockfile in between, wasting the freshly seeded cache.
+      #
+      # The prefix fallback restores whatever browser directory exists on a near
+      # miss; `playwright install` then downloads only what is missing (nothing,
+      # when the Playwright version is unchanged). Cost: the directory can
+      # accumulate superseded browser builds — Playwright ignores versions it
+      # does not need, so this is disk, not correctness.
+      restore-keys: ${{ runner.os }}-ms-playwright-
 
   - name: Install Playwright and browsers
     working-directory: frontend
