@@ -48,11 +48,15 @@ pre-agent-steps:
     env:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-    # Baseline 56s. Pulls base images from an external registry, so it carries
-    # the same stall exposure as the browser download. 15m is ~16x headroom.
+    # Two observed samples: 56s (warm layer cache) and 3m18s (cold, on a fresh
+    # branch) — 3.5x spread, the widest of any step here, because it pulls base
+    # images from an external registry. 20m is ~6x the slow sample; 15m would
+    # have been only 4.5x, and a spurious red on a legitimately slow build is
+    # the same pathology this whole change is fixing (a gate people learn to
+    # ignore). Erring high still fails 18x faster than the 360m default.
     run: |
-      timeout 15m docker compose -f deploy/docker-compose.test.yml up -d --build || {
-        echo "docker compose up exceeded 15m (or failed); see exit code above" >&2
+      timeout 20m docker compose -f deploy/docker-compose.test.yml up -d --build || {
+        echo "docker compose up exceeded 20m (or failed); see exit code above" >&2
         exit 1
       }
 
