@@ -204,9 +204,15 @@ def reverse_pr_triggered(workflows, glob, base="ut"):
 # 就是那個決定。
 #
 # **範圍限於四支承載體**（與本檔其餘檢查同一個 GH_AW_CARRIERS）。本 repo 另有 7 支
-# gh-aw workflow 目前也都是 v0.81.6，同樣暴露在這個風險上，但它們不是 U-10b 的交付物
+# gh-aw workflow 當時也都是 v0.81.6，同樣暴露在這個風險上，但它們不是 U-10b 的交付物
 # ——擴大到 11 支是獨立決定，登錄於 ci-pipeline 的 `quality-gates.md`。
-PINNED_COMPILER_VERSION = "v0.81.6"
+#
+# 2026-09-06：`ut` 已在 PR #532「建置(ci): gh-aw 由 v0.81.6 升級至 v0.86.2 並重新編譯全部
+# workflow」**明講地**完成那次升級（11 支全部重編，四支承載體在內）；本分支併入 `ut` 後，
+# 四支 lock 以 v0.86.2 對合併後的 `.md` 重編。本常數改為同值——這一行 diff 就是上文所說
+# 「必須被明講的決定」的紀錄；上文列出的 action SHA 與映像差異已由 #532 承擔審查，
+# 不是夾帶在本 PR 裡。
+PINNED_COMPILER_VERSION = "v0.86.2"
 
 # lock 首行 metadata 註解的前綴。**按名字到 agentic-tokens.json 取，不寫字面值**——
 # 那個前綴含 R-1.2 的被禁字樣，而本檔在掃描面上（`aidlc-sync-selftest.yml` job fixtures

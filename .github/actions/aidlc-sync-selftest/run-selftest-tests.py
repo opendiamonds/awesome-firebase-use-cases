@@ -255,7 +255,8 @@ def synth_workflows(root: Path, *, logical=("forward", "reconcile", "reverse", "
 # PINNED_COMPILER_VERSION 推導**：從那裡推導的話，有人改了那個常數，合成樹會跟著改，
 # 兩邊一起漂移而 baseline 照樣綠。寫死之後，改常數會讓 baseline 紅——那正是我們要的
 # 提醒（與下方 EXPECTED_CARRIERS 是同一條紀律）。
-SYNTH_LOCK_COMPILER = "v0.81.6"
+# 2026-09-06：釘值隨 `ut` 的 PR #532 升為 v0.86.2，本常數同步改為同值（刻意的兩行 diff）。
+SYNTH_LOCK_COMPILER = "v0.86.2"
 
 
 def synth_carriers(root: Path, *, ci_ignore=True, md_ignore=True, lock_ignore=True,
@@ -2392,7 +2393,7 @@ def test_the_real_repo_state_is_what_we_say_it_is() -> None:
         "\n    (2) 有人在 gh-aw 的 `.md` **增刪了這一條 glob** 卻沒有重新編譯"
         "\n        `.lock.yml` ⇒ GitHub 跑的是 lock，排除實際上沒生效而且不會有任何"
         "\n        錯誤訊息（`open-items.md` 的 N:M-5）。對應的失敗代號是"
-        "\n        COMPILED:<名稱>。重編要用**釘住的** gh-aw v0.81.6（＝ repo 內四支"
+        "\n        COMPILED:<名稱>。重編要用**釘住的** gh-aw v0.86.2（＝ repo 內四支"
         "\n        lock 的 compiler_version），不是本機較新的 `gh aw`——版本不同會把"
         "\n        action SHA 與容器映像的供應鏈升級一起夾帶。"
         "\n        **這一條偵測不到一般性的 lock 過期。** COMPILED: 的判定式是"

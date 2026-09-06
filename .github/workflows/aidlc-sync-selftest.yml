@@ -88,6 +88,9 @@ on:
       - 'scripts/validate_repo_contract.py'
       - 'scripts/validate_env_contract.py'
       - 'backend/scripts/dump_openapi.py'
+      # 併入 `ut`（PR #508）後多了 `aidlc-sync-pull.yml`：它落在 R-1.2 的種子 glob 內，
+      # 其 `run:` 直接呼叫的這一支因此也在掃描面上（COVERAGE-2 於 2026-09-06 實測紅燈）。
+      - 'scripts/aidlc_sync_pull.py'
   # [US:S-10] 的可展示性需要手動觸發。第一段不碰網路也不用憑證，多按幾次沒有副作用；
   # 第二段有 `if:` 把關，缺憑證或缺測試 Project 時整段跳過。
   workflow_dispatch:
