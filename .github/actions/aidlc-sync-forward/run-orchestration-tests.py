@@ -786,6 +786,76 @@ def test_r5_12_a_write_status_aborted_writes_nothing() -> None:
     check("R-5.12-a：Aborted 不紅燈（錯誤表）", r.rc, 0)
 
 
+def test_r5_7a_first_write_retries_once_with_board_default() -> None:
+    """@purpose R-5.7a：**首寫**（expected 為空＝機制從未寫入）撞到看板自動化給的預設 Status 而 Aborted 時，以回讀到的 actual 為 expected **重試一次**，鏈照常走完。Project #16 實測：item 加入即為 Backlog，沒有這條 260816-production-path-check 首建後每輪 Aborted、永遠寫不進第一筆 Status。
+    @given 無綁定的新 intent（首建）；write_status 第一次回 aborted、actual=Backlog，第二次回 written
+    @step 跑一輪 | write_status 恰兩次：第一次 expected=''、第二次 expected=Backlog
+    @step 檢視鏈 | write_field／render／write_body／read_item／write_sync_state 照走，零 Aborted 通報
+    @pass 首寫不再被看板預設值卡死，且例外只用掉一次重試
+    @story S-1
+    """
+    plan = {
+        "map": {"outputs": {"status": "Ready", "field_value": "intent-capture (260899-alpha)",
+                            "reason_code": "mapped", "traceable_row": "R-3.6 no-in-scope-stage-touched",
+                            "scope_note": "skipped-in-scope: none; out-of-scope: none"}},
+        "board:write_status#1": {"outputs": {"result": "aborted", "actual_status": "Backlog",
+                                             "expected_status": "", "message": "write_status：回讀不符"}},
+        "board:write_status#2": {"outputs": {"result": "written", "actual_status": "Backlog",
+                                             "expected_status": "Backlog", "message": ""}},
+    }
+    r = run_round(plan=plan)
+    ws = r.of("board", "write_status")
+    check("R-5.7a：write_status 恰兩次", len(ws), 2)
+    check("R-5.7a：第一次 expected 為空（首寫）", ws[0]["env"].get("AIDLC_EXPECTED_STATUS") if ws else None, "")
+    check("R-5.7a：第二次 expected 取回讀到的 actual",
+          ws[1]["env"].get("AIDLC_EXPECTED_STATUS") if len(ws) > 1 else None, "Backlog")
+    check("R-5.7a：兩次 desired 相同", [w["env"].get("AIDLC_DESIRED_STATUS") for w in ws], ["Ready", "Ready"])
+    check("R-5.7a：鏈照常走完（write_field）", len(r.of("board", "write_field")), 1)
+    check("R-5.7a：鏈照常走完（write_sync_state）", len(r.of("record", "write_sync_state")), 1)
+    check("R-5.7a：零 Aborted 通報",
+          len([n for n in r.of("notify", "notify") if n["env"].get("AIDLC_REASON_CODE") == "Aborted"]), 0)
+    check("R-5.7a：不紅燈", r.rc, 0)
+
+
+def test_r5_7a_retry_is_bounded_to_first_write() -> None:
+    """@purpose R-5.7a 的邊界：例外**只**在 expected 為空且 actual 非空時成立一次。(a) 已寫過（expected 非空）的 Aborted 不重試——那正是 R-5.7 要守的人為變更；(b) 首寫但 actual 為空（item 不在板上）不重試——沒有寫入對象，重試只會再 Aborted；(c) 重試仍 Aborted 就照 R-5.12 中止，不第三次。
+    @given 三個 intent 各對應上述一種情境
+    @step 跑一輪 | (a) 與 (b) 各恰一次 write_status；(c) 恰兩次
+    @step 檢視通報 | 三者皆 Aborted 通報一次、零回寫
+    @pass 例外不會退化成「回讀比對恆真」
+    @story S-3
+    """
+    plan = {
+        "record:read_sync_state@260899-alpha": {"outputs": {
+            "state_json": state_of({"binding": 12, "last_status": "Ready",
+                                    "last_reason_code": "parked"}), "binding": "12"}},
+        "board:write_status@12": {"outputs": {"result": "aborted", "actual_status": "Done",
+                                              "message": "回讀不符"}},
+        "record:read_sync_state@260899-beta": {"outputs": {
+            "state_json": state_of({"binding": 13, "last_status": None,
+                                    "last_reason_code": "parked"}), "binding": "13"}},
+        "board:write_status@13": {"outputs": {"result": "aborted", "actual_status": "",
+                                              "message": "不在板上"}},
+        "record:read_sync_state@260899-gamma": {"outputs": {
+            "state_json": state_of({"binding": 14, "last_status": None,
+                                    "last_reason_code": "parked"}), "binding": "14"}},
+        "board:write_status@14": {"outputs": {"result": "aborted", "actual_status": "Backlog",
+                                              "message": "回讀不符"}},
+    }
+    r = run_round(plan=plan, registry=[{"dirName": "260899-alpha"}, {"dirName": "260899-beta"},
+                                       {"dirName": "260899-gamma"}])
+    by = {}
+    for w in r.of("board", "write_status"):
+        by.setdefault(w["qual"], []).append(w["env"].get("AIDLC_EXPECTED_STATUS"))
+    check("(a) 已寫過者 Aborted 不重試", by.get("12"), ["Ready"])
+    check("(b) 首寫但 item 不在板上不重試", by.get("13"), [""])
+    check("(c) 首寫重試一次、仍 Aborted 不第三次", by.get("14"), ["", "Backlog"])
+    ns = [n for n in r.of("notify", "notify") if n["env"].get("AIDLC_REASON_CODE") == "Aborted"]
+    check("三者皆通報 Aborted 一次", len(ns), 3)
+    check("零回寫", len(r.of("record", "write_sync_state")), 0)
+    check("Aborted 不紅燈", r.rc, 0)
+
+
 def test_r5_12_e_skipped_write_status_does_not_claim_last_status() -> None:
     """@purpose R-5.10 (a) 跳過 write_status 時，**last_written_status 不得被回寫**（看板 Status 一個字都沒動，回寫就是宣稱一次沒發生的寫入）；但 **last_status 照常回寫**——它記的是「這一輪的判定」，null 也是判定，不寫它 R-5.2 的比對永遠不回零、每輪重跑整條寫入鏈（reviewer iteration 2 Critical）。
     @given 已綁定 intent，判定為 suppressed（status 為 null，走 R-5.10 (a)）
@@ -1306,6 +1376,8 @@ STEPS = [
     test_r5_10a_null_status_skips_write_status_only,
     test_q1_undecidable_skips_write_field,
     test_r5_12_a_write_status_aborted_writes_nothing,
+    test_r5_7a_first_write_retries_once_with_board_default,
+    test_r5_7a_retry_is_bounded_to_first_write,
     test_r5_12_b_write_field_failed_keeps_field_value,
     test_r5_12_c_write_body_failed_keeps_hash_and_synced_at,
     test_r5_12_d_readback_external_error_writes_nothing,

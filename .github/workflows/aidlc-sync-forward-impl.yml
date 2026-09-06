@@ -545,8 +545,11 @@ jobs:
               # **接著往下走寫入鏈**：[US:S-1 AC 1] 逐字要求「新 intent 的 record
               # 首次被推送，When 同步執行，Then …其 Status 欄位值為 Ready」——
               # 同一輪內既要出現 item 也要有 Status。此時 SyncState 三欄皆為 null，
-              # 三欄比對必然判有漂移，寫入鏈自然啟動；expected 為空字串正好等於
-              # 「期望未設值」，與剛建好的 item 相符。
+              # 三欄比對必然判有漂移，寫入鏈自然啟動；expected 為空字串等於
+              # 「期望未設值」——**前提是看板不會自己給新 item 設 Status**。
+              # Project #16 實測（2026-09-06）不是這樣：item 加入即被看板自動化設為
+              # Backlog，首寫的回讀比對因此 Aborted，且因 SyncState 永遠記不到第一筆
+              # 成功寫入，每一輪都重演。這個情境由下方 R-5.7a 的一次重試涵蓋。
             fi
 
             # ---- R-5.2 ∪ R-5.6：寫入理由判定 --------------------------------
@@ -603,30 +606,50 @@ jobs:
               # 內部的回讀比對恆真、[req:FR-C3] 的守門變成死碼（iteration 3 C-1）。
               # 三欄之中只有 last_status 跨得過介面：U-3 的 write_status 依其
               # Plan Approval 定案只比對 Status 欄位。
-              out="$(next_out)"
-              AIDLC_OPERATION=write_status AIDLC_BINDING="$binding" \
-              AIDLC_EXPECTED_STATUS="$last_written_status" AIDLC_DESIRED_STATUS="$dec_status" \
-              GITHUB_OUTPUT="$out" bash "$BOARD_SH"
-              rc=$?
-              if [ "$rc" -ne 0 ]; then
-                # ExternalError：看板可能一個字都沒動，也可能動了但我們不知道。
-                # R-5.12 第一種：**完全不回寫**。
-                ROUND_RED=1
-                echo "::error::${intent_id}：write_status 外部錯誤（rc=${rc}）"
-                notify_failure "$intent_id" "ExternalError" "forward-sync/write_status" \
-                  "write_status 失敗（rc=${rc}）：$(out_get "$out" message)"
-                [ "$state_dirty" -eq 1 ] && push_state "$intent_id" "$record_path"
-                return 0
-              fi
-              if [ "$(out_get "$out" result)" = "aborted" ]; then
+              #
+              # R-5.7a（首寫例外，2026-09-06 實測補入）：expected 為空代表 SyncState
+              # 從未記錄過一次成功的 Status 寫入——R-5.7 守的是「我上次寫入**之後**
+              # 有沒有人動過」，首寫前沒有「上次寫入」可守。此時回讀到的非空 actual
+              # 來自看板自動化（Project #16：item 加入即為 Backlog），不是人為變更；
+              # 以它為 expected **重試一次**，重試仍 Aborted 則照 R-5.12 處置。這不是
+              # iteration 2 那種「改取當下 read_item」：例外只在從未寫入時成立一次，
+              # 首寫成功後 last_written_status 就有值，R-5.7 全額生效。
+              expected_status="$last_written_status"
+              ws_attempt=1
+              while :; do
+                out="$(next_out)"
+                AIDLC_OPERATION=write_status AIDLC_BINDING="$binding" \
+                AIDLC_EXPECTED_STATUS="$expected_status" AIDLC_DESIRED_STATUS="$dec_status" \
+                GITHUB_OUTPUT="$out" bash "$BOARD_SH"
+                rc=$?
+                if [ "$rc" -ne 0 ]; then
+                  # ExternalError：看板可能一個字都沒動，也可能動了但我們不知道。
+                  # R-5.12 第一種：**完全不回寫**。
+                  ROUND_RED=1
+                  echo "::error::${intent_id}：write_status 外部錯誤（rc=${rc}）"
+                  notify_failure "$intent_id" "ExternalError" "forward-sync/write_status" \
+                    "write_status 失敗（rc=${rc}）：$(out_get "$out" message)"
+                  [ "$state_dirty" -eq 1 ] && push_state "$intent_id" "$record_path"
+                  return 0
+                fi
+                if [ "$(out_get "$out" result)" != "aborted" ]; then
+                  break
+                fi
+                ws_actual="$(out_get "$out" actual_status)"
+                if [ "$ws_attempt" -eq 1 ] && [ -z "$expected_status" ] && [ -n "$ws_actual" ]; then
+                  echo "${intent_id}: 首寫前回讀到 Status='${ws_actual}'（機制從未寫入，無「上次寫入」可守；視為看板自動化的預設值）→ 以它為 expected 重試一次（R-5.7a）"
+                  expected_status="$ws_actual"
+                  ws_attempt=2
+                  continue
+                fi
                 # R-5.12 第一種的另一半：Aborted ⇒ 看板一個字都沒動（U-3 明文
                 # 「不送出寫入」）⇒ 完全不回寫、鏈中止。不紅燈（錯誤表）。
-                echo "${intent_id}: write_status 回 aborted（actual='$(out_get "$out" actual_status)' expected='$last_written_status'）→ 鏈中止、完全不回寫"
+                echo "${intent_id}: write_status 回 aborted（actual='${ws_actual}' expected='${expected_status}'）→ 鏈中止、完全不回寫"
                 notify_failure "$intent_id" "Aborted" "forward-sync/write_status" \
                   "$(out_get "$out" message)"
                 [ "$state_dirty" -eq 1 ] && push_state "$intent_id" "$record_path"
                 return 0
-              fi
+              done
               status_written=1
             else
               # R-5.10 (a)：status 為 null（parked／suppressed／undecidable）⇒

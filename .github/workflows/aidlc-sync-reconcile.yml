@@ -66,7 +66,14 @@ jobs:
       record_root: aidlc/spaces/default/intents
       # [req:FR-J5]／[US:S-3 AC 6]：已知的結構性例外須以白名單明列。與 U-6 同值。
       whitelist: 260802-default
-      field_max_length: "50"
+      # 2026-09-06 由 50 改為 80。50 是 [US-OQ-4] 定案的預設值，實測把
+      # `skipped feedback-optimization (260802-last-login-column)`（56 字）截成
+      # `skipped feedback-optimi (260802-last-login-column)`，讀起來像壞掉。現有
+      # 最長合法組合實算：前綴 `parked @ `（9）＋最長 stage slug
+      # `environment-provisioning`（24）＋` (`＋最長 record 編號
+      # `260816-production-path-check`（28）＋`)` ＝ 64，80 讓全部現有組合不截斷；
+      # U-1 的 R-5 截斷規則維持為超長時的保底。兩個薄外層必須同值。
+      field_max_length: "80"
       # R-7.2：從 `ut` 分叉的自建分支，比照 U-8 的 `aidlc-sync/reverse/*` 形狀。
       # 實際分支為 aidlc-sync/reconcile/<YYYY-MM-DD>。
       # **這個分支目前沒有合併回 `ut` 的路徑**——見 impl 的 push_state 註解與交還

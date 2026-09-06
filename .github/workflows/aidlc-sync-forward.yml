@@ -55,7 +55,14 @@ jobs:
       # 的驗收判準逐字「白名單中列有 260802-default」。實測（map.sh 對該 record）
       # 確認它今日即回 reason_code=whitelisted，會走 R-3.0 的排除路徑。
       whitelist: 260802-default
-      field_max_length: "50"
+      # 2026-09-06 由 50 改為 80。50 是 [US-OQ-4] 定案的預設值，實測把
+      # `skipped feedback-optimization (260802-last-login-column)`（56 字）截成
+      # `skipped feedback-optimi (260802-last-login-column)`，讀起來像壞掉。現有
+      # 最長合法組合實算：前綴 `parked @ `（9）＋最長 stage slug
+      # `environment-provisioning`（24）＋` (`＋最長 record 編號
+      # `260816-production-path-check`（28）＋`)` ＝ 64，80 讓全部現有組合不截斷；
+      # U-1 的 R-5 截斷規則維持為超長時的保底。兩個薄外層必須同值。
+      field_max_length: "80"
     secrets:
       # ADR-0016 §1：擁有者帳號 token，scope 為 project ＋ repo。
       # `project.md ## Mandated` 要求實地查證它落在 secrets 而非 variables——本 repo
