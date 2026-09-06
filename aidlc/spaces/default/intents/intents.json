@@ -32,5 +32,12 @@
     "dirName": "260816-production-path-check",
     "scope": "bugfix",
     "status": "complete"
+  },
+  {
+    "uuid": "01a02bca-9920-7d25-bcac-1c67e36d0462",
+    "slug": "gh-projects-sync",
+    "dirName": "260822-gh-projects-sync",
+    "scope": "aidlc-github-projects-sync",
+    "status": "complete"
   }
 ]

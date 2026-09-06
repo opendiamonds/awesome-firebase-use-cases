@@ -151,6 +151,11 @@ class MeResponse(BaseModel):
     authorization_status: str
     permissions: Dict[str, dict]
     pending_request: Optional[dict] = None
+    # 規格 §4.1.2 要求 /me 帶出此欄位。欄位本身早已存在（models.py 的 User
+    # 欄、database.py 的補欄、collab_router 的讀寫），只有這個回應模型漏掉，
+    # 所以 spec-sync 把它報成漂移（#468）。可為 null：使用者尚未開過任何圖，
+    # 或原圖已被刪除（外鍵為 ON DELETE SET NULL）。
+    last_opened_diagram_id: Optional[int] = None
 
 
 class UpdateRoleRequest(BaseModel):
@@ -427,6 +432,7 @@ def get_me(
             db, current_user.role, authorization_status=status_val
         ),
         "pending_request": pending,
+        "last_opened_diagram_id": current_user.last_opened_diagram_id,
     }
 
 

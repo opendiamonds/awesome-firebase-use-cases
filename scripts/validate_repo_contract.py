@@ -95,6 +95,11 @@ REQUIRED_TEXT = {
         "Cloud Security Posture",
         "human approval gate",
         "MCP & Skill Management",
+        # U-11（intent 260822-gh-projects-sync）：README 的需求正本指路段落。
+        # 在此登錄之前，刪掉整段不會讓任何檢查變紅——本段是該 intent 對外唯一的
+        # 「需求正本在哪」宣告，沒有斷言等於沒有交付。
+        "Requirements Source",
+        "https://github.com/users/opendiamonds/projects/16",
     ),
     "CLAUDE.md": (
         "AIDLC",
